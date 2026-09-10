@@ -18,3 +18,6 @@ Thumbs.db
 
 # Claude Code working state
 .claude/worktrees/
+
+# Vendored archives: extracted contents are committed, digests are in third_party/MANIFEST.md
+third_party/*.zip

@@ -13,3 +13,8 @@
 # Generated layout files and fixed-column datasets are byte-sensitive.
 *.cpy   text eol=lf
 *.jcl   text eol=lf
+
+# Vendored third-party sources are stored byte-for-byte as shipped upstream.
+# D-35 and third_party/MANIFEST.md both claim this tree matches the released
+# archive exactly; normalising line endings would silently make that false.
+third_party/** -text
