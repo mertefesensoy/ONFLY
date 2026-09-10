@@ -1,0 +1,46 @@
+{
+  "already_aggregated_upstream": true,
+  "connectome_rows": 151856684,
+  "connectome_synapses": 311833243,
+  "decisions": [
+    "D-54",
+    "D-55",
+    "D-56"
+  ],
+  "distinct_postsynaptic_kept": 183971,
+  "distinct_presynaptic_kept": 162894,
+  "dropped_by_nt": {
+    "dopamine": 243358,
+    "octopamine": 149420,
+    "serotonin": 45794,
+    "unclear": 814328
+  },
+  "excitatory_pairs": 14875726,
+  "excitatory_synapses": 73861957,
+  "excluded_modulatory": [
+    "dopamine",
+    "octopamine",
+    "serotonin"
+  ],
+  "inhibitory_pairs": 9899760,
+  "inhibitory_synapses": 47719776,
+  "mapping": {
+    "acetylcholine": 1,
+    "gaba": -1,
+    "glutamate": -1,
+    "histamine": -1
+  },
+  "pairs_dropped_no_sign": 1252900,
+  "pairs_kept": 24775486,
+  "percent_of_connectome_synapses_kept": 38.989,
+  "scope_neuron_to_neuron": {
+    "limit": "VL-13",
+    "percent_discarded": 59.797,
+    "percent_of_synapses": 40.203,
+    "rows": 26028386,
+    "synapses": 125365933,
+    "synapses_discarded": 186467310
+  },
+  "synapses_dropped_no_sign": 3784200,
+  "synapses_kept": 121581733
+}
