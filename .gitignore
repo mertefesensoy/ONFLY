@@ -1,0 +1,20 @@
+# Build output
+build/
+*.o
+*.obj
+*.exe
+*.a
+*.lib
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# Claude Code working state
+.claude/worktrees/

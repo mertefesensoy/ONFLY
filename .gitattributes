@@ -1,0 +1,15 @@
+# ONFLY: byte-exactness is a requirement (FR-PRP-09, IR-NET-01, ACC-5).
+# Git must never rewrite line endings or "fix" content in this repository.
+* text=auto eol=lf
+
+# Binary artifacts: never touched.
+*.docx  binary
+*.bin   binary
+*.dat   binary
+*.net   binary
+*.tape  binary
+*.aws   binary
+
+# Generated layout files and fixed-column datasets are byte-sensitive.
+*.cpy   text eol=lf
+*.jcl   text eol=lf
