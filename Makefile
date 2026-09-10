@@ -65,7 +65,7 @@ ONFSF = softfloat/onfrpk.c softfloat/onfflag.c softfloat/onfsub.c
 GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
             generated/onfcom_py.py generated/onfnhd.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden tt02 testfloat c04 prep
+.PHONY: all test generate lint clean units layout fp kernel decode golden tt02 testfloat c04 prep runner
 
 all: test
 
@@ -87,7 +87,7 @@ softfloat/onfsub.c: softfloat/derive.py
 # excluded by design; it is the only file in ONFLY allowed to name `double`.
 lint: $(GENERATED)
 	$(PYTHON) tools/lint_nr05.py --exclude engine/src/onffpn.c \
-	  engine generated softfloat tests
+	  engine generated softfloat tests tools
 
 $(BUILD):
 	$(PYTHON) -c "import os; os.path.isdir('$(BUILD)') or os.makedirs('$(BUILD)')"
@@ -212,6 +212,17 @@ tt02: $(BUILD) softfloat/onfsub.c
 # data and skip cleanly when that data has not been retrieved.
 prep:
 	$(PYTHON) tests/test_signs.py
+
+# --- FR-PRP-04: the full-brain runner --------------------------------------
+# Built as part of the project rather than by hand, so it cannot drift from
+# the engine it exercises.  Not part of `test`: a full-brain run takes
+# minutes, and the engine itself is already covered by the kernel and golden
+# suites.  Driven by tools/fullbrain.sh for the D-63 protocol.
+runner: $(BUILD) $(GENERATED)
+	$(CC) $(CFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/runnet.exe \
+	  tools/runnet.c engine/src/onfdec.c engine/src/onfcrc.c \
+	  engine/src/onffpc.c engine/src/onffpn.c engine/src/onfker.c \
+	  engine/src/onfrnd.c engine/src/onfstm.c
 
 test: lint c04 layout units fp kernel decode golden tt02 prep
 	@echo "ONFLY: NR-05 + C-04 lints, TT-02, TU-01..TU-07, kernel, TE-01..TE-08, ACC-5 golden suite and TP-01 all passed"

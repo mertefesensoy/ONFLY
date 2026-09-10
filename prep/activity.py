@@ -78,17 +78,28 @@ def main():
         n_neurons = int(meta.get("n", n_neurons or 0))
         for idx, (s, _first) in spikes.items():
             totals[idx] = totals.get(idx, 0) + s
+        # runnet reported "seconds" until the NR-05 fix removed its use of
+        # double; it reports integer "elapsed_ms" now.  Both spellings are
+        # accepted so runs made either side of that change still aggregate,
+        # rather than silently reporting zero elapsed time.
+        if "elapsed_ms" in meta:
+            elapsed_ms = int(meta["elapsed_ms"])
+        elif "seconds" in meta:
+            elapsed_ms = int(round(float(meta["seconds"]) * 1000))
+        else:
+            elapsed_ms = 0
+
         per_rate[rate] = {
             "spikes": int(meta.get("spikes", 0)),
             "active": int(meta.get("active", 0)),
-            "seconds": float(meta.get("seconds", 0.0)),
+            "elapsed_ms": elapsed_ms,
             "steps": int(meta.get("steps", 0)),
             "readouts": [{"neuron": n, "spikes": s, "first_us": fu}
                          for n, s, fu in readouts],
         }
-        print("  %-24s rate=%-4d spikes=%-8s active=%-7s %ss"
+        print("  %-24s rate=%-4d spikes=%-8s active=%-7s %d ms"
               % (name, rate, meta.get("spikes"), meta.get("active"),
-                 meta.get("seconds")))
+                 elapsed_ms))
 
     if not per_rate:
         sys.stderr.write("no complete runs yet\n")

@@ -169,10 +169,16 @@ int main(int argc, char **argv)
             active++;
         }
     }
+    /* Elapsed time is reported in whole milliseconds, computed with integer
+       arithmetic.  NR-05 forbids floating-point types in engine code, and there
+       is no reason for a tool that links the engine to introduce one merely to
+       print a duration: an exception granted for convenience is an exception
+       somebody later copies into a place where it matters. */
     printf("RUN rate=%ld ms=%ld steps=%ld seed=%lu rc=%d "
-           "spikes=%ld active=%ld seconds=%.2f\n",
+           "spikes=%ld active=%ld elapsed_ms=%ld\n",
            (long)rate, (long)simms, (long)steps, (unsigned long)seed, rc,
-           total, active, (double)(t1 - t0) / (double)CLOCKS_PER_SEC);
+           total, active,
+           (long)((t1 - t0) / (clock_t)(CLOCKS_PER_SEC / 1000)));
 
     for (i = 0; i < net.nr; i++) {
         onf_i32 nix = (onf_i32)net.readout[i];
