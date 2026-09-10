@@ -621,8 +621,32 @@
     "neurons": 2,
     "type": "MN9"
   },
-  "status": "AWAITING OWNER APPROVAL (FR-PRP-02, TBC-03)",
-  "stimulus_set": null,
+  "status": "APPROVED by the owner, decision D-52 (FR-PRP-02, TBC-03 closed)",
+  "stimulus_set": {
+    "bodyIds": [
+      55883,
+      75730,
+      129802,
+      146047,
+      152432,
+      170947,
+      182830,
+      192172,
+      202063,
+      246432,
+      426555,
+      902216,
+      104018476,
+      274780241
+    ],
+    "caveat": "Pharyngeal and taste-peg, not labellar. Shiu et al. stimulate labellar sugar GRNs, so the two protocols excite different sensory populations (VL-12).",
+    "decision": "D-52",
+    "neurons": 14,
+    "types": [
+      "PhG9",
+      "dorsal_tpGRN"
+    ]
+  },
   "sugar_pathway_marker": {
     "bodyIds": [
       11740,
