@@ -65,7 +65,7 @@ ONFSF = softfloat/onfrpk.c softfloat/onfflag.c softfloat/onfsub.c
 GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
             generated/onfcom_py.py generated/onfnhd.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode
+.PHONY: all test generate lint clean units layout fp kernel decode golden
 
 all: test
 
@@ -148,8 +148,32 @@ decode: $(BUILD) $(GENERATED)
 	  engine/src/onfrnd.c engine/src/onfstm.c
 	$(PYTHON) tests/run_dec.py $(BUILD)/tstdec.exe
 
-test: lint layout units fp kernel decode
-	@echo "ONFLY: lint + TU-01..TU-07 + kernel + TE-01..TE-08 all passed"
+# --- ACC-5: the golden request suite (SRS 8.4) ---------------------------
+# Runs all thirteen golden requests through validate, simulate and
+# fingerprint on both backends, checks every fingerprint against the
+# oracle, then requires the two backends to agree.  That is rows 1, 2 and 3
+# of the Section 8.3 determinism matrix.  Rows 4 to 8 need Linux s390x,
+# MVS 3.8j and z/OS and cannot run on this host.
+#
+# The durations come from D-37 and D-42 and are PROVISIONAL: TBD-06 is open
+# and Gate G3 fixes the real values.  Changing one changes every
+# fingerprint, so these are not yet reference values.
+golden: $(BUILD) $(GENERATED) softfloat/onfsub.c
+	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstgld_soft.exe \
+	  tests/tstgld.c engine/src/onfdec.c engine/src/onfcrc.c \
+	  engine/src/onffpc.c engine/src/onffps.c engine/src/onfker.c \
+	  engine/src/onfrnd.c engine/src/onfstm.c engine/src/onffpr.c \
+	  $(SFSRCS) $(ONFSF)
+	$(PYTHON) tests/run_gld.py $(BUILD)/tstgld_soft.exe
+	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/tstgld_nat.exe \
+	  tests/tstgld.c engine/src/onfdec.c engine/src/onfcrc.c \
+	  engine/src/onffpc.c engine/src/onffpn.c engine/src/onfker.c \
+	  engine/src/onfrnd.c engine/src/onfstm.c engine/src/onffpr.c
+	$(PYTHON) tests/run_gld.py $(BUILD)/tstgld_nat.exe
+	$(PYTHON) tools/cmpgld.py $(BUILD)/tstgld_soft.exe $(BUILD)/tstgld_nat.exe
+
+test: lint layout units fp kernel decode golden
+	@echo "ONFLY: lint + TU-01..TU-07 + kernel + TE-01..TE-08 + ACC-5 golden suite all passed"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"

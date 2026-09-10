@@ -181,3 +181,36 @@ def _check_net():
     assert dict((f[0], f[2]) for f in NETHDR)["hdrcrc"] == NETHDR_CRC_COVERS,         "the header CRC must sit immediately after the bytes it covers"
 
 _check_net()
+
+
+# ---------------------------------------------------------------------------
+# Stimulus codes and their numeric IDs (FR-BAT-05, IR-COM-05, decision D-39).
+#
+# IR-COM-05 requires the fingerprint to carry a *numeric* stimulus ID.  The
+# codes themselves are text, and text is deliberately excluded from the
+# fingerprint because the same characters have different bytes on ASCII and
+# EBCDIC hosts -- which is exactly what would break ACC-5 determinism.
+#
+# 0 is reserved for an unrecognised code so that a request record zeroed by a
+# truncated transfer cannot masquerade as a valid SUGR request.
+#
+# Once golden fingerprints are recorded this mapping is frozen: changing it
+# changes every fingerprint.
+# ---------------------------------------------------------------------------
+
+STIM_UNKNOWN = 0
+STIM_CODES = [
+    ("SUGR", 1, "implemented"),
+    ("WATR", 2, "reserved, ONF201W"),
+    ("BITR", 3, "reserved, ONF201W"),
+]
+
+
+def _check_stim():
+    ids = [sid for _c, sid, _n in STIM_CODES]
+    assert STIM_UNKNOWN not in ids, "0 is reserved for an unrecognised code"
+    assert len(set(ids)) == len(ids), "stimulus IDs must be distinct"
+    for code, _sid, _n in STIM_CODES:
+        assert len(code) == 4, "stimulus codes are four characters (IR-COM 4.3)"
+
+_check_stim()

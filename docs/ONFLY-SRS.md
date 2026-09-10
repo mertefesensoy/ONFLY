@@ -499,7 +499,7 @@ ACC-5 is satisfied when each golden request produces the same fingerprint in eve
 | G-09 | SUGR | 120 | Header maximum | 7 | Maximum duration |
 | G-10 | SUGR | 120 | Standard | 0 | Seed-zero mapping (NR-13) |
 | G-11 | WATR | 120 | Standard | 1 | Reserved stimulus, ONF201W |
-| G-12 | XXXX | 120 | Standard | 1 | Unknown stimulus, ONF202E |
+| G-12 | XXXX | 120 | Standard | 1 | Unknown stimulus, ONF203E (corrected from ONF202E by D-41) |
 | G-13 | SUGR | −1 | Standard | 1 | Out-of-range rate, ONF202E |
 
 ### 8.5 Test catalog
@@ -627,6 +627,10 @@ Each decision below was made by the owner during the requirements question round
 | D-36 | Confirmed (promoted from proposal P-07): the Gate G1 record shall state exactly which SoftFloat components were built and tested under GCCMVS, because ONFLY compiles only the binary64 subset | Leave as an unconfirmed proposal in A.2 | Gate G1's scope is now narrower than "SoftFloat 3e builds under GCCMVS". Without this, a future reader would over-read what G1 proved. Extends VL-03 to the soft backend itself |
 | D-37 | The Phase B golden-suite harness uses a **provisional** standard duration of 1000 ms and maximum duration of 5000 ms. TBD-06 stays **open**; Gate G3 still fixes the real values | Provisional 200 ms / 1000 ms; close TBD-06 now at these values; run no golden suite in Phase B | 1000 ms is the figure the Section 7 performance note already reasons about, so S3's measurements will be directly comparable. Recorded as provisional for x86 Phase B only: no result, document or report may quote these as final, because Gate G3 measures Hercules and that measurement has not been made |
 | D-38 | Next increment inside Phase B is the network file format, decoder and integrity checks (IR-NET-01..08, FR-LOD-01..05, TE-01..07) | Response fingerprint first; stop building and consolidate documentation | It is the largest remaining piece of Phase B, is fully specified in the SRS, and needs no open item resolved to begin |
+| D-39 | Numeric stimulus IDs for the response fingerprint (IR-COM-05): **SUGR = 1, WATR = 2, BITR = 3, unrecognised code = 0** | SUGR=0/WATR=1/BITR=2; derive the number from the code's own bytes | IR-COM-05 requires a *numeric* stimulus ID but no section of the SRS assigned one; FR-BAT-05 names the codes only as text. Deriving it from the code bytes was rejected outright because the same code has different bytes on ASCII and EBCDIC hosts, which is the very reason IR-COM-05 excludes text. Reserving 0 for an unrecognised code means a zeroed or truncated request record cannot masquerade as a valid SUGR request. Once golden fingerprints are recorded this mapping is effectively frozen |
+| D-40 | Implement the response fingerprint (IR-COM-05) and the golden-suite harness (SRS 8.4) now, completing Phase B's content list apart from full NR-09 admission | Fingerprint only; record D-39 and stop | The golden suite is the last outstanding item of Phase B in Section 9.2 |
+| D-41 | Appendix E governs: golden request G-12 (unknown stimulus code) expects **ONF203E**, not ONF202E. The owner authorised correcting the Section 8.4 table text | Treat ONF202E as covering both and mark ONF203E unused; leave both texts alone and log an open item | Section 8.4 and Appendix E contradicted each other. ONF203E is defined as UNKNOWN STIMULUS CODE and exists for exactly this case, while ONF202E is REQUEST FIELD OUT OF RANGE and is already exercised by G-13's out-of-range rate. This is the only SRS requirement text changed in this session, and only under this authorisation |
+| D-42 | Golden request G-07's duration, written in Section 8.4 only as "Short", is a **provisional** 100 ms for the x86 Phase B harness | Provisional 10 ms; make it the same as the standard duration | 100 ms is one tenth of D-37's provisional standard. It runs 1000 steps at dt = 0.1 ms, so the 9999 Hz draw path and its NR-12 upper bound are genuinely exercised, while the maximum-rate case does not dominate suite runtime. Provisional alongside D-37; Gate G3 still settles it, and TBD-06 stays open |
 
 ### A.2 Design decisions proposed in this draft
 
@@ -640,6 +644,7 @@ These were introduced by the architect while writing the specification. They are
 | P-04 | One linear update kernel for both integration methods (Appendix C) | The method changes constants, not code |
 | P-05 | Absolute tolerance floors alongside relative tolerances (ACC-3, ACC-4) | Relative tolerances become meaningless near zero firing rates |
 | P-06 | Verify-only mode (IR-TRN-03) | Makes transport spikes and operational checks cheap |
+| P-08 | ONF-RC in the COMMAREA carries the **RC column** of Appendix E (0, 4, 8, 12, 16), not the message number. So a reserved stimulus sets ONF-RC to 4 and an unknown code to 8, while the message identity is reported separately to SYSPRINT | Section 4.3 says only "Return code (Appendix E)", and Appendix E has both a message column and an RC column. The RC column is the one headed "return code" and matches IR-JCL-04's step codes, so this is the direct reading -- but it is the architect's reading, not an owner decision, and it changes every golden fingerprint if wrong. Owner to confirm |
 
 ## Appendix B. Open items
 

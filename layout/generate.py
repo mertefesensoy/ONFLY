@@ -164,6 +164,14 @@ def gen_c_header():
     L.append("void    onfp32(onf_u8 *b, onf_i32 off, onf_i32 v);")
     L.append("void    onfp16(onf_u8 *b, onf_i32 off, onf_i16 v);")
     L.append("")
+    L.append("/* Stimulus codes and numeric IDs (FR-BAT-05, IR-COM-05, D-39).")
+    L.append("   0 is reserved for an unrecognised code, so a request record")
+    L.append("   zeroed by a truncated transfer cannot look like a valid SUGR")
+    L.append("   request. */")
+    L.append("#define ONF_STIM_UNKNOWN %d" % M.STIM_UNKNOWN)
+    for _code, _sid, _note in M.STIM_CODES:
+        L.append("#define ONF_STIM_%-6s %d   /* %s */" % (_code, _sid, _note))
+    L.append("")
     L.append("#endif /* ONFCOM_H */")
     return "\n".join(L) + "\n"
 
@@ -303,6 +311,13 @@ def gen_python():
     L.append("NETHDR = {")
     for name, kind, off, size in M.NETHDR:
         L.append("    %r: (%r, %d, %d)," % (name, kind, off, size))
+    L.append("}")
+    L.append("")
+    L.append("# Stimulus codes and numeric IDs (FR-BAT-05, IR-COM-05, D-39).")
+    L.append("STIM_UNKNOWN = %d" % M.STIM_UNKNOWN)
+    L.append("STIM_IDS = {")
+    for _code, _sid, _note in M.STIM_CODES:
+        L.append("    %r: %d," % (_code, _sid))
     L.append("}")
     L.append("")
     L.append("# Declaration order matters when writing the header.")
