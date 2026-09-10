@@ -7,7 +7,7 @@
 | Phase / gate | Phase B — Engine and oracle (x86), scope set by D-25 |
 | Owner decisions relied on | D-18, D-24 … D-36 |
 | Requirements touched | IR-COM-01, IR-COM-02, IR-COM-03, IR-COM-04, IR-NET-06, IR-NET-07, NR-01, NR-02, NR-04, NR-05, NR-07, NR-08, NR-10, NR-11, NR-12, NR-13, NFR-MNT-01, NFR-MNT-02, NFR-PRT-01, FR-SIM-01, FR-SIM-02, FR-SIM-03, FR-SIM-04, FR-SIM-05, FR-SIM-07, FR-SIM-08, FR-LOD-05, SR-MOD-01, SR-MOD-03, SR-MOD-05 |
-| Open items closed | TBD-11, TBD-15, TBD-16 |
+| Open items closed | TBD-11, TBD-15, TBD-16. TBD-06 remains **open**; D-37 sets a provisional value for x86 Phase B only |
 
 ## 1. Problem / motivation
 
@@ -66,6 +66,11 @@ The gap this closes is the foundation every later phase stands on. Concretely:
 | `oracle/onfly_oracle/kernel.py` | Reference kernel: SRS Appendix C in plain Python floats. |
 | `engine/include/onfker.h`, `engine/src/onfker.c` | The simulation kernel, Appendix C, operation by operation. |
 | `tests/tstker.c`, `tests/run_ker.py` | Kernel comparison against the oracle on a synthetic network. |
+| `layout/master.py` (extended) | Now also defines the 164-byte network file header (IR-NET-01), with its own alignment invariants. |
+| `generated/onfnhd.h` | Generated network header offsets and constants. **Do not edit.** |
+| `layout/netwrite.py` | Writes a network file: sections 8-byte aligned, both CRCs, all binary64 as bit patterns. |
+| `engine/include/onfdec.h`, `engine/src/onfdec.c` | Integrity checks in FR-LOD-02's order, plus header decode. |
+| `tests/tstdec.c`, `tests/run_dec.py` | TE-01..TE-08 against deliberately corrupted files. |
 | `tools/lint_nr05.py` | Gained `--exclude` so whole directories are scanned by default. |
 | `Makefile` | x86 build and test driver (D-29). |
 | `.gitattributes` | Pins `eol=lf` and marks binary types so git cannot rewrite artifact bytes. |
@@ -288,7 +293,27 @@ cmpback: soft and native agree bit-for-bit on 2018 result lines
 run_ker [SOFT backend]: 449 passed, 0 failed
 run_ker [NATIVE backend]: 449 passed, 0 failed
 cmpback: soft and native agree bit-for-bit on 778 result lines
+run_dec: 10 passed, 0 failed
+  ok   TE-01 corrupt magic                  rc=101
+  ok   TE-02 corrupt sentinel               rc=102
+  ok   TE-03 wrong version                  rc=103
+  ok   TE-04 header CRC mismatch            rc=104
+  ok   TE-06 payload length inconsistent    rc=106
+  ok   TE-05 payload CRC mismatch           rc=107
+  ok   TE-08 exceeds memory limit           rc=105
+  ok   TE-07 FB zero padding tolerated      rc=0
 ```
+
+Every TE case corrupts exactly one thing and requires the **specific** Appendix
+E condition, not merely a rejection. That distinction is the operational point:
+ONF102E tells an operator to re-send in binary mode, ONF107E that the transfer
+was corrupted, ONF106E that it was truncated. A decoder returning one generic
+"bad file" would help nobody at 3 a.m.
+
+TE-07 is worth singling out. The valid file is 976 bytes; padded to an FB-80
+dataset it becomes 1040. The engine accepts it and reads exactly 976, because
+FR-LOD-03 and IR-NET-08 make the header's declared length authoritative and the
+dataset size irrelevant.
 
 Kernel behaviour across the seven cases, identical under both backends and the
 oracle. The monotone rise with stimulus rate is the qualitative shape ACC-1 and
@@ -340,10 +365,15 @@ Everything above ran on **one** configuration: x86, 32-bit mingw32 (`gcc
   platform; the matrix names x86-64. D-30 authorised pursuing native admission
   here with SSE2 forced but explicitly did **not** authorise amending Section
   2.3, so this host remains unlisted.
-- The kernel runs on a **synthetic** network built in the test. No network
-  **file format**, decoder, integrity check, response fingerprint, golden
-  suite, COBOL driver or JCL exists yet, so no ACC-n criterion has been
-  evaluated and Phase B is **not** complete.
+- The network **file format, writer, decoder and integrity checks** now
+  exist, but the decoder populates only the header scalars: it leaves the
+  CSR array pointers null, because the payload is big-endian and the kernel
+  needs host-order arrays, and that conversion is not yet written. So **no
+  end-to-end path from a network file to a simulation exists**, and the
+  kernel is still exercised only on a synthetic in-memory network.
+- No **response fingerprint** (IR-COM-05), **golden-suite harness**, COBOL
+  driver or JCL exists. No ACC-n criterion has been evaluated and **Phase B
+  is not complete**.
 - Appendix C is still marked **draft**. The kernel implements it faithfully,
   but TBC-01 and TBC-02 remain open until Phase C, so agreement with the
   oracle proves the code matches the specification, not that the
