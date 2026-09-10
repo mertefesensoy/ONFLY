@@ -142,8 +142,10 @@ kernel: $(BUILD) softfloat/onfsub.c
 # distinction is what tells an operator to re-send in binary rather than to
 # rebuild the network (NFR-REL-01).
 decode: $(BUILD) $(GENERATED)
-	$(CC) $(CFLAGS) $(INC) -o $(BUILD)/tstdec.exe tests/tstdec.c \
-	  engine/src/onfdec.c engine/src/onfcrc.c engine/src/onffpc.c
+	$(CC) $(CFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/tstdec.exe \
+	  tests/tstdec.c engine/src/onfdec.c engine/src/onfcrc.c \
+	  engine/src/onffpc.c engine/src/onffpn.c engine/src/onfker.c \
+	  engine/src/onfrnd.c engine/src/onfstm.c
 	$(PYTHON) tests/run_dec.py $(BUILD)/tstdec.exe
 
 test: lint layout units fp kernel decode

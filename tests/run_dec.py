@@ -23,8 +23,23 @@ for sub in ("layout", "generated", "oracle"):
 import netwrite                       # noqa: E402
 import onfcom_py as L                 # noqa: E402
 from onfly_oracle.crc32 import crc32  # noqa: E402
+from onfly_oracle import kernel as okernel  # noqa: E402
 
 OK, MAGIC, SENT, VER, HCRC, MEM, PLEN, PCRC = 0, 101, 102, 103, 104, 105, 106, 107
+
+
+_NET_ARGS = {}
+
+
+def build_oracle_network():
+    """The same network sample_network() serialised, as an oracle Network."""
+    a = _NET_ARGS
+    return okernel.Network(
+        n=a["n"], rowptr=a["rowptr"], target=a["target"], weight=a["weight"],
+        stim=a["stim"], readout=a["readout"], dt_us=a["dt_us"],
+        delay=a["delay"], refract=a["refract"], u_th=a["u_th"],
+        u_reset=a["u_reset"], p11=a["p11"], p12=a["p12"], p22=a["p22"],
+        g_eps=a["g_eps"])
 
 
 def sample_network():
@@ -42,6 +57,13 @@ def sample_network():
         for _ in row:
             weight.append(0.275 * (len(weight) % 5 + 1))
         rowptr.append(len(target))
+    _NET_ARGS.update(dict(
+        n=n, rowptr=rowptr, target=target, weight=weight,
+        stim=[0, 1, 2, 3], readout=[12, 13, 14, 15],
+        dt_us=100, delay=18, refract=22,
+        u_th=7.0, u_reset=0.0,
+        p11=0.9950124791926823, p12=0.004937935295309022,
+        p22=0.9801986733067553, g_eps=1e-300))
     return netwrite.build(
         n=n, rowptr=rowptr, target=target, weight=weight,
         stim=[0, 1, 2, 3], readout=[12, 13, 14, 15],
@@ -151,6 +173,45 @@ def main():
         else:
             failed += 1
             lines.append("  FAIL %-36s rc=%s want=%d" % (name, got, want))
+
+    # --- end-to-end: file on disk -> decode -> load -> simulate ----------
+    # This is the first path that goes all the way from a serialised network to
+    # per-neuron results, so it exercises onfldp's big-endian conversion and the
+    # CSR structure checks, not just the header integrity checks above.
+    path = os.path.join(tmp, "endtoend.net")
+    with open(path, "wb") as fh:
+        fh.write(good)
+    proc = subprocess.Popen([exe, path, "0", "run"], stdout=subprocess.PIPE)
+    out, _ = proc.communicate()
+    cspk, cfst, loadrc, runrc = {}, {}, None, None
+    for line in out.decode("ascii", "replace").splitlines():
+        p_ = line.split()
+        if line.startswith("LOAD"):
+            loadrc = int(p_[1].split("=")[1])
+        elif line.startswith("RUN "):
+            runrc = int([t for t in p_ if t.startswith("rc=")][0][3:])
+        elif line.startswith("OUT"):
+            f = dict(t.split("=", 1) for t in p_[1:])
+            cspk[int(f["i"])] = int(f["s"])
+            cfst[int(f["i"])] = int(f["f"])
+
+    if loadrc == 0 and runrc == 0:
+        net = build_oracle_network()
+        ospk, ofst = okernel.run(net, 1, 120, 500)
+        mismatch = [i for i in range(net.n)
+                    if (cspk.get(i), cfst.get(i)) != (ospk[i], ofst[i])]
+        if mismatch:
+            failed += 1
+            lines.append("  FAIL end-to-end: %d of %d neurons differ from the "
+                         "oracle (first: %d)" % (len(mismatch), net.n, mismatch[0]))
+        else:
+            passed += 1
+            lines.append("  ok   %-36s %d neurons match the oracle, %d spikes"
+                         % ("end-to-end file->decode->load->run",
+                            net.n, sum(ospk)))
+    else:
+        failed += 1
+        lines.append("  FAIL end-to-end: LOAD rc=%s RUN rc=%s" % (loadrc, runrc))
 
     print("run_dec: %d passed, %d failed" % (passed, failed))
     for l in lines:

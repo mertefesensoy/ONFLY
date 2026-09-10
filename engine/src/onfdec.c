@@ -153,3 +153,80 @@ int onfdec(const onf_u8 *buf, onf_i32 len, onf_i32 limit,
 
     return ONFD_OK;
 }
+
+int onfldp(const onf_u8 *buf, struct onfnet *net,
+           onf_u32 *rowptr, onf_u32 *target, onf_f64 *weight,
+           onf_u32 *stim, onf_u32 *readout)
+{
+    onf_i32 i, orow, otgt, owgt, ostm, ordo;
+    onf_u32 prev;
+
+    orow = (onf_i32)g32(buf, ONF_N_OFFROW);
+    otgt = (onf_i32)g32(buf, ONF_N_OFFTGT);
+    owgt = (onf_i32)g32(buf, ONF_N_OFFWGT);
+    ostm = (onf_i32)g32(buf, ONF_N_OFFSTIM);
+    ordo = (onf_i32)g32(buf, ONF_N_OFFREAD);
+
+    /* IR-NET-05: every section starts on an 8-byte boundary.  A violation
+       means the file was not produced by a conforming writer, so refuse it
+       rather than reading at an offset the format forbids. */
+    if ((orow % ONF_NET_ALIGN) != 0 || (otgt % ONF_NET_ALIGN) != 0
+        || (owgt % ONF_NET_ALIGN) != 0 || (ostm % ONF_NET_ALIGN) != 0
+        || (ordo % ONF_NET_ALIGN) != 0) {
+        return ONFD_PLEN;
+    }
+
+    /* CSR row pointers must be non-decreasing, start at 0 and end at e. */
+    prev = 0UL;
+    for (i = 0; i <= net->n; i++) {
+        rowptr[i] = g32(buf, orow + i * 4);
+        if (rowptr[i] < prev || (onf_i32)rowptr[i] > net->e) {
+            return ONFD_PLEN;
+        }
+        prev = rowptr[i];
+    }
+    if (rowptr[0] != 0UL || (onf_i32)rowptr[net->n] != net->e) {
+        return ONFD_PLEN;
+    }
+
+    /* Targets must lie inside the network and ascend strictly within a row
+       (IR-NET-06).  The ascent is normative, not cosmetic: floating-point
+       addition does not associate, so a row visited in another order is a
+       different answer, and a file that got this wrong would produce results
+       that differ between hosts for no visible reason. */
+    for (i = 0; i < net->n; i++) {
+        onf_i32 k;
+        for (k = (onf_i32)rowptr[i]; k < (onf_i32)rowptr[i + 1]; k++) {
+            target[k] = g32(buf, otgt + k * 4);
+            if ((onf_i32)target[k] >= net->n) {
+                return ONFD_PLEN;
+            }
+            if (k > (onf_i32)rowptr[i] && target[k] <= target[k - 1]) {
+                return ONFD_PLEN;
+            }
+        }
+    }
+
+    for (i = 0; i < net->e; i++) {
+        weight[i] = gf64(buf, owgt + i * 8);
+    }
+    for (i = 0; i < net->ns; i++) {
+        stim[i] = g32(buf, ostm + i * 4);
+        if ((onf_i32)stim[i] >= net->n) {
+            return ONFD_PLEN;
+        }
+    }
+    for (i = 0; i < net->nr; i++) {
+        readout[i] = g32(buf, ordo + i * 4);
+        if ((onf_i32)readout[i] >= net->n) {
+            return ONFD_PLEN;
+        }
+    }
+
+    net->rowptr = rowptr;
+    net->target = target;
+    net->weight = weight;
+    net->stim = stim;
+    net->readout = readout;
+    return ONFD_OK;
+}

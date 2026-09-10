@@ -60,4 +60,33 @@
 int onfdec(const onf_u8 *buf, onf_i32 len, onf_i32 limit,
            struct onfnet *net, onf_i32 *need);
 
+/*
+ * onfldp - convert the big-endian payload into host-order arrays.
+ *
+ * onfdec verifies the file and fills in the header scalars, but deliberately
+ * leaves net's array pointers null: the payload is big-endian and the kernel
+ * needs host-order onf_u32 and onf_f64 arrays.  This performs that conversion
+ * into caller-supplied storage and then points net at it.
+ *
+ *   buf      the verified file, as passed to onfdec
+ *   net      a net onfdec returned ONFD_OK for; its array pointers are set
+ *   rowptr   caller storage for n + 1 values
+ *   target   caller storage for e values
+ *   weight   caller storage for e values
+ *   stim     caller storage for ns values
+ *   readout  caller storage for nr values
+ *
+ * Returns ONFD_OK, or ONFD_PLEN if any section offset or the CSR structure is
+ * inconsistent -- a row pointer that runs backwards or past the edge count, or
+ * a target index outside the network.  Those are checked here rather than
+ * trusted, because the CRC only proves the bytes arrived intact, not that the
+ * producer wrote a sane network (VL-08).
+ *
+ * Every value is read by explicit byte shift (FR-LOD-05).  No allocation, no
+ * I/O, no static data.
+ */
+int onfldp(const onf_u8 *buf, struct onfnet *net,
+           onf_u32 *rowptr, onf_u32 *target, onf_f64 *weight,
+           onf_u32 *stim, onf_u32 *readout);
+
 #endif /* ONFDEC_H */
