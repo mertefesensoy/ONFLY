@@ -1,0 +1,52 @@
+{
+  "cite": "Sexual dimorphism in the complete connectome of the Drosophila male central nervous system. Cell (2026). doi:10.1016/j.cell.2026.08.015",
+  "dataset": "male-cns:v1.0",
+  "dataset_uuid": "4b2087c0fbe046bfaf0d60bc970e3e5d",
+  "decisions": [
+    "D-49",
+    "D-50",
+    "D-51"
+  ],
+  "files": {
+    "annotations": {
+      "bytes": 14483314,
+      "bytes_expected": 14483314,
+      "crc32": "DC81FB64",
+      "file": "body-annotations-male-cns-v1.0-minconf-0.5.feather",
+      "sha256": "2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2",
+      "size_matches_expected": true,
+      "supplies": "neuron identifiers and cell types",
+      "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-annotations-male-cns-v1.0-minconf-0.5.feather"
+    },
+    "neurotransmitters": {
+      "bytes": 43282834,
+      "bytes_expected": 43282834,
+      "crc32": "D78E2AFB",
+      "file": "body-neurotransmitters-male-cns-v1.0.feather",
+      "sha256": "95c9289220663abeb3409f3ad9e5a7f8a53f8093f5139d15502cd08da8879621",
+      "size_matches_expected": true,
+      "supplies": "predicted neurotransmitters",
+      "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-neurotransmitters-male-cns-v1.0.feather"
+    },
+    "weights": {
+      "bytes": 1051241946,
+      "bytes_expected": 1051241946,
+      "crc32": "BAB7B421",
+      "file": "connectome-weights-male-cns-v1.0-minconf-0.5.feather",
+      "sha256": "e35da783d1c686b2b58b3b87cd6a403ae43bfcfba8bff28e08ef752c1a56afc1",
+      "size_matches_expected": true,
+      "supplies": "pairwise synapse counts",
+      "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/connectome-weights-male-cns-v1.0-minconf-0.5.feather"
+    }
+  },
+  "licence": "CC BY 4.0",
+  "missing": [],
+  "not_retrieved": {
+    "body-stats-male-cns-v1.0-minconf-0.5.feather": "778,062,826 bytes; per-body statistics ONFLY does not use",
+    "syn-partners-male-cns-v1.0-minconf-0.5.feather": "per-synapse partner table, superseded by aggregated pair counts",
+    "syn-points-male-cns-v1.0-minconf-0.5.feather": "13,061,489,098 bytes; individual synapse locations, superseded by aggregated pair counts (FR-PRP-03)",
+    "tbar-neurotransmitters-male-cns-v1.0.feather": "per-tbar predictions, superseded by the per-body consensus"
+  },
+  "retrieved_utc": "2026-09-10T21:15:09Z",
+  "source_base": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome"
+}

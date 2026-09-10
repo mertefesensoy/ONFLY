@@ -1,0 +1,642 @@
+{
+  "candidates_ranked": [
+    {
+      "contributing_neurons": 4,
+      "flywireType": "PhG7,PhG8,PhG9",
+      "neurons": 4,
+      "percent_of_output": 2.641,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 754,
+      "total_outgoing_synapses": 28547,
+      "type": "PhG9"
+    },
+    {
+      "contributing_neurons": 10,
+      "flywireType": "dorsal_tpGRN",
+      "neurons": 10,
+      "percent_of_output": 1.643,
+      "subclass": "taste peg",
+      "synapses_onto_sugar_pathway": 356,
+      "total_outgoing_synapses": 21664,
+      "type": "dorsal_tpGRN"
+    },
+    {
+      "contributing_neurons": 2,
+      "flywireType": "PhG1b",
+      "neurons": 2,
+      "percent_of_output": 0.229,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 38,
+      "total_outgoing_synapses": 16622,
+      "type": "PhG1b"
+    },
+    {
+      "contributing_neurons": 3,
+      "flywireType": "PhG1c",
+      "neurons": 4,
+      "percent_of_output": 0.082,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 27,
+      "total_outgoing_synapses": 33075,
+      "type": "PhG1c"
+    },
+    {
+      "contributing_neurons": 3,
+      "flywireType": "PhG7,PhG8,PhG9",
+      "neurons": 4,
+      "percent_of_output": 0.15,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 12,
+      "total_outgoing_synapses": 8026,
+      "type": "PhG7"
+    },
+    {
+      "contributing_neurons": 2,
+      "flywireType": "PhG8",
+      "neurons": 4,
+      "percent_of_output": 0.079,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 10,
+      "total_outgoing_synapses": 12599,
+      "type": "PhG8"
+    },
+    {
+      "contributing_neurons": 4,
+      "flywireType": "LB2c",
+      "neurons": 6,
+      "percent_of_output": 0.094,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 8,
+      "total_outgoing_synapses": 8469,
+      "type": "LB2c"
+    },
+    {
+      "contributing_neurons": 3,
+      "flywireType": "PhG2",
+      "neurons": 4,
+      "percent_of_output": 0.141,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 7,
+      "total_outgoing_synapses": 4965,
+      "type": "PhG2"
+    },
+    {
+      "contributing_neurons": 2,
+      "flywireType": "PhG1a",
+      "neurons": 2,
+      "percent_of_output": 0.064,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 6,
+      "total_outgoing_synapses": 9394,
+      "type": "PhG1a"
+    },
+    {
+      "contributing_neurons": 2,
+      "flywireType": "PhG5",
+      "neurons": 2,
+      "percent_of_output": 0.05,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 5,
+      "total_outgoing_synapses": 10011,
+      "type": "PhG5"
+    },
+    {
+      "contributing_neurons": 2,
+      "flywireType": "PhG4",
+      "neurons": 4,
+      "percent_of_output": 0.017,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 3,
+      "total_outgoing_synapses": 17207,
+      "type": "PhG4"
+    },
+    {
+      "contributing_neurons": 2,
+      "flywireType": "LB2a-b",
+      "neurons": 4,
+      "percent_of_output": 0.031,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 2,
+      "total_outgoing_synapses": 6456,
+      "type": "LB2a"
+    },
+    {
+      "contributing_neurons": 1,
+      "flywireType": "LB1c",
+      "neurons": 16,
+      "percent_of_output": 0.003,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 1,
+      "total_outgoing_synapses": 35856,
+      "type": "LB1c"
+    },
+    {
+      "contributing_neurons": 1,
+      "flywireType": "PhG11",
+      "neurons": 2,
+      "percent_of_output": 0.01,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 1,
+      "total_outgoing_synapses": 10014,
+      "type": "PhG11"
+    },
+    {
+      "contributing_neurons": 1,
+      "flywireType": "PhG14",
+      "neurons": 2,
+      "percent_of_output": 0.01,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 1,
+      "total_outgoing_synapses": 10100,
+      "type": "PhG14"
+    },
+    {
+      "contributing_neurons": 1,
+      "flywireType": "PhG16",
+      "neurons": 2,
+      "percent_of_output": 0.015,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 1,
+      "total_outgoing_synapses": 6599,
+      "type": "PhG16"
+    },
+    {
+      "contributing_neurons": 1,
+      "flywireType": "claw_tpGRN",
+      "neurons": 50,
+      "percent_of_output": 0.002,
+      "subclass": "taste peg",
+      "synapses_onto_sugar_pathway": 1,
+      "total_outgoing_synapses": 41327,
+      "type": "claw_tpGRN"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB1a,LB1d",
+      "neurons": 11,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 10878,
+      "type": "LB1a"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB1b",
+      "neurons": 6,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 17550,
+      "type": "LB1b"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB1a,LB1d",
+      "neurons": 5,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 4546,
+      "type": "LB1d"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB1e",
+      "neurons": 19,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 21999,
+      "type": "LB1e"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB2a-b",
+      "neurons": 3,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 6174,
+      "type": "LB2b"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB2d",
+      "neurons": 5,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 3138,
+      "type": "LB2d"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB3",
+      "neurons": 1,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 6,
+      "type": "LB3"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB3",
+      "neurons": 17,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 14007,
+      "type": "LB3a"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB3",
+      "neurons": 11,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 11738,
+      "type": "LB3b"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB3",
+      "neurons": 23,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 29780,
+      "type": "LB3c"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB3",
+      "neurons": 26,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 29364,
+      "type": "LB3d"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB4a",
+      "neurons": 4,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 5316,
+      "type": "LB4a"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "LB3",
+      "neurons": 8,
+      "percent_of_output": 0.0,
+      "subclass": "labellar bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 9296,
+      "type": "LB4b"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 25,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 72012,
+      "type": "LgAG1"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 11,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 23531,
+      "type": "LgAG2"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 7,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 26511,
+      "type": "LgAG3"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 8,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 8530,
+      "type": "LgAG4"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 4,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 21104,
+      "type": "LgAG5"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 4,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 10683,
+      "type": "LgAG6"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 5,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 26627,
+      "type": "LgAG7"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 9,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 10629,
+      "type": "LgAG8"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 3,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 8199,
+      "type": "LgAG9"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 136,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 160839,
+      "type": "LgLG1a"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 134,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 113349,
+      "type": "LgLG1b"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 129,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 45880,
+      "type": "LgLG2"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 162,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 123608,
+      "type": "LgLG3"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 42,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 31102,
+      "type": "LgLG4"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 13,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 16024,
+      "type": "LgLG5"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 16,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 32816,
+      "type": "LgLG6"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 21,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 15111,
+      "type": "LgLG7"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 14,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 16196,
+      "type": "LgLG8"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 12,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 2759,
+      "type": "None"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "PhG10",
+      "neurons": 2,
+      "percent_of_output": 0.0,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 10454,
+      "type": "PhG10"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "PhG12",
+      "neurons": 2,
+      "percent_of_output": 0.0,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 6898,
+      "type": "PhG12"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "PhG13",
+      "neurons": 2,
+      "percent_of_output": 0.0,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 10004,
+      "type": "PhG13"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "PhG15",
+      "neurons": 2,
+      "percent_of_output": 0.0,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 5385,
+      "type": "PhG15"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "PhG3",
+      "neurons": 2,
+      "percent_of_output": 0.0,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 6410,
+      "type": "PhG3"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "PhG6",
+      "neurons": 2,
+      "percent_of_output": 0.0,
+      "subclass": "pharyngeal sensillum",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 7011,
+      "type": "PhG6"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 8,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 1609,
+      "type": "SNch05"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 7,
+      "percent_of_output": 0.0,
+      "subclass": "leg bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 1149,
+      "type": "SNxxxx"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 96,
+      "percent_of_output": 0.0,
+      "subclass": "wing bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 47974,
+      "type": "WG1"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 97,
+      "percent_of_output": 0.0,
+      "subclass": "wing bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 63283,
+      "type": "WG2"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 96,
+      "percent_of_output": 0.0,
+      "subclass": "wing bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 96387,
+      "type": "WG3"
+    },
+    {
+      "contributing_neurons": 0,
+      "flywireType": "None",
+      "neurons": 96,
+      "percent_of_output": 0.0,
+      "subclass": "wing bristle",
+      "synapses_onto_sugar_pathway": 0,
+      "total_outgoing_synapses": 104773,
+      "type": "WG4"
+    }
+  ],
+  "dataset": "male-cns:v1.0",
+  "dataset_uuid": "4b2087c0fbe046bfaf0d60bc970e3e5d",
+  "readout": {
+    "bodyIds": [
+      10331,
+      16949
+    ],
+    "neurons": 2,
+    "type": "MN9"
+  },
+  "status": "AWAITING OWNER APPROVAL (FR-PRP-02, TBC-03)",
+  "stimulus_set": null,
+  "sugar_pathway_marker": {
+    "bodyIds": [
+      11740,
+      14100,
+      14254,
+      15214,
+      15487,
+      17369
+    ],
+    "note": "Yao & Scott 2022 Sugar SEL neurons; evidence anchor, not the stimulus set",
+    "types": [
+      "GNG056",
+      "GNG540",
+      "GNG550"
+    ]
+  }
+}

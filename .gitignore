@@ -21,3 +21,6 @@ Thumbs.db
 
 # Vendored archives: extracted contents are committed, digests are in third_party/MANIFEST.md
 third_party/*.zip
+
+# MaleCNS data files: large, public, digests recorded in data/malecns/MANIFEST.md
+data/malecns/*.feather
