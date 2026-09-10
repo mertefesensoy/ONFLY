@@ -63,9 +63,9 @@ SFSRCS = \
 ONFSF = softfloat/onfrpk.c softfloat/onfflag.c softfloat/onfsub.c
 
 GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
-            generated/onfcom_py.py
+            generated/onfcom_py.py generated/onfnhd.h
 
-.PHONY: all test generate lint clean units layout fp kernel
+.PHONY: all test generate lint clean units layout fp kernel decode
 
 all: test
 
@@ -136,8 +136,18 @@ kernel: $(BUILD) softfloat/onfsub.c
 	$(PYTHON) tests/run_ker.py $(BUILD)/tstker_nat.exe
 	$(PYTHON) tools/cmpback.py $(BUILD)/tstker_soft.exe $(BUILD)/tstker_nat.exe
 
-test: lint layout units fp kernel
-	@echo "ONFLY: lint + TU-01..TU-07 + kernel-vs-oracle all passed"
+# --- TE-01..TE-08: network integrity checks ------------------------------
+# Each case corrupts exactly one thing and requires the engine to report the
+# specific Appendix E condition, not merely to reject the file.  That
+# distinction is what tells an operator to re-send in binary rather than to
+# rebuild the network (NFR-REL-01).
+decode: $(BUILD) $(GENERATED)
+	$(CC) $(CFLAGS) $(INC) -o $(BUILD)/tstdec.exe tests/tstdec.c \
+	  engine/src/onfdec.c engine/src/onfcrc.c engine/src/onffpc.c
+	$(PYTHON) tests/run_dec.py $(BUILD)/tstdec.exe
+
+test: lint layout units fp kernel decode
+	@echo "ONFLY: lint + TU-01..TU-07 + kernel + TE-01..TE-08 all passed"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"

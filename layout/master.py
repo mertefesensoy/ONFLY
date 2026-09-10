@@ -116,3 +116,68 @@ def _check():
                 "%s range exceeds %d-byte binary" % (f.name, f.size)
 
 _check()
+
+# ---------------------------------------------------------------------------
+# Network file header (IR-NET-01, SRS section 4.1 table).
+#
+# 164 bytes.  The header CRC at offset 160 covers bytes 0..159; the payload CRC
+# at 156 covers exactly the declared payload length (IR-NET-07).  All integers
+# are big-endian; all f64 values are IEEE 754 binary64, big-endian, arriving as
+# bit patterns computed on x86 (FR-PRP-06, NR-06).
+#
+# Generated rather than hand-written for the same reason as the COMMAREA: this
+# header is read by C on three platforms and written by Python, and a
+# transcription slip between them would surface as a corrupt-network error at
+# best and as a wrong answer at worst.
+# ---------------------------------------------------------------------------
+
+NETHDR_LEN = 164
+NETHDR_CRC_COVERS = 160     # header CRC covers bytes 0..159
+
+# (name, kind, offset, size)  kind: u32 | u16 | f64
+NETHDR = [
+    ("magic",   "u32",   0, 4), ("sentinel", "u32",   4, 4),
+    ("vmajor",  "u16",   8, 2), ("vminor",   "u16",  10, 2),
+    ("hdrlen",  "u32",  12, 4), ("flags",    "u32",  16, 4),
+    ("n",       "u32",  20, 4), ("e",        "u32",  24, 4),
+    ("ns",      "u32",  28, 4), ("nr",       "u32",  32, 4),
+    ("dtus",    "u32",  36, 4), ("delay",    "u32",  40, 4),
+    ("refract", "u32",  44, 4), ("maxms",    "u32",  48, 4),
+    ("method",  "u32",  52, 4),
+    ("dt",      "f64",  56, 8), ("uth",      "f64",  64, 8),
+    ("ureset",  "f64",  72, 8), ("p11",      "f64",  80, 8),
+    ("p12",     "f64",  88, 8), ("p22",      "f64",  96, 8),
+    ("geps",    "f64", 104, 8), ("wsyn",     "f64", 112, 8),
+    ("vrest",   "f64", 120, 8),
+    ("offneur", "u32", 128, 4), ("offrow",   "u32", 132, 4),
+    ("offtgt",  "u32", 136, 4), ("offwgt",   "u32", 140, 4),
+    ("offstim", "u32", 144, 4), ("offread",  "u32", 148, 4),
+    ("paylen",  "u32", 152, 4), ("paycrc",   "u32", 156, 4),
+    ("hdrcrc",  "u32", 160, 4),
+]
+
+# IR-NET-03: proposed value, final at format version 1.0 when TBD-09 closes.
+NET_MAGIC = 0x4F4E4631
+# IR-NET-04: any other decoded value means the transport swapped or translated
+# bytes; that fails with ONF102E.
+NET_SENTINEL = 0x01020304
+NET_VMAJOR = 1
+NET_VMINOR = 0
+
+# IR-NET-05: payload sections start on 8-byte boundaries relative to the start
+# of the file, and padding bytes are zero.
+NET_ALIGN = 8
+
+
+def _check_net():
+    cur = 0
+    for name, kind, off, size in NETHDR:
+        assert off == cur, "network header gap/overlap at %s: %d != %d" % (name, cur, off)
+        # Natural alignment, so a big-endian host could overlay the header
+        # directly; little-endian hosts still decode by explicit shifts.
+        assert off % size == 0, "network header %s at %d is not %d-aligned" % (name, off, size)
+        cur += size
+    assert cur == NETHDR_LEN, "network header is %d bytes, expected %d" % (cur, NETHDR_LEN)
+    assert dict((f[0], f[2]) for f in NETHDR)["hdrcrc"] == NETHDR_CRC_COVERS,         "the header CRC must sit immediately after the bytes it covers"
+
+_check_net()

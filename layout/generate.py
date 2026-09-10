@@ -289,6 +289,63 @@ def gen_python():
         if f.lo is not None:
             L.append("    %r: (%d, %d)," % (f.name, f.lo, f.hi))
     L.append("}")
+    L.append("")
+    L.append("# --- Network file header (IR-NET-01, SRS section 4.1) ---------------")
+    L.append("NETHDR_LEN        = %d" % M.NETHDR_LEN)
+    L.append("NETHDR_CRC_COVERS = %d" % M.NETHDR_CRC_COVERS)
+    L.append("NET_ALIGN         = %d" % M.NET_ALIGN)
+    L.append("NET_MAGIC         = 0x%08X" % M.NET_MAGIC)
+    L.append("NET_SENTINEL      = 0x%08X" % M.NET_SENTINEL)
+    L.append("NET_VMAJOR        = %d" % M.NET_VMAJOR)
+    L.append("NET_VMINOR        = %d" % M.NET_VMINOR)
+    L.append("")
+    L.append("# name -> (kind, offset, size); kind is 'u32', 'u16' or 'f64'.")
+    L.append("NETHDR = {")
+    for name, kind, off, size in M.NETHDR:
+        L.append("    %r: (%r, %d, %d)," % (name, kind, off, size))
+    L.append("}")
+    L.append("")
+    L.append("# Declaration order matters when writing the header.")
+    L.append("NETHDR_ORDER = %r" % [f[0] for f in M.NETHDR])
+    return "\n".join(L) + "\n"
+
+
+def gen_net_header():
+    """C header for the network file header (IR-NET-01, SRS section 4.1)."""
+    L = ["/*"]
+    L += [" * " + b for b in BANNER]
+    L.append(" */")
+    L.append("#ifndef ONFNHD_H")
+    L.append("#define ONFNHD_H")
+    L.append("")
+    L.append('#include "onfplat.h"')
+    L.append("")
+    L.append("/* Header geometry.  The header CRC at ONF_N_HDRCRC covers bytes")
+    L.append("   0 .. ONF_NHDR_CRCLEN-1, i.e. everything before itself")
+    L.append("   (IR-NET-07). */")
+    L.append("#define ONF_NHDR_LEN     %d" % M.NETHDR_LEN)
+    L.append("#define ONF_NHDR_CRCLEN  %d" % M.NETHDR_CRC_COVERS)
+    L.append("#define ONF_NET_ALIGN    %d" % M.NET_ALIGN)
+    L.append("")
+    L.append("/* IR-NET-03: compared as an integer on every platform, never as")
+    L.append("   text, so a code-page translation in transport is caught. */")
+    L.append("#define ONF_NET_MAGIC    0x%08XUL" % M.NET_MAGIC)
+    L.append("/* IR-NET-04: any other decoded value fails with ONF102E. */")
+    L.append("#define ONF_NET_SENTINEL 0x%08XUL" % M.NET_SENTINEL)
+    L.append("#define ONF_NET_VMAJOR   %d" % M.NET_VMAJOR)
+    L.append("#define ONF_NET_VMINOR   %d" % M.NET_VMINOR)
+    L.append("")
+    L.append("/* Field offsets. */")
+    for name, kind, off, size in M.NETHDR:
+        L.append("#define ONF_N_%-9s %3d   /* %s, %d bytes */"
+                 % (name.upper(), off, kind, size))
+    L.append("")
+    L.append("typedef char onfnhd_len_assert"
+             "[(ONF_N_HDRCRC + 4 == ONF_NHDR_LEN) ? 1 : -1];")
+    L.append("typedef char onfnhd_crc_assert"
+             "[(ONF_N_HDRCRC == ONF_NHDR_CRCLEN) ? 1 : -1];")
+    L.append("")
+    L.append("#endif /* ONFNHD_H */")
     return "\n".join(L) + "\n"
 
 
@@ -300,6 +357,7 @@ def main():
         ("onfcom.h", gen_c_header()),
         ("onfcom.c", gen_c_source()),
         ("onfcom_py.py", gen_python()),
+        ("onfnhd.h", gen_net_header()),
     ]
     for name, text in artifacts:
         path = os.path.join(OUTDIR, name)
