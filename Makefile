@@ -65,7 +65,7 @@ ONFSF = softfloat/onfrpk.c softfloat/onfflag.c softfloat/onfsub.c
 GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
             generated/onfcom_py.py
 
-.PHONY: all test generate lint clean units layout fp
+.PHONY: all test generate lint clean units layout fp kernel
 
 all: test
 
@@ -86,9 +86,8 @@ softfloat/onfsub.c: softfloat/derive.py
 # hexadecimal floating point.  engine/src/onffpn.c is the native backend and is
 # excluded by design; it is the only file in ONFLY allowed to name `double`.
 lint: $(GENERATED)
-	$(PYTHON) tools/lint_nr05.py engine/include engine/src/onfcrc.c \
-	  engine/src/onfrnd.c engine/src/onfstm.c engine/src/onffpc.c \
-	  engine/src/onffps.c generated softfloat tests
+	$(PYTHON) tools/lint_nr05.py --exclude engine/src/onffpn.c \
+	  engine generated softfloat tests
 
 $(BUILD):
 	$(PYTHON) -c "import os; os.path.isdir('$(BUILD)') or os.makedirs('$(BUILD)')"
@@ -119,8 +118,26 @@ fp: $(BUILD) softfloat/onfsub.c
 	$(PYTHON) tests/run_fp.py $(BUILD)/tstfp_nat.exe
 	$(PYTHON) tools/cmpback.py $(BUILD)/tstfp_soft.exe $(BUILD)/tstfp_nat.exe
 
-test: lint layout units fp
-	@echo "ONFLY: lint + TU-01 + TU-02 + TU-03 + TU-04 + TU-05 + TU-07 all passed"
+# --- L2: the kernel against the Python oracle ------------------------------
+# Runs the same synthetic network through both float backends and then compares
+# the two builds byte for byte.  Together with the oracle itself that covers
+# rows 1, 2 and 3 of the Section 8.3 determinism matrix -- the three x86 rows.
+# Rows 4 to 8 need Linux s390x, MVS 3.8j and z/OS, none of which is available
+# on this host.
+kernel: $(BUILD) softfloat/onfsub.c
+	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstker_soft.exe \
+	  tests/tstker.c engine/src/onfker.c engine/src/onffpc.c \
+	  engine/src/onffps.c engine/src/onfrnd.c engine/src/onfstm.c \
+	  $(SFSRCS) $(ONFSF)
+	$(PYTHON) tests/run_ker.py $(BUILD)/tstker_soft.exe
+	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/tstker_nat.exe \
+	  tests/tstker.c engine/src/onfker.c engine/src/onffpc.c \
+	  engine/src/onffpn.c engine/src/onfrnd.c engine/src/onfstm.c
+	$(PYTHON) tests/run_ker.py $(BUILD)/tstker_nat.exe
+	$(PYTHON) tools/cmpback.py $(BUILD)/tstker_soft.exe $(BUILD)/tstker_nat.exe
+
+test: lint layout units fp kernel
+	@echo "ONFLY: lint + TU-01..TU-07 + kernel-vs-oracle all passed"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"

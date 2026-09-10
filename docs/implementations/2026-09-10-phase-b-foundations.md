@@ -6,7 +6,7 @@
 | Author | ONFLY engineering session |
 | Phase / gate | Phase B — Engine and oracle (x86), scope set by D-25 |
 | Owner decisions relied on | D-18, D-24 … D-36 |
-| Requirements touched | IR-COM-01, IR-COM-02, IR-COM-03, IR-COM-04, IR-NET-07, NR-01, NR-02, NR-04, NR-05, NR-07, NR-08, NR-10, NR-11, NR-12, NR-13, NFR-MNT-01, NFR-MNT-02, NFR-PRT-01, FR-SIM-03, FR-SIM-04, FR-SIM-08, FR-LOD-05 |
+| Requirements touched | IR-COM-01, IR-COM-02, IR-COM-03, IR-COM-04, IR-NET-06, IR-NET-07, NR-01, NR-02, NR-04, NR-05, NR-07, NR-08, NR-10, NR-11, NR-12, NR-13, NFR-MNT-01, NFR-MNT-02, NFR-PRT-01, FR-SIM-01, FR-SIM-02, FR-SIM-03, FR-SIM-04, FR-SIM-05, FR-SIM-07, FR-SIM-08, FR-LOD-05, SR-MOD-01, SR-MOD-03, SR-MOD-05 |
 | Open items closed | TBD-11, TBD-15, TBD-16 |
 
 ## 1. Problem / motivation
@@ -62,7 +62,11 @@ The gap this closes is the foundation every later phase stands on. Concretely:
 | `tests/tstcom.c` | TU-01, TU-07: layout geometry and accessor round-trips. |
 | `tests/tstunit.c`, `tests/run_units.py` | TU-03, TU-04, TU-05 against the oracle. |
 | `tests/tstfp.c`, `tests/run_fp.py` | TU-02 float API against the oracle. |
-| `oracle/onfly_oracle/*` | Reference oracle: CRC-32, PRNG, stimulus draws. |
+| `oracle/onfly_oracle/crc32.py`, `prng.py`, `stimulus.py` | Reference oracle primitives. |
+| `oracle/onfly_oracle/kernel.py` | Reference kernel: SRS Appendix C in plain Python floats. |
+| `engine/include/onfker.h`, `engine/src/onfker.c` | The simulation kernel, Appendix C, operation by operation. |
+| `tests/tstker.c`, `tests/run_ker.py` | Kernel comparison against the oracle on a synthetic network. |
+| `tools/lint_nr05.py` | Gained `--exclude` so whole directories are scanned by default. |
 | `Makefile` | x86 build and test driver (D-29). |
 | `.gitattributes` | Pins `eol=lf` and marks binary types so git cannot rewrite artifact bytes. |
 
@@ -124,6 +128,35 @@ A macro cannot do this job: `softfloat.h` declares these as extern variables and
 `softfloat_raiseFlags` as a function, so a same-named macro mangles the
 declaration into a syntax error. The removal has to happen at link time and by
 derivation, which is why it is structured this way.
+
+### 3.5 The kernel (FR-SIM-01, Appendix C)
+
+`engine/src/onfker.c` implements Appendix C's step algorithm operation by
+operation. It is written as separate statements rather than compound
+expressions because NR-07 makes the *sequence* of floating-point operations
+normative: a compound expression invites the compiler to contract or reassociate,
+and both are forbidden.
+
+Three details in the algorithm are easy to get wrong and are worth naming:
+
+- **The ring slot.** Appendix C writes arrivals into slot `(t + D) mod D`, which
+  is the same slot consumed and zeroed at the start of step `t`. It is next read
+  at the start of step `t + D`, which is exactly the synaptic delay. Writing to
+  the slot just emptied looks like a bug and is not one.
+- **Draws are unconditional.** Every stimulus neuron consumes exactly one
+  *accepted* draw per step whether or not it is refractory. If refractory
+  neurons skipped their draw, two hosts whose network state had diverged would
+  consume different numbers of draws and the PRNG streams would separate — which
+  would turn a small numerical difference into a completely different run
+  (FR-SIM-04).
+- **CSR order is normative.** Targets within a row are visited in ascending CSR
+  order because IR-NET-06 says so, and IR-NET-06 says so because floating-point
+  addition is not associative. Accumulating a row's weights in a different order
+  is a different number, not the same number computed differently.
+
+The kernel never allocates, performs no I/O and holds no static data
+(FR-SIM-07, NFR-MNT-02); all state is caller-owned so one allocation can serve
+many requests.
 
 ## 4. Mathematical / numerical details
 
@@ -244,14 +277,33 @@ mingw32-make test
 Observed on 2026-09-10, exit status 0:
 
 ```
-lint_nr05: 19 files scanned, 0 violations
+lint_nr05: EXCLUDED engine/src/onffpn.c (native backend, NR-05 does not apply)
+lint_nr05: 22 files scanned, 1 excluded, 0 violations
 tstcom: TU-01/TU-07 on platform WIN32
 tstcom: 170 checks, 0 failures
 run_units: 19 passed, 0 failed
 run_fp [SOFT backend]: 2426 passed, 0 failed
 run_fp [NATIVE backend]: 2426 passed, 0 failed
 cmpback: soft and native agree bit-for-bit on 2018 result lines
+run_ker [SOFT backend]: 449 passed, 0 failed
+run_ker [NATIVE backend]: 449 passed, 0 failed
+cmpback: soft and native agree bit-for-bit on 778 result lines
 ```
+
+Kernel behaviour across the seven cases, identical under both backends and the
+oracle. The monotone rise with stimulus rate is the qualitative shape ACC-1 and
+ACC-4 will later test against the Shiu reference; here it only demonstrates the
+kernel responds sensibly, on a synthetic network with uncalibrated weights.
+
+| Case | Seed | Rate (Hz) | Steps | Total spikes |
+|---|---|---|---|---|
+| 0 | 1 | 0 | 200 | **0** — exact silence, ACC-2 in miniature |
+| 1 | 1 | 40 | 500 | 16 |
+| 2 | 1 | 120 | 500 | 39 |
+| 3 | 1 | 200 | 500 | 56 |
+| 4 | 0 | 120 | 500 | 33 — seed-zero remapping (G-10) |
+| 5 | 999999999 | 200 | 300 | 36 — maximum seed (G-06) |
+| 6 | 7 | 9999 | 100 | 40 — NR-12 upper bound (G-07) |
 
 Guards were checked against deliberate faults rather than assumed to work:
 
@@ -262,6 +314,8 @@ Guards were checked against deliberate faults rather than assumed to work:
 | NR-05 lint | `static double leak;` and `return 1.5e3;` | both flagged; "double" in a comment, in a string, and `arr[0].field` correctly not flagged |
 | COBOL column discipline | SHA-256 banner line | assertion fired on first run, fixed by wrapping |
 | Derived `onfsub.c` | — | `x − x` bit pattern asserted to be `00000000:00000000`, not `80000000:...` |
+| Kernel vs oracle | first-spike latency `(t+1)*dt` → `t*dt` | 47 of 449 comparisons fail, exit 1. Spike **counts** were unchanged, so a count-only check would have missed it entirely |
+| NR-05 lint coverage | `static double` added to `onfker.c` | flagged, exit 1, while `onffpn.c` stayed correctly excluded |
 
 NFR-MNT-02 was verified structurally, not by inspection: `size` reports **0
 bytes** of `data` and `bss` in every SoftFloat object, and `nm` shows all three
@@ -286,8 +340,14 @@ Everything above ran on **one** configuration: x86, 32-bit mingw32 (`gcc
   platform; the matrix names x86-64. D-30 authorised pursuing native admission
   here with SSE2 forced but explicitly did **not** authorise amending Section
   2.3, so this host remains unlisted.
-- No **kernel**, network format, COBOL driver or JCL exists yet. No ACC-n
-  criterion has been evaluated.
+- The kernel runs on a **synthetic** network built in the test. No network
+  **file format**, decoder, integrity check, response fingerprint, golden
+  suite, COBOL driver or JCL exists yet, so no ACC-n criterion has been
+  evaluated and Phase B is **not** complete.
+- Appendix C is still marked **draft**. The kernel implements it faithfully,
+  but TBC-01 and TBC-02 remain open until Phase C, so agreement with the
+  oracle proves the code matches the specification, not that the
+  specification matches Shiu et al. (VL-05, VL-07).
 - **C-04 is unaddressed for SoftFloat.** Every SoftFloat external name
   (`softfloat_roundPackToF64`, `softfloat_shiftRightJam64`, …) far exceeds the
   8-character limit the MVS linkage editor accepts. ONFLY's own names are 6–7

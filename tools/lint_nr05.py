@@ -110,19 +110,48 @@ def iter_sources(paths):
 
 
 def main(argv):
-    if len(argv) < 2:
-        sys.stderr.write("usage: lint_nr05.py <path> [<path> ...]\n")
+    # --exclude names a file that is permitted to use floating-point types.
+    # Exclusions are stated here rather than by listing the files to scan,
+    # because an allowlist rots: a new engine source added later would simply
+    # never be linted, and NR-05's whole purpose is to catch the file someone
+    # forgot about.  Scanning whole directories and naming the exceptions makes
+    # the default safe.
+    excludes = set()
+    paths = []
+    i = 1
+    while i < len(argv):
+        if argv[i] == "--exclude":
+            i += 1
+            if i >= len(argv):
+                sys.stderr.write("--exclude needs a path\n")
+                return 2
+            excludes.add(os.path.normcase(os.path.abspath(argv[i])))
+        else:
+            paths.append(argv[i])
+        i += 1
+
+    if not paths:
+        sys.stderr.write(
+            "usage: lint_nr05.py [--exclude <file>] <path> [<path> ...]\n")
         return 2
+
     total = 0
     scanned = 0
-    for path in iter_sources(argv[1:]):
+    skipped = []
+    for path in iter_sources(paths):
+        if os.path.normcase(os.path.abspath(path)) in excludes:
+            skipped.append(path.replace("\\", "/"))
+            continue
         scanned += 1
         problems = lint_file(path)
         for lineno, what, text in problems:
             total += 1
             print("NR-05 %s:%d: %s" % (path.replace("\\", "/"), lineno, what))
             print("      %s" % text[:100])
-    print("lint_nr05: %d files scanned, %d violations" % (scanned, total))
+    for sk in skipped:
+        print("lint_nr05: EXCLUDED %s (native backend, NR-05 does not apply)" % sk)
+    print("lint_nr05: %d files scanned, %d excluded, %d violations"
+          % (scanned, len(skipped), total))
     return 1 if total else 0
 
 
