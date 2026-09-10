@@ -21,12 +21,14 @@
 #include "onfdec.h"
 #include "onfker.h"
 
-#define MAXFILE (4 * 1024 * 1024)
-#define MAXN 4096
-#define MAXE 65536
-#define MAXD 64
-
-static onf_u8 buf[MAXFILE];
+/*
+ * Buffers are allocated from the heap and sized from the file and its header,
+ * not fixed at compile time.  A real MaleCNS network is tens or hundreds of
+ * megabytes, and a static array large enough for one would not link on a
+ * 32-bit host.  This is harness code: FR-SIM-07's ban on allocation applies to
+ * the simulation core, which still receives caller-owned storage.
+ */
+static onf_u8 *buf;
 
 int main(int argc, char **argv)
 {
@@ -46,7 +48,21 @@ int main(int argc, char **argv)
         fprintf(stderr, "cannot open %s\n", argv[1]);
         return 2;
     }
-    len = (onf_i32)fread(buf, 1, MAXFILE, f);
+    if (fseek(f, 0L, SEEK_END) != 0) {
+        fprintf(stderr, "cannot size %s\n", argv[1]);
+        fclose(f);
+        return 2;
+    }
+    len = (onf_i32)ftell(f);
+    rewind(f);
+    buf = (onf_u8 *)malloc((size_t)len);
+    if (buf == NULL) {
+        fprintf(stderr, "cannot allocate %ld bytes for %s\n",
+                (long)len, argv[1]);
+        fclose(f);
+        return 2;
+    }
+    len = (onf_i32)fread(buf, 1, (size_t)len, f);
     fclose(f);
 
     need = 0;
@@ -63,13 +79,34 @@ int main(int argc, char **argv)
     }
 
     if (rc == ONFD_OK && argc > 3) {
-        static onf_u32 rowptr[MAXN + 1], target[MAXE], stim[MAXN], readout[MAXN];
-        static onf_f64 weight[MAXE];
-        static onf_f64 su[MAXN], sg[MAXN], sring[MAXD * MAXN];
-        static onf_i32 srfr[MAXN], sspk[MAXN], sfst[MAXN], sfrc[MAXN];
+        onf_u32 *rowptr, *target, *stim, *readout;
+        onf_f64 *weight, *su, *sg, *sring;
+        onf_i32 *srfr, *sspk, *sfst, *sfrc;
         struct onfsta st;
         onf_i32 i;
         int lrc, krc;
+
+        rowptr  = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)(net.n + 1));
+        target  = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net.e);
+        weight  = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net.e);
+        stim    = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net.ns);
+        readout = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net.nr);
+        su   = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net.n);
+        sg   = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net.n);
+        sring = (onf_f64 *)malloc(sizeof(onf_f64)
+                                  * (size_t)net.delay * (size_t)net.n);
+        srfr = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
+        sspk = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
+        sfst = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
+        sfrc = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
+        if (rowptr == NULL || target == NULL || weight == NULL
+            || stim == NULL || readout == NULL || su == NULL || sg == NULL
+            || sring == NULL || srfr == NULL || sspk == NULL
+            || sfst == NULL || sfrc == NULL) {
+            printf("ALLOC failed for n=%ld e=%ld delay=%ld\n",
+                   (long)net.n, (long)net.e, (long)net.delay);
+            return 2;
+        }
 
         lrc = onfldp(buf, &net, rowptr, target, weight, stim, readout);
         printf("LOAD rc=%d\n", lrc);

@@ -1,0 +1,234 @@
+# -*- coding: utf-8 -*-
+"""Emit ONFLY network files from the signed MaleCNS connectivity (FR-PRP-07).
+
+Produces the two networks the owner chose in D-59:
+
+  full   184,099 neurons, the calibration reference SR-CAL-01 requires and
+         oracle O-2 for measuring ACC-3 truncation error later. Far too large
+         for the 24-bit MVS region (C-01); an x86 reference by design.
+  hop2   the 2-hop neighbourhood of the D-52 stimulus set, a fast working set.
+         MN9 is first reached at hop 2 -- hop 1 yields 604 neurons and does not
+         reach it -- so this provably contains the whole sugar-to-MN9 pathway.
+
+Neither is the SR-EXT-01 subcircuit. That one is defined by activity in a
+full-brain run and cannot be built until W_syn is calibrated, so both files here
+are provisional with respect to SR-EXT.
+
+Every constant comes from the SRS rather than from this file's judgement:
+
+  dt 0.1 ms, T_dly 1.8 ms, t_rfr 2.2 ms, V_th -45 mV, V_rest -52 mV,
+  tau_mbr 20 ms, tau_syn 5 ms      SR-MOD-02, all still TBC-02
+  W_syn 0.275 mV                   SR-MOD-02, "verified for FlyWire",
+                                   to be recalibrated for MaleCNS (SR-CAL)
+  G_EPS 2^-1022                    D-60
+  maximum duration 5000 ms         D-37, provisional, TBD-06 still open
+  magic 0x4F4E4631                 IR-NET-03, proposed, TBD-09 still open
+
+The propagator coefficients are computed here on x86 in binary64 and shipped as
+bit patterns; no target platform converts decimal to binary floating point
+(FR-PRP-06, NR-06).
+
+Run:  python prep/emit.py [full|hop2|both]
+"""
+import hashlib
+import io
+import json
+import math
+import os
+import sys
+
+import numpy as np
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(ROOT, "layout"))
+
+import netwrite                              # noqa: E402
+import signs                                 # noqa: E402
+import sources                               # noqa: E402
+
+OUT_DIR = os.path.join(ROOT, "data", "networks")
+MAPPING = os.path.join(ROOT, "docs", "malecns-celltype-mapping.json")
+MANIFEST = os.path.join(OUT_DIR, "MANIFEST.json")
+
+# --- SR-MOD-02 (TBC-02: every one of these is unconfirmed) -----------------
+DT_MS = 0.1
+TAU_MBR_MS = 20.0
+TAU_SYN_MS = 5.0
+T_DLY_MS = 1.8
+T_RFR_MS = 2.2
+V_TH = -45.0
+V_REST = -52.0
+V_RESET = -52.0
+W_SYN = 0.275
+
+# --- D-60 ------------------------------------------------------------------
+G_EPS = 2.0 ** -1022          # smallest normal binary64; clamps exactly the
+                              # subnormals and no normal value (NR-08)
+
+# --- D-37, provisional; TBD-06 still open ---------------------------------
+MAX_MS = 5000
+
+#: Integration method code for the header: 1 = exact propagator (IR-NET 4.1).
+METHOD_EXACT = 1
+
+
+def coefficients():
+    """Exact-propagator coefficients for one timestep (SRS Appendix C).
+
+    With u = v - V_rest, du/dt = (g - u)/tau_mbr and dg/dt = -g/tau_syn, one
+    step of length dt is u' = P11*u + P12*g and g' = P22*g. Both exact
+    integration and forward Euler reduce to that same linear update with
+    different coefficients (SR-MOD-03), which is why the integration method
+    changes constants and not code.
+    """
+    p11 = math.exp(-DT_MS / TAU_MBR_MS)
+    p22 = math.exp(-DT_MS / TAU_SYN_MS)
+    p12 = (TAU_SYN_MS / (TAU_SYN_MS - TAU_MBR_MS)
+           * (math.exp(-DT_MS / TAU_SYN_MS) - math.exp(-DT_MS / TAU_MBR_MS)))
+    return p11, p12, p22
+
+
+def two_hop(pre, post, seeds):
+    """Body ids reachable from ``seeds`` in at most two forward hops."""
+    order = np.argsort(pre, kind="stable")
+    pre_s, post_s = pre[order], post[order]
+    seen = set(int(x) for x in seeds)
+    frontier = np.asarray(seeds)
+    for _ in range(2):
+        lo = np.searchsorted(pre_s, frontier, "left")
+        hi = np.searchsorted(pre_s, frontier, "right")
+        if not len(frontier):
+            break
+        nxt = np.unique(np.concatenate(
+            [post_s[a:b] for a, b in zip(lo, hi)])) if len(frontier) else []
+        new = np.array([x for x in nxt if int(x) not in seen], dtype=pre.dtype)
+        seen.update(int(x) for x in new)
+        frontier = new
+    return np.sort(np.fromiter(seen, dtype=pre.dtype, count=len(seen)))
+
+
+def build_network(arrays, nodes, stim_bodies, read_bodies, label):
+    """Assemble one network file from a node subset."""
+    pre, post = arrays["body_pre"], arrays["body_post"]
+    sw = arrays["signed_weight"]
+
+    keep = np.isin(pre, nodes) & np.isin(post, nodes)
+    p, q, s = pre[keep], post[keep], sw[keep]
+
+    # Contiguous indices, ascending by body id so the mapping is reproducible
+    # and independent of edge order.
+    nodes = np.sort(nodes)
+    idx_pre = np.searchsorted(nodes, p)
+    idx_post = np.searchsorted(nodes, q)
+
+    # CSR requires rows grouped and targets ascending within a row (IR-NET-06).
+    # Sorting by (pre, post) delivers both at once.
+    order = np.lexsort((idx_post, idx_pre))
+    idx_pre, idx_post, s = idx_pre[order], idx_post[order], s[order]
+
+    n = len(nodes)
+    rowptr = np.zeros(n + 1, dtype=np.int64)
+    counts = np.bincount(idx_pre, minlength=n)
+    rowptr[1:] = np.cumsum(counts)
+
+    # SR-MOD-05: weight = synapse count x sign x W_syn.  The count already
+    # carries its sign from prep/signs.py; W_syn is applied here and only here.
+    weight = s.astype(np.float64) * W_SYN
+
+    p11, p12, p22 = coefficients()
+    blob = netwrite.build(
+        n=n,
+        rowptr=rowptr.tolist(),
+        target=idx_post,
+        weight=weight,
+        stim=np.searchsorted(nodes, np.sort(stim_bodies)),
+        readout=np.searchsorted(nodes, np.sort(read_bodies)),
+        dt_us=int(round(DT_MS * 1000)),
+        delay=int(round(T_DLY_MS / DT_MS)),
+        refract=int(round(T_RFR_MS / DT_MS)),
+        max_ms=MAX_MS,
+        u_th=V_TH - V_REST,
+        u_reset=V_RESET - V_REST,
+        p11=p11, p12=p12, p22=p22,
+        g_eps=G_EPS, w_syn=W_SYN, v_rest=V_REST,
+        method=METHOD_EXACT)
+    print("  %-6s n=%-7d e=%-9d %10d bytes" % (label, n, len(idx_post), len(blob)))
+    return blob, n, len(idx_post)
+
+
+def main():
+    which = sys.argv[1] if len(sys.argv) > 1 else "both"
+    if not os.path.isdir(OUT_DIR):
+        os.makedirs(OUT_DIR)
+
+    mapping = json.load(io.open(MAPPING, encoding="utf-8"))
+    stim_bodies = np.array(mapping["stimulus_set"]["bodyIds"], dtype=np.int64)
+    read_bodies = np.array(mapping["readout"]["bodyIds"], dtype=np.int64)
+
+    print("applying D-54, D-55 and D-56 ...")
+    arrays, stats = signs.build_signs(verbose=False)
+    pre, post = arrays["body_pre"], arrays["body_post"]
+    print("  signed connectivity: %d pairs, %d synapses"
+          % (len(pre), stats["synapses_kept"]))
+
+    targets = {}
+    if which in ("full", "both"):
+        targets["full"] = np.union1d(np.unique(pre), np.unique(post))
+    if which in ("hop2", "both"):
+        hop = two_hop(pre, post, stim_bodies)
+        targets["hop2"] = np.union1d(hop, read_bodies)
+
+    entries = {}
+    for label in sorted(targets):
+        nodes = targets[label]
+        for name, ids in (("stimulus", stim_bodies), ("readout", read_bodies)):
+            missing = [int(b) for b in ids if b not in set(nodes.tolist())]
+            if missing:
+                raise SystemExit(
+                    "%s: %s neurons absent from the node set: %s. The network "
+                    "would have no %s, which is not a network worth emitting."
+                    % (label, name, missing, name))
+        blob, n, e = build_network(arrays, nodes, stim_bodies, read_bodies, label)
+        path = os.path.join(OUT_DIR, "onfnet-malecns-v1.0-%s.bin" % label)
+        io.open(path, "wb").write(blob)
+        entries[label] = {
+            "file": os.path.basename(path),
+            "neurons": int(n), "edges": int(e), "bytes": len(blob),
+            "sha256": hashlib.sha256(blob).hexdigest(),
+            "crc32": "%08X" % (__import__("zlib").crc32(blob) & 0xFFFFFFFF),
+        }
+
+    p11, p12, p22 = coefficients()
+    man = {
+        "dataset": sources.DATASET,
+        "dataset_uuid": sources.DATASET_UUID,
+        "decisions": ["D-37", "D-52", "D-54", "D-55", "D-56", "D-59", "D-60"],
+        "parameters": {
+            "dt_ms": DT_MS, "tau_mbr_ms": TAU_MBR_MS, "tau_syn_ms": TAU_SYN_MS,
+            "t_dly_ms": T_DLY_MS, "t_rfr_ms": T_RFR_MS,
+            "V_th": V_TH, "V_rest": V_REST, "V_reset": V_RESET,
+            "W_syn": W_SYN, "G_EPS": G_EPS, "max_ms": MAX_MS,
+            "p11": p11, "p12": p12, "p22": p22,
+            "status": "SR-MOD-02 values are TBC-02 (unconfirmed); W_syn is the "
+                      "FlyWire value pending SR-CAL recalibration; max_ms is "
+                      "provisional per D-37 with TBD-06 open",
+        },
+        "stimulus_types": mapping["stimulus_set"]["types"],
+        "readout_type": mapping["readout"]["type"],
+        "networks": entries,
+        "limits": ["VL-12", "VL-13"],
+        "not_the_srext_subcircuit": (
+            "SR-EXT-01 defines the MVP subcircuit by activity in a full-brain "
+            "run, which needs W_syn calibrated first. Both files are "
+            "provisional with respect to SR-EXT."),
+    }
+    io.open(MANIFEST, "w", encoding="utf-8", newline="\n").write(
+        json.dumps(man, indent=2, sort_keys=True) + "\n")
+    print("wrote %s" % MANIFEST.replace("\\", "/"))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

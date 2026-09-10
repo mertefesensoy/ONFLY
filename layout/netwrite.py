@@ -27,6 +27,104 @@ import onfcom_py as L                       # noqa: E402
 from onfly_oracle.crc32 import crc32        # noqa: E402
 
 
+def _pack_u32(values):
+    """Pack a sequence as big-endian u32.
+
+    numpy is used when available because these sections reach tens of millions
+    of entries for a full-brain network, where struct.pack with an unpacked
+    argument list is both very slow and very memory hungry.  The struct path is
+    kept so the writer still works without numpy, and the two produce identical
+    bytes by construction: both are big-endian u32.
+    """
+    if len(values) == 0:
+        return b""
+    try:
+        import numpy as np
+        return np.asarray(values, dtype=">u4").tobytes()
+    except ImportError:
+        return struct.pack(">%dI" % len(values), *values)
+
+
+def _pack_f64(values):
+    """Pack a sequence as big-endian IEEE 754 binary64 (IR-NET-01)."""
+    if len(values) == 0:
+        return b""
+    try:
+        import numpy as np
+        return np.asarray(values, dtype=">f8").tobytes()
+    except ImportError:
+        return struct.pack(">%dd" % len(values), *values)
+
+
+def _pack_neuron_table(n, type_ids, stim, readout):
+    """N records of 8 bytes: type ID (u32) then flags (u32).
+
+    Flags bit 0 marks a stimulus neuron and bit 1 a readout neuron, so the
+    engine can identify both from the neuron table alone without consulting the
+    separate index lists.
+    """
+    try:
+        import numpy as np
+        tab = np.zeros((n, 2), dtype=">u4")
+        tab[:, 0] = np.asarray(type_ids, dtype=">u4")
+        flags = np.zeros(n, dtype=">u4")
+        if len(stim):
+            flags[np.asarray(stim, dtype=np.int64)] |= 1
+        if len(readout):
+            flags[np.asarray(readout, dtype=np.int64)] |= 2
+        tab[:, 1] = flags
+        return tab.tobytes()
+    except ImportError:
+        stim_set, read_set = set(stim), set(readout)
+        out = bytearray()
+        for i in range(n):
+            f = (1 if i in stim_set else 0) | (2 if i in read_set else 0)
+            out += struct.pack(">II", type_ids[i], f)
+        return bytes(out)
+
+
+def _check_ascending(n, rowptr, target):
+    """IR-NET-06: targets strictly ascend within each row.
+
+    This is asserted rather than fixed up. Sorting silently would hide a defect
+    in whatever produced the network, and the order is normative for
+    floating-point accumulation: addition does not associate, so a row visited
+    in a different order is a different answer, not the same answer computed
+    differently.
+
+    Vectorised, because a full-brain network has tens of millions of edges and
+    the obvious nested Python loop over them takes minutes. The check is:
+    every position that is not the first entry of a row must exceed its
+    predecessor.
+    """
+    e = len(target)
+    if e == 0:
+        return
+    try:
+        import numpy as np
+    except ImportError:
+        for i in range(n):
+            row = target[rowptr[i]:rowptr[i + 1]]
+            for k in range(1, len(row)):
+                assert row[k] > row[k - 1], (
+                    "IR-NET-06: row %d targets are not strictly ascending" % i)
+        return
+
+    t = np.asarray(target)
+    starts = np.asarray(rowptr[:n], dtype=np.int64)
+    is_start = np.zeros(e, dtype=bool)
+    is_start[starts[starts < e]] = True
+    interior = ~is_start
+    interior[0] = False                     # nothing precedes position 0
+    bad = np.nonzero(interior & (t <= np.concatenate(([t[0]], t[:-1]))))[0]
+    if len(bad):
+        k = int(bad[0])
+        row = int(np.searchsorted(starts, k, side="right") - 1)
+        raise AssertionError(
+            "IR-NET-06: row %d targets are not strictly ascending "
+            "(target[%d]=%d follows %d)" % (row, k, int(t[k]), int(t[k - 1])))
+
+
 def _align_up(value, to):
     rem = value % to
     return value if rem == 0 else value + (to - rem)
@@ -58,11 +156,7 @@ def build(n, rowptr, target, weight, stim, readout,
     assert len(weight) == e, "one weight per edge"
     assert rowptr[0] == 0 and rowptr[n] == e, "rowptr must span the edge list"
 
-    for i in range(n):
-        row = target[rowptr[i]:rowptr[i + 1]]
-        for k in range(1, len(row)):
-            assert row[k] > row[k - 1], (
-                "IR-NET-06: row %d targets are not strictly ascending" % i)
+    _check_ascending(n, rowptr, target)
 
     if type_ids is None:
         type_ids = [0] * n
@@ -82,19 +176,14 @@ def build(n, rowptr, target, weight, stim, readout,
 
     # Neuron table: N records of 8 bytes, type ID then flags.
     # Flags bit 0 = stimulus, bit 1 = readout.
-    stim_set, read_set = set(stim), set(readout)
-    neur = bytearray()
-    for i in range(n):
-        flags = (1 if i in stim_set else 0) | (2 if i in read_set else 0)
-        neur += struct.pack(">II", type_ids[i], flags)
+    neur = _pack_neuron_table(n, type_ids, stim, readout)
 
     off_neur = add("neuron", bytes(neur))
-    off_row = add("rowptr", struct.pack(">%dI" % (n + 1), *rowptr))
-    off_tgt = add("target", struct.pack(">%dI" % e, *target) if e else b"")
-    off_wgt = add("weight", struct.pack(">%dd" % e, *weight) if e else b"")
-    off_stim = add("stim", struct.pack(">%dI" % len(stim), *stim) if stim else b"")
-    off_read = add("readout",
-                   struct.pack(">%dI" % len(readout), *readout) if readout else b"")
+    off_row = add("rowptr", _pack_u32(rowptr))
+    off_tgt = add("target", _pack_u32(target))
+    off_wgt = add("weight", _pack_f64(weight))
+    off_stim = add("stim", _pack_u32(stim))
+    off_read = add("readout", _pack_u32(readout))
 
     # --- assemble the payload, zero-filling every alignment gap -------------
     payload = bytearray()

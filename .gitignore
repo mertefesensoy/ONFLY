@@ -24,3 +24,6 @@ third_party/*.zip
 
 # MaleCNS data files: large, public, digests recorded in data/malecns/MANIFEST.md
 data/malecns/*.feather
+
+# Emitted network files: large binaries, digests in data/networks/MANIFEST.json
+data/networks/*.bin
