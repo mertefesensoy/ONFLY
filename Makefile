@@ -65,7 +65,7 @@ ONFSF = softfloat/onfrpk.c softfloat/onfflag.c softfloat/onfsub.c
 GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
             generated/onfcom_py.py generated/onfnhd.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden
+.PHONY: all test generate lint clean units layout fp kernel decode golden tt02 testfloat c04
 
 all: test
 
@@ -172,8 +172,42 @@ golden: $(BUILD) $(GENERATED) softfloat/onfsub.c
 	$(PYTHON) tests/run_gld.py $(BUILD)/tstgld_nat.exe
 	$(PYTHON) tools/cmpgld.py $(BUILD)/tstgld_soft.exe $(BUILD)/tstgld_nat.exe
 
-test: lint layout units fp kernel decode golden
-	@echo "ONFLY: lint + TU-01..TU-07 + kernel + TE-01..TE-08 + ACC-5 golden suite all passed"
+# --- C-04: external identifier lengths -----------------------------------
+# ONFLY's own externals must stay within 8 characters and be unique ignoring
+# case.  The vendored SoftFloat names are far longer; that is a Gate G1
+# question (D-45), so they are reported and not failed on.
+c04: $(BUILD) $(GENERATED) softfloat/onfsub.c
+	$(PYTHON) tools/mkobjs.py $(BUILD)/obj \
+	  $(CC) $(SFFLAGS) $(INC) $(SFINC) -- \
+	  engine/src/onfcrc.c engine/src/onfrnd.c engine/src/onfstm.c \
+	  engine/src/onffpc.c engine/src/onffps.c engine/src/onfker.c \
+	  engine/src/onfdec.c engine/src/onffpr.c generated/onfcom.c \
+	  $(SFSRCS) $(ONFSF)
+	$(PYTHON) tools/lint_c04.py $(BUILD)/obj
+
+# --- TT-02: Berkeley TestFloat vectors (NR-14, and one NR-09 condition) ---
+# Needs testfloat_gen, which needs a complete softfloat.a.  That library is
+# built with the 8086 specialization because ARM-VFPv2-defaultNaN cannot
+# build one (D-46); NaN cases are excluded and declared as VL-11.
+TFDIR = third_party/TestFloat-3e/build/Win32-MinGW
+SFLIBDIR = third_party/SoftFloat-3e/build/Win32-MinGW
+TFGEN = $(TFDIR)/testfloat_gen.exe
+
+testfloat:
+	cd $(SFLIBDIR) && mingw32-make
+	cd $(TFDIR) && mingw32-make testfloat_gen.exe
+
+tt02: $(BUILD) softfloat/onfsub.c
+	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstflt_soft.exe \
+	  tests/tstflt.c engine/src/onffpc.c engine/src/onffps.c \
+	  $(SFSRCS) $(ONFSF)
+	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/tstflt_nat.exe \
+	  tests/tstflt.c engine/src/onffpc.c engine/src/onffpn.c
+	$(PYTHON) tests/run_tt02.py $(BUILD)/tstflt_soft.exe \
+	  $(BUILD)/tstflt_nat.exe $(TFGEN)
+
+test: lint c04 layout units fp kernel decode golden tt02
+	@echo "ONFLY: NR-05 + C-04 lints, TT-02, TU-01..TU-07, kernel, TE-01..TE-08 and the ACC-5 golden suite all passed"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"
