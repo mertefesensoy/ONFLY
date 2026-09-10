@@ -15,6 +15,14 @@
     "VL-13"
   ],
   "networks": {
+    "full": {
+      "bytes": 299515256,
+      "crc32": "0F866DC9",
+      "edges": 24775486,
+      "file": "onfnet-malecns-v1.0-full.bin",
+      "neurons": 184099,
+      "sha256": "89f65626a48f38de7c0323434d66133beef2092ac3dac88ec7ecccdeaaca3891"
+    },
     "hop2": {
       "bytes": 20615112,
       "crc32": "FCEC6BBB",

@@ -10,6 +10,41 @@
 #include "onffp.h"
 #include "onfnhd.h"
 
+/* Largest value an onf_i32 can hold.  Written as a subtraction so the source
+   contains no constant that would itself overflow while being parsed. */
+#define ONF_I32MAX (2147483646L + 1L)
+
+/*
+ * Saturating 32-bit helpers for the memory calculation.
+ *
+ * NR-04 confines 64-bit integer types to SoftFloat and the float layer, so the
+ * decoder cannot simply widen to a 64-bit accumulator; and NR-11 forbids
+ * relying on signed overflow.  These check before they compute, and saturate to
+ * a sentinel that the caller treats as "does not fit".
+ *
+ * onfmul returns -1 on overflow, onfadd returns 0 on overflow, so a chain of
+ * them short-circuits on the first term that does not fit.
+ */
+static onf_i32 onfmul(onf_i32 a, onf_i32 b)
+{
+    if (a < 0 || b < 0) {
+        return -1;
+    }
+    if (a != 0 && b > ONF_I32MAX / a) {
+        return -1;
+    }
+    return a * b;
+}
+
+static int onfadd(onf_i32 *acc, onf_i32 term)
+{
+    if (term < 0 || *acc > ONF_I32MAX - term) {
+        return 0;
+    }
+    *acc += term;
+    return 1;
+}
+
 /* Read a big-endian unsigned 32-bit field by explicit shifts (FR-LOD-05). */
 static onf_u32 g32(const onf_u8 *b, onf_i32 o)
 {
@@ -105,9 +140,46 @@ int onfdec(const onf_u8 *buf, onf_i32 len, onf_i32 limit,
     if (delay < 1) {
         return ONFD_PLEN;       /* Appendix C requires D >= 1 */
     }
-    /* Decoded network plus simulation state: u and g (8 bytes each), the ring
-       (8 bytes per neuron per delay slot), and four int32 arrays per neuron. */
-    bytes = n * 8 + n * 8 + delay * n * 8 + n * 4 * 4;
+    /* FR-LOD-04 asks for the memory needed by the decoded network AND the
+       simulation state.  Both halves are counted:
+
+         decoded network   rowptr (n+1) u32, targets e u32, weights e binary64
+         simulation state  u and g (8 bytes each per neuron), the delay ring
+                           (8 bytes per neuron per delay slot), and four int32
+                           arrays per neuron
+
+       The network half dominates by an order of magnitude on a real connectome
+       -- tens of millions of edges against a few hundred thousand neurons -- so
+       omitting it would make the memory gate report a figure far below the true
+       requirement and let an oversized network through. On a 24-bit region
+       (C-01, NFR-MEM-01) that is the difference between a clean refusal and an
+       abend.
+
+       Computed in a 64-bit accumulator and range-checked before narrowing,
+       because e * 12 alone overflows a signed 32-bit value once the edge count
+       passes about 179 million (NR-11 forbids relying on overflow). */
+    if (n < 0 || e < 0 || ns < 0 || nr < 0) {
+        /* A header count whose u32 value exceeds INT32_MAX arrives here
+           negative.  Such a network cannot be addressed on any ONFLY target
+           and is refused rather than wrapped into a small positive size. */
+        return ONFD_MEM;
+    }
+
+    bytes = 0;
+    if (!onfadd(&bytes, onfmul(n + 1, 4))          /* rowptr  */
+        || !onfadd(&bytes, onfmul(e, 4))           /* target  */
+        || !onfadd(&bytes, onfmul(e, 8))           /* weight  */
+        || !onfadd(&bytes, onfmul(n, 8))           /* u       */
+        || !onfadd(&bytes, onfmul(n, 8))           /* g       */
+        || !onfadd(&bytes, onfmul(onfmul(delay, n), 8))   /* ring */
+        || !onfadd(&bytes, onfmul(n, 16))) {       /* rfr/spk/fst/frc */
+        /* The requirement does not fit in a 32-bit byte count, so it exceeds
+           any limit a caller could have configured. */
+        if (need != 0) {
+            *need = ONF_I32MAX;
+        }
+        return ONFD_MEM;
+    }
     if (need != 0) {
         *need = bytes;
     }

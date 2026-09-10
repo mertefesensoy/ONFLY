@@ -158,6 +158,27 @@ def build_network(arrays, nodes, stim_bodies, read_bodies, label):
     return blob, n, len(idx_post)
 
 
+def scan_existing():
+    """Digest every network file already present, so the manifest is complete."""
+    import zlib
+    found = {}
+    if not os.path.isdir(OUT_DIR):
+        return found
+    for name in sorted(os.listdir(OUT_DIR)):
+        if not name.endswith(".bin"):
+            continue
+        label = name.replace("onfnet-malecns-v1.0-", "").replace(".bin", "")
+        blob = io.open(os.path.join(OUT_DIR, name), "rb").read()
+        n = int.from_bytes(blob[20:24], "big")
+        e = int.from_bytes(blob[24:28], "big")
+        found[label] = {
+            "file": name, "neurons": n, "edges": e, "bytes": len(blob),
+            "sha256": hashlib.sha256(blob).hexdigest(),
+            "crc32": "%08X" % (zlib.crc32(blob) & 0xFFFFFFFF),
+        }
+    return found
+
+
 def main():
     which = sys.argv[1] if len(sys.argv) > 1 else "both"
     if not os.path.isdir(OUT_DIR):
@@ -180,7 +201,11 @@ def main():
         hop = two_hop(pre, post, stim_bodies)
         targets["hop2"] = np.union1d(hop, read_bodies)
 
-    entries = {}
+    # The manifest describes what is on disk, not merely what this run emitted.
+    # Running `emit.py full` must not erase the record of a network already
+    # written: a manifest that silently forgets an artifact is worse than none,
+    # because it is trusted.
+    entries = scan_existing()
     for label in sorted(targets):
         nodes = targets[label]
         for name, ids in (("stimulus", stim_bodies), ("readout", read_bodies)):
