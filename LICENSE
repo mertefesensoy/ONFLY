@@ -1,0 +1,41 @@
+MIT License
+
+Copyright (c) 2026 Mert Efe Sensoy
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+THIRD-PARTY AND DATA TERMS (NFR-LIC-01)
+
+This licence covers ONFLY's own source. It does not cover:
+
+  Berkeley SoftFloat Release 3e and TestFloat Release 3e, by John R. Hauser,
+  Copyright 2011-2018 The Regents of the University of California, three-clause
+  BSD. Vendored under third_party/ with their licence text; see
+  third_party/MANIFEST.md. ONFLY's derived files under softfloat/ are
+  redistributed under that same BSD licence with attribution, as their headers
+  state.
+
+  MaleCNS v1.0 connectome data, HHMI Janelia and Google Research, CC BY 4.0
+  (decision D-50). Attribution is required wherever the data or artifacts
+  derived from it appear. The data files are not committed; their provenance
+  and digests are in data/malecns/MANIFEST.json. Cite: "Sexual dimorphism in
+  the complete connectome of the Drosophila male central nervous system",
+  Cell (2026), doi:10.1016/j.cell.2026.08.015.

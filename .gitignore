@@ -27,3 +27,6 @@ data/malecns/*.feather
 
 # Emitted network files: large binaries, digests in data/networks/MANIFEST.json
 data/networks/*.bin
+
+# Full-brain run outputs: large, regenerable from tools/fullbrain.sh
+data/fullbrain/*.txt
