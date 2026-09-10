@@ -65,7 +65,7 @@ ONFSF = softfloat/onfrpk.c softfloat/onfflag.c softfloat/onfsub.c
 GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
             generated/onfcom_py.py generated/onfnhd.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden tt02 testfloat c04
+.PHONY: all test generate lint clean units layout fp kernel decode golden tt02 testfloat c04 prep
 
 all: test
 
@@ -206,8 +206,15 @@ tt02: $(BUILD) softfloat/onfsub.c
 	$(PYTHON) tests/run_tt02.py $(BUILD)/tstflt_soft.exe \
 	  $(BUILD)/tstflt_nat.exe $(TFGEN)
 
-test: lint c04 layout units fp kernel decode golden tt02
-	@echo "ONFLY: NR-05 + C-04 lints, TT-02, TU-01..TU-07, kernel, TE-01..TE-08 and the ACC-5 golden suite all passed"
+# --- TP-01: sign and weight assignment (FR-PRP-03, SR-MOD-05) ------------
+# Unit tests run on a small fixture so a failure points at one rule; two
+# further tests check the mapping's vocabulary against the real MaleCNS
+# data and skip cleanly when that data has not been retrieved.
+prep:
+	$(PYTHON) tests/test_signs.py
+
+test: lint c04 layout units fp kernel decode golden tt02 prep
+	@echo "ONFLY: NR-05 + C-04 lints, TT-02, TU-01..TU-07, kernel, TE-01..TE-08, ACC-5 golden suite and TP-01 all passed"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"
