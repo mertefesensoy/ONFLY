@@ -85,6 +85,53 @@ NET n=184099 e=24775486 ns=14 nr=2 dtus=100 delay=18 refract=22 need=330443656
 `need=330443656` is the corrected FR-LOD-04 figure — the memory gate that had
 been understating by tenfold until the full network exposed it.
 
+### The protocol result
+
+Seven rates, one seed, 1000 ms each, 184,099 neurons. Total compute about
+28 minutes.
+
+| Rate (Hz) | MN9 #1 spikes | MN9 #1 first spike | MN9 #2 spikes | Network spikes | Active neurons |
+|---|---|---|---|---|---|
+| 10 | 1 | 536.8 ms | 0 | 330,275 | 16,200 |
+| 20 | 13 | 154.9 ms | 0 | 1,439,281 | 17,083 |
+| 40 | 31 | 47.4 ms | 3 | 152,495 | 6,276 |
+| 80 | 39 | — | 4 | 1,443,227 | 16,751 |
+| 120 | 274 | — | 51 | 226,679 | 6,902 |
+| 160 | 293 | — | 60 | 248,255 | 7,101 |
+| 200 | 311 | — | 68 | 256,895 | 6,942 |
+
+**The MN9 dose-response is strictly monotonic** across all seven rates, in both
+readout neurons, and first-spike latency falls sharply as concentration rises
+(536.8 ms at 10 Hz to 47.4 ms at 40 Hz). That is the qualitative sugar-to-feeding
+relationship ACC-1 describes and the shape ACC-4 tests for.
+
+**Global network activity is not monotonic at all** — it swings between 152,495
+and 1,443,227 spikes with no relation to the stimulus rate, and the active-neuron
+count alternates between roughly 6,500 and 17,000 as though the network were
+flipping between two regimes.
+
+Those two observations are worth holding together. The sugar-to-MN9 pathway
+behaves sensibly while the network around it does not, which is exactly what an
+**uncalibrated** `W_syn` would produce: the pathway's relative weights are right
+because they come from real synapse counts, but their absolute scale is the
+FlyWire value applied to a different connectome, so global excitation and
+inhibition are not in balance. This is the measurement SR-CAL-01 exists to act
+on, and it is evidence that calibration is necessary rather than merely
+specified.
+
+### Provisional activity ranking
+
+20,275 of 184,099 neurons spiked at least once. Every candidate size in
+SR-EXT-01's sequence is therefore reachable:
+
+| N | Total spikes required to make the cut |
+|---|---|
+| 250 | ≥ 1,014 |
+| 500 | ≥ 686 |
+| 1,000 | ≥ 561 |
+| 2,000 | ≥ 469 |
+| 4,000 | ≥ 407 |
+
 ### What these results do not prove
 
 - **x86 32-bit mingw32 gcc 6.3.0, NATIVE backend only.** Nothing here ran under

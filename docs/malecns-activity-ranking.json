@@ -1,0 +1,957 @@
+{
+  "cut_for_n": {
+    "1000": 561,
+    "2000": 469,
+    "250": 1014,
+    "4000": 407,
+    "500": 686
+  },
+  "decisions": [
+    "D-56",
+    "D-59",
+    "D-61",
+    "D-63"
+  ],
+  "limits": [
+    "VL-12",
+    "VL-13"
+  ],
+  "neurons_in_network": 184099,
+  "neurons_that_spiked": 20275,
+  "rates": {
+    "10": {
+      "active": 16200,
+      "elapsed_ms": 235540,
+      "readouts": [
+        {
+          "first_us": 536800,
+          "neuron": 306,
+          "spikes": 1
+        },
+        {
+          "first_us": -1,
+          "neuron": 6394,
+          "spikes": 0
+        }
+      ],
+      "spikes": 330275,
+      "steps": 10000
+    },
+    "20": {
+      "active": 17083,
+      "elapsed_ms": 271670,
+      "readouts": [
+        {
+          "first_us": 154900,
+          "neuron": 306,
+          "spikes": 13
+        },
+        {
+          "first_us": -1,
+          "neuron": 6394,
+          "spikes": 0
+        }
+      ],
+      "spikes": 1439281,
+      "steps": 10000
+    },
+    "40": {
+      "active": 6276,
+      "elapsed_ms": 249110,
+      "readouts": [
+        {
+          "first_us": 47400,
+          "neuron": 306,
+          "spikes": 31
+        },
+        {
+          "first_us": 61900,
+          "neuron": 6394,
+          "spikes": 3
+        }
+      ],
+      "spikes": 152495,
+      "steps": 10000
+    },
+    "80": {
+      "active": 16751,
+      "elapsed_ms": 247660,
+      "readouts": [
+        {
+          "first_us": 30900,
+          "neuron": 306,
+          "spikes": 39
+        },
+        {
+          "first_us": 52500,
+          "neuron": 6394,
+          "spikes": 4
+        }
+      ],
+      "spikes": 1443227,
+      "steps": 10000
+    },
+    "120": {
+      "active": 6902,
+      "elapsed_ms": 238620,
+      "readouts": [
+        {
+          "first_us": 28000,
+          "neuron": 306,
+          "spikes": 274
+        },
+        {
+          "first_us": 48700,
+          "neuron": 6394,
+          "spikes": 51
+        }
+      ],
+      "spikes": 226679,
+      "steps": 10000
+    },
+    "160": {
+      "active": 7101,
+      "elapsed_ms": 241280,
+      "readouts": [
+        {
+          "first_us": 30400,
+          "neuron": 306,
+          "spikes": 293
+        },
+        {
+          "first_us": 45400,
+          "neuron": 6394,
+          "spikes": 60
+        }
+      ],
+      "spikes": 248255,
+      "steps": 10000
+    },
+    "200": {
+      "active": 6942,
+      "elapsed_ms": 238850,
+      "readouts": [
+        {
+          "first_us": 28600,
+          "neuron": 306,
+          "spikes": 311
+        },
+        {
+          "first_us": 41200,
+          "neuron": 6394,
+          "spikes": 68
+        }
+      ],
+      "spikes": 256895,
+      "steps": 10000
+    }
+  },
+  "status": "PROVISIONAL - NOT the SR-EXT-01 selection",
+  "top_200": [
+    {
+      "neuron": 3224,
+      "total_spikes": 2307
+    },
+    {
+      "neuron": 3108,
+      "total_spikes": 2305
+    },
+    {
+      "neuron": 173339,
+      "total_spikes": 2163
+    },
+    {
+      "neuron": 152673,
+      "total_spikes": 2128
+    },
+    {
+      "neuron": 151497,
+      "total_spikes": 2120
+    },
+    {
+      "neuron": 5099,
+      "total_spikes": 2075
+    },
+    {
+      "neuron": 183552,
+      "total_spikes": 2069
+    },
+    {
+      "neuron": 152597,
+      "total_spikes": 2058
+    },
+    {
+      "neuron": 152142,
+      "total_spikes": 2057
+    },
+    {
+      "neuron": 151710,
+      "total_spikes": 2052
+    },
+    {
+      "neuron": 136,
+      "total_spikes": 2049
+    },
+    {
+      "neuron": 152031,
+      "total_spikes": 2045
+    },
+    {
+      "neuron": 151669,
+      "total_spikes": 2039
+    },
+    {
+      "neuron": 9866,
+      "total_spikes": 2037
+    },
+    {
+      "neuron": 151833,
+      "total_spikes": 2026
+    },
+    {
+      "neuron": 151603,
+      "total_spikes": 2025
+    },
+    {
+      "neuron": 2242,
+      "total_spikes": 2024
+    },
+    {
+      "neuron": 132082,
+      "total_spikes": 2022
+    },
+    {
+      "neuron": 152215,
+      "total_spikes": 2022
+    },
+    {
+      "neuron": 138255,
+      "total_spikes": 2020
+    },
+    {
+      "neuron": 169029,
+      "total_spikes": 2020
+    },
+    {
+      "neuron": 152653,
+      "total_spikes": 2015
+    },
+    {
+      "neuron": 169188,
+      "total_spikes": 2014
+    },
+    {
+      "neuron": 169582,
+      "total_spikes": 2011
+    },
+    {
+      "neuron": 152199,
+      "total_spikes": 2008
+    },
+    {
+      "neuron": 157884,
+      "total_spikes": 1994
+    },
+    {
+      "neuron": 169152,
+      "total_spikes": 1993
+    },
+    {
+      "neuron": 169365,
+      "total_spikes": 1993
+    },
+    {
+      "neuron": 157666,
+      "total_spikes": 1991
+    },
+    {
+      "neuron": 163460,
+      "total_spikes": 1986
+    },
+    {
+      "neuron": 132080,
+      "total_spikes": 1953
+    },
+    {
+      "neuron": 162747,
+      "total_spikes": 1953
+    },
+    {
+      "neuron": 171459,
+      "total_spikes": 1939
+    },
+    {
+      "neuron": 155231,
+      "total_spikes": 1937
+    },
+    {
+      "neuron": 157883,
+      "total_spikes": 1929
+    },
+    {
+      "neuron": 138825,
+      "total_spikes": 1924
+    },
+    {
+      "neuron": 153070,
+      "total_spikes": 1914
+    },
+    {
+      "neuron": 153422,
+      "total_spikes": 1907
+    },
+    {
+      "neuron": 151222,
+      "total_spikes": 1887
+    },
+    {
+      "neuron": 153452,
+      "total_spikes": 1873
+    },
+    {
+      "neuron": 166270,
+      "total_spikes": 1859
+    },
+    {
+      "neuron": 153424,
+      "total_spikes": 1858
+    },
+    {
+      "neuron": 151867,
+      "total_spikes": 1852
+    },
+    {
+      "neuron": 151609,
+      "total_spikes": 1850
+    },
+    {
+      "neuron": 157885,
+      "total_spikes": 1841
+    },
+    {
+      "neuron": 154220,
+      "total_spikes": 1837
+    },
+    {
+      "neuron": 42869,
+      "total_spikes": 1828
+    },
+    {
+      "neuron": 152288,
+      "total_spikes": 1825
+    },
+    {
+      "neuron": 124777,
+      "total_spikes": 1818
+    },
+    {
+      "neuron": 152741,
+      "total_spikes": 1810
+    },
+    {
+      "neuron": 164519,
+      "total_spikes": 1802
+    },
+    {
+      "neuron": 157651,
+      "total_spikes": 1801
+    },
+    {
+      "neuron": 152770,
+      "total_spikes": 1794
+    },
+    {
+      "neuron": 153376,
+      "total_spikes": 1791
+    },
+    {
+      "neuron": 173336,
+      "total_spikes": 1789
+    },
+    {
+      "neuron": 173049,
+      "total_spikes": 1779
+    },
+    {
+      "neuron": 147531,
+      "total_spikes": 1777
+    },
+    {
+      "neuron": 173067,
+      "total_spikes": 1776
+    },
+    {
+      "neuron": 171984,
+      "total_spikes": 1771
+    },
+    {
+      "neuron": 133866,
+      "total_spikes": 1765
+    },
+    {
+      "neuron": 165553,
+      "total_spikes": 1764
+    },
+    {
+      "neuron": 170763,
+      "total_spikes": 1755
+    },
+    {
+      "neuron": 768,
+      "total_spikes": 1747
+    },
+    {
+      "neuron": 151476,
+      "total_spikes": 1740
+    },
+    {
+      "neuron": 159159,
+      "total_spikes": 1737
+    },
+    {
+      "neuron": 170562,
+      "total_spikes": 1734
+    },
+    {
+      "neuron": 152540,
+      "total_spikes": 1733
+    },
+    {
+      "neuron": 153515,
+      "total_spikes": 1733
+    },
+    {
+      "neuron": 53002,
+      "total_spikes": 1729
+    },
+    {
+      "neuron": 151927,
+      "total_spikes": 1706
+    },
+    {
+      "neuron": 995,
+      "total_spikes": 1704
+    },
+    {
+      "neuron": 13641,
+      "total_spikes": 1699
+    },
+    {
+      "neuron": 151920,
+      "total_spikes": 1692
+    },
+    {
+      "neuron": 119343,
+      "total_spikes": 1687
+    },
+    {
+      "neuron": 71723,
+      "total_spikes": 1682
+    },
+    {
+      "neuron": 140854,
+      "total_spikes": 1681
+    },
+    {
+      "neuron": 154426,
+      "total_spikes": 1681
+    },
+    {
+      "neuron": 169561,
+      "total_spikes": 1673
+    },
+    {
+      "neuron": 114906,
+      "total_spikes": 1672
+    },
+    {
+      "neuron": 161675,
+      "total_spikes": 1666
+    },
+    {
+      "neuron": 45374,
+      "total_spikes": 1663
+    },
+    {
+      "neuron": 169559,
+      "total_spikes": 1660
+    },
+    {
+      "neuron": 141071,
+      "total_spikes": 1654
+    },
+    {
+      "neuron": 156119,
+      "total_spikes": 1641
+    },
+    {
+      "neuron": 25867,
+      "total_spikes": 1637
+    },
+    {
+      "neuron": 155136,
+      "total_spikes": 1628
+    },
+    {
+      "neuron": 154184,
+      "total_spikes": 1627
+    },
+    {
+      "neuron": 161653,
+      "total_spikes": 1622
+    },
+    {
+      "neuron": 132802,
+      "total_spikes": 1617
+    },
+    {
+      "neuron": 150382,
+      "total_spikes": 1616
+    },
+    {
+      "neuron": 42470,
+      "total_spikes": 1615
+    },
+    {
+      "neuron": 155908,
+      "total_spikes": 1615
+    },
+    {
+      "neuron": 7725,
+      "total_spikes": 1614
+    },
+    {
+      "neuron": 153609,
+      "total_spikes": 1612
+    },
+    {
+      "neuron": 139807,
+      "total_spikes": 1602
+    },
+    {
+      "neuron": 170706,
+      "total_spikes": 1602
+    },
+    {
+      "neuron": 155202,
+      "total_spikes": 1598
+    },
+    {
+      "neuron": 152854,
+      "total_spikes": 1594
+    },
+    {
+      "neuron": 186,
+      "total_spikes": 1592
+    },
+    {
+      "neuron": 133005,
+      "total_spikes": 1592
+    },
+    {
+      "neuron": 155932,
+      "total_spikes": 1586
+    },
+    {
+      "neuron": 152633,
+      "total_spikes": 1585
+    },
+    {
+      "neuron": 153507,
+      "total_spikes": 1582
+    },
+    {
+      "neuron": 10241,
+      "total_spikes": 1574
+    },
+    {
+      "neuron": 19559,
+      "total_spikes": 1574
+    },
+    {
+      "neuron": 153469,
+      "total_spikes": 1563
+    },
+    {
+      "neuron": 170473,
+      "total_spikes": 1546
+    },
+    {
+      "neuron": 157447,
+      "total_spikes": 1544
+    },
+    {
+      "neuron": 153880,
+      "total_spikes": 1534
+    },
+    {
+      "neuron": 170573,
+      "total_spikes": 1534
+    },
+    {
+      "neuron": 170370,
+      "total_spikes": 1533
+    },
+    {
+      "neuron": 152853,
+      "total_spikes": 1525
+    },
+    {
+      "neuron": 153599,
+      "total_spikes": 1521
+    },
+    {
+      "neuron": 173048,
+      "total_spikes": 1511
+    },
+    {
+      "neuron": 154746,
+      "total_spikes": 1510
+    },
+    {
+      "neuron": 183562,
+      "total_spikes": 1509
+    },
+    {
+      "neuron": 154541,
+      "total_spikes": 1506
+    },
+    {
+      "neuron": 156079,
+      "total_spikes": 1495
+    },
+    {
+      "neuron": 173147,
+      "total_spikes": 1482
+    },
+    {
+      "neuron": 158108,
+      "total_spikes": 1475
+    },
+    {
+      "neuron": 159551,
+      "total_spikes": 1475
+    },
+    {
+      "neuron": 170972,
+      "total_spikes": 1472
+    },
+    {
+      "neuron": 152474,
+      "total_spikes": 1471
+    },
+    {
+      "neuron": 155188,
+      "total_spikes": 1464
+    },
+    {
+      "neuron": 157344,
+      "total_spikes": 1464
+    },
+    {
+      "neuron": 155406,
+      "total_spikes": 1458
+    },
+    {
+      "neuron": 173333,
+      "total_spikes": 1458
+    },
+    {
+      "neuron": 154196,
+      "total_spikes": 1454
+    },
+    {
+      "neuron": 158035,
+      "total_spikes": 1450
+    },
+    {
+      "neuron": 159764,
+      "total_spikes": 1450
+    },
+    {
+      "neuron": 172888,
+      "total_spikes": 1448
+    },
+    {
+      "neuron": 1971,
+      "total_spikes": 1419
+    },
+    {
+      "neuron": 155445,
+      "total_spikes": 1412
+    },
+    {
+      "neuron": 151213,
+      "total_spikes": 1403
+    },
+    {
+      "neuron": 134635,
+      "total_spikes": 1402
+    },
+    {
+      "neuron": 34365,
+      "total_spikes": 1399
+    },
+    {
+      "neuron": 135988,
+      "total_spikes": 1397
+    },
+    {
+      "neuron": 123577,
+      "total_spikes": 1393
+    },
+    {
+      "neuron": 97666,
+      "total_spikes": 1383
+    },
+    {
+      "neuron": 64978,
+      "total_spikes": 1379
+    },
+    {
+      "neuron": 14747,
+      "total_spikes": 1378
+    },
+    {
+      "neuron": 74763,
+      "total_spikes": 1374
+    },
+    {
+      "neuron": 153362,
+      "total_spikes": 1374
+    },
+    {
+      "neuron": 156321,
+      "total_spikes": 1372
+    },
+    {
+      "neuron": 151359,
+      "total_spikes": 1367
+    },
+    {
+      "neuron": 78934,
+      "total_spikes": 1366
+    },
+    {
+      "neuron": 43153,
+      "total_spikes": 1365
+    },
+    {
+      "neuron": 173436,
+      "total_spikes": 1365
+    },
+    {
+      "neuron": 151808,
+      "total_spikes": 1363
+    },
+    {
+      "neuron": 138776,
+      "total_spikes": 1359
+    },
+    {
+      "neuron": 153345,
+      "total_spikes": 1356
+    },
+    {
+      "neuron": 160316,
+      "total_spikes": 1349
+    },
+    {
+      "neuron": 25377,
+      "total_spikes": 1348
+    },
+    {
+      "neuron": 158163,
+      "total_spikes": 1345
+    },
+    {
+      "neuron": 155760,
+      "total_spikes": 1336
+    },
+    {
+      "neuron": 161495,
+      "total_spikes": 1332
+    },
+    {
+      "neuron": 11709,
+      "total_spikes": 1329
+    },
+    {
+      "neuron": 87,
+      "total_spikes": 1326
+    },
+    {
+      "neuron": 158228,
+      "total_spikes": 1320
+    },
+    {
+      "neuron": 153395,
+      "total_spikes": 1308
+    },
+    {
+      "neuron": 155127,
+      "total_spikes": 1304
+    },
+    {
+      "neuron": 51573,
+      "total_spikes": 1303
+    },
+    {
+      "neuron": 1509,
+      "total_spikes": 1300
+    },
+    {
+      "neuron": 152190,
+      "total_spikes": 1298
+    },
+    {
+      "neuron": 152771,
+      "total_spikes": 1296
+    },
+    {
+      "neuron": 152143,
+      "total_spikes": 1291
+    },
+    {
+      "neuron": 1307,
+      "total_spikes": 1283
+    },
+    {
+      "neuron": 96,
+      "total_spikes": 1282
+    },
+    {
+      "neuron": 122607,
+      "total_spikes": 1282
+    },
+    {
+      "neuron": 32,
+      "total_spikes": 1271
+    },
+    {
+      "neuron": 173332,
+      "total_spikes": 1264
+    },
+    {
+      "neuron": 152337,
+      "total_spikes": 1262
+    },
+    {
+      "neuron": 152638,
+      "total_spikes": 1260
+    },
+    {
+      "neuron": 151430,
+      "total_spikes": 1259
+    },
+    {
+      "neuron": 155369,
+      "total_spikes": 1259
+    },
+    {
+      "neuron": 169084,
+      "total_spikes": 1255
+    },
+    {
+      "neuron": 26800,
+      "total_spikes": 1248
+    },
+    {
+      "neuron": 152620,
+      "total_spikes": 1246
+    },
+    {
+      "neuron": 153393,
+      "total_spikes": 1244
+    },
+    {
+      "neuron": 151337,
+      "total_spikes": 1240
+    },
+    {
+      "neuron": 152936,
+      "total_spikes": 1240
+    },
+    {
+      "neuron": 153414,
+      "total_spikes": 1238
+    },
+    {
+      "neuron": 165716,
+      "total_spikes": 1238
+    },
+    {
+      "neuron": 33034,
+      "total_spikes": 1231
+    },
+    {
+      "neuron": 151899,
+      "total_spikes": 1212
+    },
+    {
+      "neuron": 3211,
+      "total_spikes": 1211
+    },
+    {
+      "neuron": 14750,
+      "total_spikes": 1211
+    },
+    {
+      "neuron": 687,
+      "total_spikes": 1204
+    },
+    {
+      "neuron": 155218,
+      "total_spikes": 1204
+    },
+    {
+      "neuron": 685,
+      "total_spikes": 1199
+    },
+    {
+      "neuron": 153488,
+      "total_spikes": 1195
+    },
+    {
+      "neuron": 1878,
+      "total_spikes": 1192
+    },
+    {
+      "neuron": 1500,
+      "total_spikes": 1190
+    },
+    {
+      "neuron": 162545,
+      "total_spikes": 1186
+    },
+    {
+      "neuron": 719,
+      "total_spikes": 1180
+    },
+    {
+      "neuron": 136759,
+      "total_spikes": 1179
+    },
+    {
+      "neuron": 153288,
+      "total_spikes": 1178
+    },
+    {
+      "neuron": 152964,
+      "total_spikes": 1168
+    },
+    {
+      "neuron": 153598,
+      "total_spikes": 1160
+    },
+    {
+      "neuron": 156061,
+      "total_spikes": 1155
+    }
+  ],
+  "why_provisional": [
+    "W_syn is the uncalibrated FlyWire value 0.275 mV (SR-CAL-01 requires recalibration on the full-brain model)",
+    "one seed per rate, not the 30 TBD-06 proposes (D-63)",
+    "every SR-MOD-02 parameter is still TBC-02"
+  ]
+}
