@@ -32,7 +32,12 @@ CFLAGS  = -std=c89 -pedantic -Wall -Wextra -Werror -O2
 # (D-33).  Those are genuinely unused and warn on every file.  Silencing this
 # one warning keeps the build output readable, which matters because the MVS
 # build's real diagnostics must not be lost in a wall of known noise.
-SFFLAGS = -O2 -Wall -Wno-unused-function
+#
+# -include generated/onf3enm.h forces the C-04 renames into every 3e
+# translation unit (D-113, D-114).  It has to be -include rather than a
+# line in a header, because it must be in effect before primitives.h is
+# read: five of the names are upstream's own #ifndef feature tests.
+SFFLAGS = -O2 -Wall -Wno-unused-function -include generated/onf3enm.h
 
 # D-30: this host's gcc is 32-bit mingw32, where x87 extended precision is the
 # default.  NR-09 forbids it, so the native backend is built with SSE2 forced,
@@ -64,14 +69,19 @@ SFSRCS = \
   $(SF)/f64_add.c $(SF)/f64_sub.c $(SF)/f64_mul.c \
   $(SF)/f64_lt.c $(SF)/f64_le.c $(SF)/f64_eq.c \
   $(SF)/s_addMagsF64.c $(SF)/s_normSubnormalF64Sig.c $(SF)/s_normRoundPackToF64.c \
-  $(SF)/s_shiftRightJam64.c $(SF)/s_shortShiftRightJam64.c \
-  $(SF)/s_countLeadingZeros8.c $(SF)/s_countLeadingZeros32.c \
-  $(SF)/s_countLeadingZeros64.c $(SF)/s_mul64To128M.c \
+  $(SF)/s_countLeadingZeros8.c \
   $(SP)/s_f64UIToCommonNaN.c $(SP)/s_commonNaNToF64UI.c $(SP)/s_propagateNaNF64UI.c
 
-# ONFLY-owned derived SoftFloat files (D-34, D-35).  softfloat_raiseFlags.c and
-# softfloat_state.c from upstream are deliberately NOT built.
-ONFSF = softfloat/onfrpk.c softfloat/onfflag.c softfloat/onfsub.c
+# ONFLY-owned derived SoftFloat files (D-34, D-35, D-114).
+# softfloat_raiseFlags.c and softfloat_state.c from upstream are deliberately
+# NOT built.  Nor are s_shiftRightJam64.c, s_shortShiftRightJam64.c,
+# s_countLeadingZeros32.c, s_countLeadingZeros64.c and s_mul64To128M.c: each
+# of those five is guarded by `#ifndef <its own name>`, generated/onf3enm.h
+# now defines those names, and upstream therefore omits the definitions
+# (VL-27).  softfloat/onfprim.c carries the same bodies under C-04 compliant
+# names, which is upstream's extension point used as designed.
+ONFSF = softfloat/onfrpk.c softfloat/onfflag.c softfloat/onfsub.c \
+        softfloat/onfprim.c
 
 GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
             generated/onfcom_py.py generated/onfnhd.h
@@ -138,7 +148,7 @@ units: $(BUILD)
 # demonstrates NR-09's bit-identity condition on this host; NR-09 admission is
 # NOT complete until TestFloat vectors (TT-02) and golden-suite fingerprints
 # also pass.
-fp: $(BUILD) softfloat/onfsub.c
+fp: $(BUILD) softfloat/onfsub.c softfloat/onfprim.c
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstfp_soft.exe \
 	  tests/tstfp.c engine/src/onffpc.c engine/src/onffps.c engine/src/onfrnd.c \
 	  $(SFSRCS) $(ONFSF)
@@ -214,7 +224,7 @@ c04: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c
 	  engine/src/onfdec.c engine/src/onffpr.c generated/onfcom.c \
 	  softfloat/onfint.c \
 	  $(SFSRCS) $(ONFSF)
-	$(PYTHON) tools/lint_c04.py $(BUILD)/obj
+	$(PYTHON) tools/lint_c04.py --enforce-all $(BUILD)/obj
 
 # --- C-04 on the objects that actually go to MVS (D-111) ------------------
 # The lint above reports vendored collisions and passes, which is exactly
@@ -300,6 +310,12 @@ c2c: $(BUILD) generated/onf2cnm.h generated/onf2cv.h
 	  -include generated/onf2cnm.h \
 	  -o $(BUILD)/tst2c.exe tests/tst2c.c $(SF2C)/softfloat.c
 	$(BUILD)/tst2c.exe | tail -1
+
+generated/onf3enm.h: tools/gen3enm.py
+	$(PYTHON) tools/gen3enm.py
+
+softfloat/onfprim.c: softfloat/derive3e.py generated/onf3enm.h
+	$(PYTHON) softfloat/derive3e.py
 
 generated/onf2cnm.h: tools/gen2cnm.py
 	$(PYTHON) tools/gen2cnm.py

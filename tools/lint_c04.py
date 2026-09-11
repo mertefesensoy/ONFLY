@@ -168,8 +168,16 @@ def main(argv):
               % MVS_MAX)
 
     if enforce_all:
+        # Names beginning with two underscores are reserved to the
+        # implementation in C89: __udivdi3 and __umoddi3 are libgcc's
+        # synthesised 64-bit divide and modulo, emitted by the compiler
+        # rather than chosen by anyone here, so C-04 has nothing to say
+        # about them and renaming them is not possible.  They are not
+        # ignored elsewhere: VL-21 records that PDPCLIB supplies neither,
+        # measured by linking an EXTRN against PDPCLIB.NCALIB.
         glob = set(n for n, types in seen.items()
-                   if any(t.isupper() for t in types))
+                   if any(t.isupper() for t in types)
+                   and not n.startswith("__"))
         bad_names = sorted(n for n in glob if len(n) > MVS_MAX)
         bad_groups = {k: v for k, v in collisions.items()
                       if len([n for n in v if n in glob]) > 1}
