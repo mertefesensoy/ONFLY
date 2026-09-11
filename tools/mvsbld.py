@@ -49,6 +49,10 @@ import os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 USER = "HERC01"
+
+# What onfplat.h reports as ONF_PLATID on this target, for reports
+# whose driver prints no banner of its own.
+PLATFORM = "MVS38J"
 OPT = "-O1"
 DLM = "ZZ"
 CARD = 80
@@ -80,6 +84,35 @@ SRC_DSN = "%s.ONFLY.C" % USER      # FB/80, translation units
 
 class DeckError(Exception):
     pass
+
+
+def with_defines(relpath, names, extra=()):
+    """A source preceded by `#define` cards, as `-D` would have done.
+
+    The x86 build selects the float backend with -DONF_FP_SOFT2C.  That
+    cannot be done here: a JCL field ends at column 71 (see the note at the
+    top of this file), the compile PARM card is already 67 columns, and
+    adding the option would make it 83.
+
+    So the definitions go in front of the source as cards, which is exactly
+    what -D means to the preprocessor.  They are assembled at submit time
+    and never written to disk, so there is no second copy of the source to
+    drift from the first -- the same property D-110's amalgamation and
+    D-111's rename prologue rely on.
+
+    This matters for more than tidiness.  Without it the MVS engine links
+    SoftFloat 2c and then reports SOFT3E in its run manifest, because
+    ONF_FPID falls through to the default.  NFR-OBS-01 requires the manifest
+    to name the backend, and D-124 exists precisely so that a fingerprint
+    can never be attributed to the wrong library.
+
+    `extra` is prepended before the defines, for a generated prologue such
+    as the C-04 rename map.
+    """
+    cards = list(extra)
+    for name in names:
+        cards.append("#define %s 1" % name)
+    return cards + cards_of(relpath)
 
 
 def cards_of(relpath):

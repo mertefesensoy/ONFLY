@@ -76,9 +76,17 @@ HEADERS = [
     ("engine/include/onfstm.h", "ONFSTM"),
 ]
 
-# tstunit.c prints one record per line in these three shapes.  Anything else
-# in the listing is JES2's, not the program's.
-RESULT = re.compile(r"^\s*(CRC|PRNG|STIM)\s")
+# tstunit.c prints one record per line in these three shapes, plus a banner
+# naming the platform.  Anything else in the listing is JES2's, not the
+# program's.
+#
+# The banner needs its own alternative: it opens "# tstunit ...", and there
+# is no word boundary between "#" and a space.  It is anchored at the start
+# of a line for a reason that cost a job to learn -- GCCMVS echoes the
+# SOURCE into the listing too, so the printf format string that produces
+# this banner appears there as well, and a pattern that matched anywhere on
+# a line found `%s` and reported it as the platform.
+RESULT = re.compile(r"^\s*(?:#\s|CRC\s|PRNG\s|STIM\s)")
 
 
 def harvest(out):
@@ -137,9 +145,25 @@ def main(argv):
         sys.stderr.write("mvsunit: the program printed nothing; see above\n")
         return 1
 
+    # The platform comes from the program's own banner, never from a string
+    # written here.  tstunit prints "# tstunit on platform <id>", which is
+    # onfplat.h's ONF_PLATID for whatever it was compiled on (NFR-OBS-01).
+    # Labelling a result from this file instead is how a run gets reported
+    # for a platform it never touched.
+    #
+    # Searched in the HARVESTED lines, not the raw listing: the listing also
+    # contains the source, so the printf that produces this banner is in it
+    # too, and searching the raw text once reported the platform as `%s`.
+    platform = "?"
+    for line in lines:
+        m = re.match(r"#\s+tstunit on platform (\S+)", line)
+        if m:
+            platform = m.group(1)
+            break
+
     r = run_units.compare("\n".join(lines))
-    sys.stdout.write("  run_units [MVS38J]: %d passed, %d failed\n"
-                     % (r.passed, r.failed))
+    sys.stdout.write("  run_units [%s]: %d passed, %d failed\n"
+                     % (platform, r.passed, r.failed))
     for line in r.lines:
         sys.stdout.write("  %s\n" % line)
     return 1 if r.failed else 0

@@ -86,16 +86,31 @@ HEADERS = [
 ]
 
 # The record shapes tstker.c prints: the network it built, then the results.
-# Anything else in the listing is JES2's, not the program's.  The banner line
-# is kept too, because it is what names the backend in the report.
-RESULT = re.compile(r"^\s*(#|NET|CONST|PROP|ROW|EDGE|STIM|READ|RUN|OUT)\b")
+# Anything else in the listing is JES2's, not the program's.
+#
+# The banner needs its own alternative rather than sharing the others' \b:
+# it opens "# tstker ...", and there is no word boundary between "#" and a
+# space, so "#\b" never matches it.  Without the banner the report cannot
+# name the backend the run used, and naming it from a string here instead
+# is how an MVS result gets attributed to the wrong float library.
+RESULT = re.compile(
+    r"^\s*(?:#\s|NET\b|CONST\b|PROP\b|ROW\b|EDGE\b|STIM\b|READ\b|RUN\b|OUT\b)")
 
 
 def main(argv):
     prologue = mvsbld.cards_of("generated/onf2cnm.h")
     library = prologue + mvsbld.amalgamate(UNIT, INCLUDES)
     order = mvsbld.amalgamated_order(UNIT, INCLUDES)
-    backend = prologue + mvsbld.cards_of("engine/src/onffp2.c")
+    backend = mvsbld.with_defines("engine/src/onffp2.c",
+                                  ["ONF_FP_SOFT2C"], prologue)
+
+    # Every ONFLY unit is preceded by `#define ONF_FP_SOFT2C 1`, which
+    # is what -DONF_FP_SOFT2C does on x86.  It cannot be an option here:
+    # the compile PARM card is 67 columns and a JCL field ends at 71.
+    # Without it the program links 2c and then reports SOFT3E in its
+    # manifest, which NFR-OBS-01 and D-124 both forbid.
+    def onfly(relpath):
+        return mvsbld.with_defines(relpath, ["ONF_FP_SOFT2C"])
 
     sources = [
         # The vendored unit compiles without -pedantic-errors, exactly as the
@@ -104,11 +119,11 @@ def main(argv):
         # fatal, and third_party is not edited (D-28, D-35).
         (library, "SF2C", mvsbld.CC_FLAGS_VENDOR),
         (backend, "ONFFP2C"),
-        ("engine/src/onffpc.c", "ONFFPCC"),
-        ("engine/src/onfrnd.c", "ONFRNDC"),
-        ("engine/src/onfstm.c", "ONFSTMC"),
-        ("engine/src/onfker.c", "ONFKERC"),
-        ("tests/tstker.c", "TSTKERC"),
+        (onfly("engine/src/onffpc.c"), "ONFFPCC"),
+        (onfly("engine/src/onfrnd.c"), "ONFRNDC"),
+        (onfly("engine/src/onfstm.c"), "ONFSTMC"),
+        (onfly("engine/src/onfker.c"), "ONFKERC"),
+        (onfly("tests/tstker.c"), "TSTKERC"),
     ]
 
     deck = mvsbld.build(JOB, "ONFLY KERNEL 2C", sources, headers=HEADERS)
@@ -150,7 +165,7 @@ def main(argv):
 
     lines = [l.rstrip().strip() for l in out.splitlines()
              if RESULT.match(l.rstrip())]
-    sys.stdout.write("=== kernel vs oracle on MVS 3.8j, backend SOFT2C ===\n")
+    sys.stdout.write("=== kernel vs oracle on MVS 3.8j ===\n")
     sys.stdout.write("  %d result lines recovered from the job listing\n"
                      % len(lines))
     if not lines:
@@ -158,8 +173,10 @@ def main(argv):
         return 1
 
     r = run_ker.compare("\n".join(lines))
-    sys.stdout.write("  run_ker [MVS38J/SOFT2C]: %d passed, %d failed\n"
-                     % (r.passed, r.failed))
+    # The backend and platform come from the program's own banner,
+    # never from a string written here.
+    sys.stdout.write("  run_ker [%s backend, %s]: %d passed, %d failed\n"
+                     % (r.backend, mvsbld.PLATFORM, r.passed, r.failed))
     for line in r.lines[:20]:
         sys.stdout.write("  %s\n" % line)
     return 1 if r.failed else 0

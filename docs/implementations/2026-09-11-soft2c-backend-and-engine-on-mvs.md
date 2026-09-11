@@ -40,7 +40,7 @@ given MVS — the platform whose whole future is a CICS transaction
 
 | File | Change |
 |---|---|
-| `docs/ONFLY-SRS.md` | D-121…D-124 in Appendix A.1; P-08 in A.2; NFR-OBS-01 and the Section 8.3 backend column amended under D-124; VL-31 and VL-33 in Appendix D |
+| `docs/ONFLY-SRS.md` | D-121…D-124 in Appendix A.1; P-08 in A.2; NFR-OBS-01 and the Section 8.3 backend column amended under D-124; VL-31, VL-33 and VL-35 in Appendix D |
 | `engine/src/onffp2.c` | **New.** The SOFT2C backend: the `onf_fp` API over SoftFloat 2c |
 | `engine/include/onffp.h` | Three backend identities instead of two; `ONF_FP_SOFT2C` selects 2c; mutually-exclusive selection enforced at compile time |
 | `softfloat/derive2c.py` | Derives a modified `softfloat.c` with 2c's writable static state removed (D-123); edits now carry an expected occurrence count |
@@ -56,6 +56,11 @@ given MVS — the platform whose whole future is a CICS transaction
 | `tests/tstunit.c` | TU-03's three named CRC vectors written as byte arrays, not C character literals |
 | `tools/mvsunit.py` | **New.** Runs TU-03, TU-04 and TU-05 on MVS |
 | `tools/mvsker.py` | **New.** Runs the kernel on MVS through the SOFT2C backend |
+| `tools/gensyn.py` | **New.** Serialises a complete ONFNET image as a C array |
+| `generated/onfsynt.h` | **New (generated).** That image, plus the requests to run |
+| `tests/tstsyn.c` | **New.** Decode, integrity-check, load, simulate, fingerprint, over the embedded image |
+| `tests/run_syn.py` | **New.** Judges it against the oracle; `compare(text)` serves both platforms |
+| `tools/mvssyn.py` | **New.** Runs that whole path on MVS |
 
 ## 3. Implementation approach
 
@@ -184,6 +189,50 @@ the listing, the oracle simulates precisely what MVS simulated.
 For the kernel job the 2c library reaches GCCMVS as the D-110 amalgamation
 with the D-111 rename prologue, and `engine/src/onffp2.c` carries the same
 prologue, so caller and callee agree by construction rather than by care.
+
+### 3.5 A network compiled into the program
+
+`tstdec.c` and `tstgld.c` both open a *file*. On MVS that is a dead end
+until Gate G2 chooses and proves a binary-transparent transport
+(IR-TRN-01, IR-TRN-02) — so `onfdec.c`, the FR-LOD-02 integrity checks,
+the big-endian payload load and the IR-COM-05 fingerprint had never run on
+the one platform whose byte order and code page could break them.
+
+`tools/gensyn.py` serialises a complete ONFNET image — the full 164-byte
+header of Section 4.1, big-endian throughout, both CRCs from zlib,
+8-byte-aligned payload sections — into `generated/onfsynt.h` as a C array.
+Nothing about it is simplified for being small. It travels through the
+same card reader as every other ONFLY source.
+
+**This does not stand in for Gate G2 and does not weaken it.** It answers a
+different question. Risk R-07 is "silent corruption in transport", and it
+has two halves: *can a file be moved onto MVS intact* (Gate G2), and *is
+the code that would detect the corruption correct on that host* (this).
+Only the first is Gate G2's, and until now neither had been answered.
+
+The image is generated from `tests/run_dec.py`'s `sample_network()` — the
+network that already drives TE-01…TE-08 on x86 — so the C side, the oracle
+and the x86 decode tests cannot drift apart.
+
+**The integrity cases split in two, and the split is the point.** A field
+inside the header CRC's coverage (bytes 0–159, IR-NET-07) cannot be tested
+on its own by flipping a bit: FR-LOD-02 checks the header CRC before the
+length and payload CRC, so the header check would catch it and the case
+would prove only that *something* was wrong. TE-01, TE-02, TE-03 and TE-06
+therefore patch the field and **reseal** the header CRC, modelling a
+producer that wrote an inconsistent file; TE-04 and TE-05 leave the damage
+unrepaired, modelling a transport that damaged a good one. An operator has
+to be told which happened — rebuild the network, or re-send it in binary
+(NFR-REL-01). My first draft got this wrong and expected `ONFD_PLEN` and
+`ONFD_PCRC` where the header CRC correctly fired first; the run said so,
+and the expectation was what changed.
+
+Two of the cases are ones only MVS is placed to test properly.
+**IR-NET-04's byte-order sentinel** exists to catch a text-mode transfer,
+and **IR-NET-08's zero-padded FB dataset** — where the file is *longer*
+than the payload and the header's declared length is authoritative
+(FR-LOD-03) — is what every MVS dataset looks like and what no other
+platform produces.
 
 ## 4. Mathematical / numerical details
 
@@ -373,6 +422,81 @@ message stands and a comment's continuation asterisk does not. A filter
 that cries wolf on a comment is worse than no filter, because the next
 real IFO196 would be read as the same false positive.
 
+### 6.5 The full engine path, x86 and MVS
+
+```bash
+mingw32-make syn        # x86, all three backends
+python tools/mvssyn.py  # MVS 3.8j, SOFT2C
+```
+
+x86-64, Windows 11, MinGW gcc 6.3.0:
+
+```
+run_syn [SOFT3E backend, WIN32]: 60 passed, 0 failed
+run_syn [NATIVE backend, WIN32]: 60 passed, 0 failed
+run_syn [SOFT2C backend, WIN32]: 60 passed, 0 failed
+cmpback: SOFT3E, NATIVE, SOFT2C agree bit-for-bit on 41 result lines
+```
+
+MVS 3.8j, TK5 Update 5, Hercules 4.9.1, GCCMVS at `-O1`, codepage
+`819/1047`, backend SOFT2C:
+
+```
+mvssyn: amalgamated softfloat/c2c/softfloat.c -> 3563 cards, inlining milieu.h, onfproc.h, softfloat.h, softfloat-macros, softfloat-specialize
+mvssyn: 6372 cards, 11 translation units, longest 80 columns, GCCMVS -O1
+  28 job steps, every one COND CODE 0000
+  diagnostics: none
+  42 result lines recovered from the job listing
+  run_syn [SOFT2C backend, MVS38J]: 60 passed, 0 failed
+```
+
+### 6.6 Three defects in the reporting, all found by running it
+
+Neither changed a computed result. Both would have made a later report
+wrong, which is worse, because a wrong report is believed.
+
+**The listing filter reported a comment as a diagnostic.** `mvsunit.py` and
+`mvsker.py` searched each listing line for `IFO\d{3}` anywhere, and the
+D-111 rename prologue *quotes* "IFO196 FLOAT64@ HAS BEEN PREVIOUSLY
+DEFINED" in its own header comment to say what it exists to prevent.
+GCCMVS echoes the source into the listing, so a clean run announced the
+explanation as though it were the failure. The match is now anchored at the
+start of the line, where a real Assembler XF message stands and a comment's
+continuation asterisk does not. A filter that cries wolf on a comment is
+worse than no filter: the next real IFO196 would be read as the same false
+positive.
+
+**The MVS engine named the wrong float backend.** `tools/mvssyn.py`
+reported `run_syn [SOFT3E backend, MVS38J]` while linking SoftFloat 2c.
+`ONF_FPID` falls through to its default unless `ONF_FP_SOFT2C` is defined,
+and the MVS compiles never defined it. The arithmetic was 2c — it is the
+only float library in the deck and `onffp2.c` the only backend object — but
+the run manifest named the other one, which is precisely what NFR-OBS-01
+requires and D-124 exists to guarantee.
+
+`-DONF_FP_SOFT2C` cannot be passed: a JCL field ends at column 71, the
+compile PARM card is already 67 columns, and the option would make it 83.
+`tools/mvsbld.with_defines` puts the definition in front of each unit as a
+card instead, which is what `-D` means to the preprocessor, assembled at
+submit time and never written to disk.
+
+This one was only visible because the harvest was fixed first. The earlier
+runs labelled their output from a string in the tool — `[MVS38J/SOFT2C]` —
+so the program's own claim was never read. Both tools now take the backend
+and the platform from the banner the program prints, and VL-33 was amended
+to say so.
+
+**And the fix for that had a defect of its own.** The first attempt found
+the platform by searching the raw job listing for `# tstunit on platform
+<id>` — and GCCMVS echoes the SOURCE into the listing, so it matched
+`tstunit.c`'s own `printf` format string and reported the platform as
+`%s`. The search now runs over the harvested output lines and is anchored
+at the start of one. Three defects of the same family in one session, none
+of which changed a number and all of which would have made a report claim
+something the run did not: the lesson is that a harness which labels
+results deserves the same suspicion as the code it is testing.
+
+
 ### What none of this proves
 
 - **No result above is an s390x, z/OS or real IBM Z result.** VL-01 and
@@ -403,7 +527,7 @@ real IFO196 would be read as the same false positive.
 
 - `docs/ONFLY-SRS.md` — NR-01…NR-05, NR-10, NR-14, NFR-MNT-02, NFR-OBS-01
   (amended), Section 8.3 (amended), Appendix A.1 (D-121…D-124), A.2 (P-08),
-  Appendix D (VL-31, VL-33).
+  Appendix D (VL-31, VL-33, VL-35).
 - `docs/implementations/2026-09-11-gate-g1-closed-softfloat-2c.md` — how 2c
   came to be the MVS backend, and the four GCCMVS workarounds.
 - `docs/implementations/2026-09-11-gccmvs-64bit-matrix.md` — why Release 3e
@@ -420,8 +544,11 @@ real IFO196 would be read as the same false positive.
    engine-callable self-test factored out of `tests/tst32.c` is needed
    before ONFLYENG can be built on MVS at all. **This is an owner decision**
    (which test runs at startup, selected how), not something to assume.
-2. **Gate G2, transport.** Everything above avoids it by embedding or
-   printing data. `onfdec.c`, FR-LOD-02 and the golden suite on MVS are
-   blocked behind it.
+2. **Gate G2, transport.** Still open, and still the blocker for the
+   golden suite on MVS. What changed is that it is now the *only* blocker
+   for it: `onfdec.c` and FR-LOD-02 have been proven correct there over an
+   embedded image (VL-35), so what Gate G2 has left to establish is that a
+   real network file arrives intact — the other half of R-07, and the half
+   no amount of embedding can answer.
 3. **P-08**, the x86/SOFT2C determinism-matrix row.
 4. **Phase D** (Linux s390x) needs QEMU, which is not installed here.

@@ -77,6 +77,13 @@ SF2CINC = -Isoftfloat/c2c -I$(SF2C)
 C2CFLAGS = -std=c89 -pedantic -Wall -O2
 
 INC     = -Iengine/include -Igenerated
+
+# The engine units tests/tstsyn.c links, backend excluded.  Named once
+# because the same list goes to MVS in tools/mvssyn.py, and two copies
+# of it would drift.
+ENGSRC  = engine/src/onfdec.c engine/src/onfcrc.c engine/src/onffpc.c \
+          engine/src/onfker.c engine/src/onfrnd.c engine/src/onfstm.c \
+          engine/src/onffpr.c
 SFINC   = -Isoftfloat -I$(SF)/include -I$(SP)
 
 # The binary64 subset only (D-33).  The float128, extF80, f16 and f32 sources
@@ -108,7 +115,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng
+.PHONY: all test generate lint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng
 
 all: test
 
@@ -246,6 +253,31 @@ golden: $(BUILD) $(GENERATED) softfloat/onfsub.c $(SF2CSRC) generated/onf2cnm.h
 	$(PYTHON) tests/run_gld.py $(BUILD)/tstgld_2c.exe
 	$(PYTHON) tools/cmpgld.py $(BUILD)/tstgld_soft.exe  \
 	  $(BUILD)/tstgld_nat.exe $(BUILD)/tstgld_2c.exe
+
+# --- FR-LOD-02/04/05, FR-SIM-01 and IR-COM-05 over an EMBEDDED network ---
+# The same path `golden` exercises -- decode, integrity-check, load,
+# simulate, fingerprint -- but driven from a network compiled into the
+# program.  That is what lets it run where no network file can go yet
+# (D-121, D-122); `python tools/mvssyn.py` is the MVS half.
+#
+# All three backends, then a byte-for-byte comparison: a fingerprint that
+# depended on which float library produced it would not be a fingerprint.
+syn: $(BUILD) $(GENERATED) generated/onfsynt.h softfloat/onfsub.c \
+     $(SF2CSRC) generated/onf2cnm.h
+	$(PYTHON) tools/gensyn.py --check
+	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstsyn_soft.exe \
+	  tests/tstsyn.c $(ENGSRC) generated/onfcom.c \
+	  engine/src/onffps.c $(SFSRCS) $(ONFSF)
+	$(PYTHON) tests/run_syn.py $(BUILD)/tstsyn_soft.exe
+	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/tstsyn_nat.exe \
+	  tests/tstsyn.c $(ENGSRC) generated/onfcom.c engine/src/onffpn.c
+	$(PYTHON) tests/run_syn.py $(BUILD)/tstsyn_nat.exe
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/tstsyn_2c.exe \
+	  tests/tstsyn.c $(ENGSRC) generated/onfcom.c \
+	  engine/src/onffp2.c $(SF2CSRC)
+	$(PYTHON) tests/run_syn.py $(BUILD)/tstsyn_2c.exe
+	$(PYTHON) tools/cmpback.py $(BUILD)/tstsyn_soft.exe \
+	  $(BUILD)/tstsyn_nat.exe $(BUILD)/tstsyn_2c.exe
 
 # --- C-04: external identifier lengths -----------------------------------
 # ONFLY's own externals must stay within 8 characters and be unique ignoring
@@ -385,6 +417,14 @@ softfloat/onfprim.c: softfloat/derive3e.py generated/onf3enm.h
 generated/onf2cnm.h: tools/gen2cnm.py
 	$(PYTHON) tools/gen2cnm.py
 
+# A complete ONFNET image as a C array (D-121, D-122).  It exists because
+# tstdec and tstgld both open a FILE, and no file can reach MVS until
+# Gate G2 picks a binary-transparent transport -- so the decoder, the
+# integrity checks and the fingerprint had never run on a big-endian
+# EBCDIC host.  Generated from the same network run_dec.py already uses.
+generated/onfsynt.h: tools/gensyn.py tests/run_dec.py
+	$(PYTHON) tools/gensyn.py
+
 # The derived SoftFloat 2c configuration and library (D-106, D-123).  All
 # four files come out of one script, so any of them is a valid target for
 # it; softfloat.c is named because it is the one the builds compile.
@@ -476,9 +516,9 @@ runner: $(BUILD) $(GENERATED)
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint col80 c04 c04mvs tt01 tt02 c2c sfs shim layout units fp kernel \
+test: lint col80 c04 c04mvs tt01 tt02 c2c sfs shim layout units fp kernel syn \
       decode eng golden prep
-	@echo "ONFLY: NR-05 + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed"
+	@echo "ONFLY: NR-05 + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"
