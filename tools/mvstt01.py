@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Build, submit and read TT-01 on MVS 3.8j (Gate G1, D-90, D-92, D-94).
+"""Build, submit and read TT-01 on MVS 3.8j (Gate G1, D-90, D-94, D-95).
 
 TT-01 is the 64-bit integer self-test.  Its whole purpose is to run on a
 machine where 64-bit arithmetic does not exist in hardware and the compiler
@@ -13,25 +13,42 @@ through a real include path.  If the MVS result differs from the x86 result,
 the difference is the compiler's, which is the only way this test means
 anything.
 
-How quoted includes actually resolve
-------------------------------------
-JCC.CNTL(JCC) documents its two include DDs:
+THIS JOB CANNOT SUCCEED TODAY, AND THAT IS THE FINDING
+------------------------------------------------------
+Gate G1 failed on 2026-09-11.  GCCMVS cannot compile a 64-bit addition at
+all: it ends in "unable to generate reloads" and an internal compiler error.
+`onfi2p32` in softfloat/onfint.c adds, so this job stops in COMP1 every
+time.  The test written to detect bad 64-bit code generation cannot be
+compiled by the compiler it was written to test (VL-15, VL-16).
 
-    JCCINCL   library include pds (<...> files, with .h removed)
-    JCCINCS   user include pds (quoted files, with .h removed)
+Run it anyway when revisiting G1: it is the shortest reproduction of the
+defect, and if a future GCCMVS fixes the code generation this job is what
+says so.  Do not read a COMP failure here as a defect in the tooling until
+the twelve-line probe in VL-15 has been re-run and passes.
 
-So `#include "onfint.h"` is looked up as member ONFINT in whatever dataset
-is allocated to JCCINCS.  The JCCCLG procedure points JCCINCS at JCC's own
-library, so it must be *overridden* rather than supplemented -- adding a DD
-of one's own naming does nothing, which cost one looping job to learn.
+Which DD carries which include
+------------------------------
+GCCMVS uses two include DDs and they are the opposite way round from what
+the names suggest:
+
+    INCLUDE   the QUOTED includes -- ONFLY's own headers
+    SYSINCL   the ANGLED includes -- PDPCLIB
+
+With them the other way round GCCMVS reports `onfint.h: An error has
+occurred` and cannot find it.  The two datasets are NOT concatenated and
+must not be: PDPCLIB.INCLUDE is VB/255 and ONFLY's headers are FB/80, and
+MVS refuses to concatenate unlike record formats -- the compile step abends
+S001-1 before a line is read.  Keeping them on separate DDs sidesteps this
+entirely, which is also why IEBUPDTE can still write the headers: it writes
+card images and cannot write a VB dataset at all.
 
 REGION is not optional
 ----------------------
-Every job in JCC.CNTL carries REGION=8M,TIME=1440.  Submitted without a
-REGION, JCC does not fail: it spins forever and has to be cancelled.  Two
-probe jobs were lost to this before JCC's own JCL was read.  The region is
-therefore stated here, and stated loudly, because the failure mode is a hang
-rather than a message.
+Every job in JCC.CNTL and SYS2.JCLLIB(TESTGCC) carries REGION=8M.  Submitted
+without one, JCC does not fail: it spins forever at 100% of a core and has
+to be cancelled.  Two probe jobs were lost to this before the supplied JCL
+was read.  The region is stated here, and stated loudly, because the failure
+mode is a hang rather than a message.
 
 Member names
 ------------
