@@ -136,7 +136,7 @@ def unmount():
     sys.stdout.write("mvseng: %s returned to an empty drive\n" % TAPE_DEV)
 
 
-def deck():
+def deck(opt=mvsbld.OPT):
     prologue = mvsbld.cards_of("generated/onf2cnm.h")
     library = prologue + mvsbld.amalgamate(UNIT, INCLUDES)
     backend = mvsbld.with_defines("engine/src/onffp2.c",
@@ -156,11 +156,18 @@ def deck():
         (onfly("engine/src/onffpr.c"), "ONFFPRC"),
         (onfly("engine/src/onfcrc.c"), "ONFCRCC"),
         (onfly("engine/src/onfdec.c"), "ONFDECC"),
-        (onfly("softfloat/onfint.c"), "ONFINTC"),
+        # NOT onfly(): plain cards, no backend define.  The integer
+        # self-test is integer-only by construction -- it is what NR-14
+        # exists to check -- so the float backend is nothing to it, and
+        # tools/mvstt01.py has compiled it this way successfully since
+        # VL-30.  Prepending the define made GCCMVS die with an
+        # internal compiler error in onfirun; see the note below.
+        (mvsbld.cards_of("softfloat/onfint.c"), "ONFINTC"),
         (onfly("engine/src/onflyeng.c"), "ONFLYENG"),
     ]
     return mvsbld.build(JOB, "ONFLY G2 TAPE VERIFY", sources,
-                        headers=HEADERS, go_parm="VERIFY", go_dd=GO_DD)
+                        headers=HEADERS, go_parm="VERIFY", go_dd=GO_DD,
+                        opt=opt)
 
 
 def main(argv):
@@ -178,14 +185,19 @@ def main(argv):
         unmount()
         return 0
 
-    d = deck()
+    opt = mvsbld.OPT
+    for i, a in enumerate(argv):
+        if a.startswith("--opt="):
+            opt = a[len("--opt="):]
+    d = deck(opt)
     mvsub.check_cards(d)
     if "--print" in argv:
         sys.stdout.write("\n".join(d) + "\n")
         return 0
 
     sys.stdout.write("mvseng: %d cards, longest %d columns, GCCMVS %s\n"
-                     % (len(d), max(len(c) for c in d), mvsbld.OPT))
+                     % (len(d), max(len(c) for c in d),
+                        opt if opt else "(none)"))
 
     if not mount(image):
         return 2
