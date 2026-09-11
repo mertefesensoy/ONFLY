@@ -91,7 +91,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng
+.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng
 
 all: test
 
@@ -281,6 +281,19 @@ tt02: $(BUILD) softfloat/onfsub.c
 	  tests/tstflt.c engine/src/onffpc.c engine/src/onffpn.c
 	$(PYTHON) tests/run_tt02.py $(BUILD)/tstflt_soft.exe \
 	  $(BUILD)/tstflt_nat.exe $(TFGEN)
+
+# --- TT-01/32: the 32-bit integer self-test (D-118, NR-14) ---------------
+# NR-14 requires an integer self-test for each width the platform's engine
+# actually uses.  Under NR-03 the MVS engine is SoftFloat 2c and uses no
+# 64-bit integer, so 32 bits is the width that matters there; the 64-bit
+# TT-01 above still covers x86 and the s390x and z/OS paths.  The MVS half
+# is `python tools/mvs32.py`, and it is only meaningful against this.
+tt0132: $(BUILD) generated/onf32v.h
+	$(CC) $(CFLAGS) -Igenerated -o $(BUILD)/tst32.exe tests/tst32.c
+	$(BUILD)/tst32.exe | tail -1
+
+generated/onf32v.h: tools/gen32v.py
+	$(PYTHON) tools/gen32v.py
 
 # --- TT-02's shipped table, x86 side (D-112, D-115) ----------------------
 # The same TestFloat vectors that run on MVS, run here.  The MVS result is
