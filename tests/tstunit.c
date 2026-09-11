@@ -83,6 +83,16 @@ static void emit_stim(onf_u32 seed, onf_i32 rate, onf_i32 dt, onf_i32 steps)
            (long)spikes, (long)draws);
 }
 
+/* TU-03's named vectors, as bytes.  See the note in main().  These are the
+   ASCII code points of "", "a", "abc" and "123456789", written numerically so
+   that the same bytes are hashed on an EBCDIC host as on an ASCII one. */
+static const onf_u8 crcempt[1] = { 0x00U };            /* length 0; unread */
+static const onf_u8 crca[1] = { 0x61U };
+static const onf_u8 crcabc[3] = { 0x61U, 0x62U, 0x63U };
+static const onf_u8 crcchk[9] = {
+    0x31U, 0x32U, 0x33U, 0x34U, 0x35U, 0x36U, 0x37U, 0x38U, 0x39U
+};
+
 int main(void)
 {
     onf_u8 allbytes[256];
@@ -92,10 +102,28 @@ int main(void)
     printf("# tstunit on platform %s\n", ONF_PLATID);
 
     /* --- TU-03: CRC-32 --------------------------------------------------- */
-    emit_crc("empty", (const onf_u8 *)"", 0);
-    emit_crc("a", (const onf_u8 *)"a", 1);
-    emit_crc("abc", (const onf_u8 *)"abc", 3);
-    emit_crc("check", (const onf_u8 *)"123456789", 9);
+    /* The three named vectors are byte arrays, not C string literals.
+     *
+     * Measured on TK5 on 2026-09-11, the first time these units ran on MVS:
+     * with literals, "a", "abc" and "123456789" hashed to 48BD5C3B, 62B280F6
+     * and 8A097905 there against E8B7BE43, 352441C2 and CBF43926 on x86 --
+     * and those MVS values are exactly zlib's CRC of the same characters in
+     * EBCDIC (0x81, 0x818283, 0xF1F2...F9).  The CRC was right; the INPUT
+     * differed, because a C character literal is code-page dependent and
+     * MVS is EBCDIC.  "empty" and "allbytes" agreed, because their bytes are
+     * built numerically.
+     *
+     * Writing the bytes out fixes what is hashed on every host, which is what
+     * a known-answer test has to do, and keeps CBF43926 -- the standard
+     * CRC-32/ISO-HDLC check value for the nine ASCII digits (IR-NET-07) --
+     * as a real cross-platform assertion rather than an accident of encoding.
+     * It is the same reasoning IR-COM-05 applies to the response fingerprint:
+     * numbers travel between ASCII and EBCDIC hosts unchanged, text does not.
+     */
+    emit_crc("empty", crcempt, 0);
+    emit_crc("a", crca, 1);
+    emit_crc("abc", crcabc, 3);
+    emit_crc("check", crcchk, 9);
 
     for (i = 0; i < 256; i++) {
         allbytes[i] = (onf_u8)i;

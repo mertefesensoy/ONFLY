@@ -32,6 +32,11 @@ DEFAULT_EXE = os.path.join(ROOT, "build", "tstunit.exe")
 # The vectors.  These are shared with the C side only as *inputs*; the expected
 # outputs exist solely here.
 # ---------------------------------------------------------------------------
+# The oracle side is already byte-valued: b"a" is 0x61 on every host that
+# runs this script.  The C side was NOT, until 2026-09-11: it used C
+# character literals, which are EBCDIC on MVS, and the first MVS run
+# reported CRCs of the EBCDIC bytes instead.  tests/tstunit.c now writes
+# the same bytes out numerically; these values are what both sides hash.
 CRC_VECTORS = [
     ("empty", b""),
     ("a", b"a"),
@@ -105,11 +110,15 @@ def parse(text):
     return table
 
 
-def main():
-    exe = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_EXE
-    text = run_c(exe)
-    if text is None:
-        return 2
+def compare(text):
+    """Judge tstunit output against the oracle.  Returns a Result.
+
+    Split out from main() so that the same comparison judges a run on any
+    platform.  tools/mvsunit.py captures these lines from an MVS job listing
+    rather than from a pipe, and a second implementation of the comparison
+    would be a second thing to keep right -- which is the argument D-79 made
+    for TT-01's single vector table.
+    """
     table = parse(text)
     r = Result()
 
@@ -153,6 +162,15 @@ def main():
             r.check("TU-05 rejection path exercised (seed=%d)" % seed,
                     draws > steps, True)
 
+    return r
+
+
+def main():
+    exe = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_EXE
+    text = run_c(exe)
+    if text is None:
+        return 2
+    r = compare(text)
     print("run_units: %d passed, %d failed" % (r.passed, r.failed))
     for line in r.lines:
         print(line)
