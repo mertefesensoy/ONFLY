@@ -121,10 +121,19 @@ VERIFY_N = 1000
 VERIFY_STEPS = 15000
 
 
-def report(rows, gocpu, wall, hcpu0, hcpu1):
-    """Turn the raw rows into the numbers G3 actually asks for."""
-    print("=== Gate G3: one request at the standard duration "
-          "(%d steps) ===" % STDSTEPS)
+def report(rows, gocpu, wall, hcpu0, hcpu1, steps=None):
+    """Turn the raw rows into the numbers G3 actually asks for.
+
+    `steps` is the step count the deck was actually COMPILED with, not
+    the default.  --verify builds with ONFPRF_STEPS overridden, and
+    dividing that run by the default would understate the per-neuron-
+    step cost by exactly the ratio of the two -- which is how the first
+    --verify run printed 65.8 us instead of 43.9.
+    """
+    if steps is None:
+        steps = STDSTEPS
+    print("=== Gate G3: one request at %d steps (%d ms) ==="
+          % (steps, steps // 10))
     print("  %6s %8s %6s %6s %12s %14s %10s"
           % ("N", "edges", "reps", "secs", "per request", "ns/neuron-step",
              "spikes"))
@@ -133,7 +142,7 @@ def report(rows, gocpu, wall, hcpu0, hcpu1):
         if reps == 0:
             continue
         per = float(secs) / float(reps)
-        nsteps = float(n) * float(STDSTEPS)
+        nsteps = float(n) * float(steps)
         ns = (per / nsteps) * 1e9
         results.append((n, per, ns))
         print("  %6d %8d %6d %6d %10.2f s %12.1f %10d"
@@ -158,17 +167,18 @@ def report(rows, gocpu, wall, hcpu0, hcpu1):
     # Headroom is the useful form for TBD-06: how much longer than the
     # provisional standard duration would still fit.
     print()
-    print("  Duration headroom at the %.0f-minute bound:" % (LIMIT / 60.0))
+    print("  Duration headroom at the %.0f-minute bound "
+          "(relative to the %d ms run):" % (LIMIT / 60.0, steps // 10))
     for n, per, _ in results:
         factor = LIMIT / per
-        longest = factor * 1000.0
+        longest = factor * (steps / 10.0)
         # D-136 caps a request at MAXDUR. Flag any N where the stated
         # maximum is not actually executable inside the bound -- that
         # condition is recorded against D-136 and is easy to lose.
         flag = ""
         if longest < MAXDUR:
             flag = "  <-- D-136's %d ms maximum does NOT fit here" % MAXDUR
-        print("    N=%-5d  %6.1fx the standard duration "
+        print("    N=%-5d  %6.1fx this duration "
               "(~%.0f ms of simulated time)%s"
               % (n, factor, longest, flag))
 
@@ -384,7 +394,8 @@ def main(argv):
         sys.stderr.write("mvsprf: no PERF lines in the listing\n")
         return 1
 
-    report(rows, gocpu, wall, hcpu0, hcpu1)
+    report(rows, gocpu, wall, hcpu0, hcpu1,
+           VERIFY_STEPS if verify else STDSTEPS)
     return 0
 
 
