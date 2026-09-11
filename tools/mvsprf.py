@@ -111,9 +111,14 @@ GOCPU = re.compile(r"IEF374I STEP /GO\s*/ STOP\s+\S+\s+CPU\s+"
 LIMIT = 600.0
 # D-73's standard duration, matching tests/tstprf.c.
 STDSTEPS = 10000
-# D-134's maximum simulated duration, in ms.  Reported against so that
-# the N values where it is not executable are named, not inferred.
-MAXDUR = 2000
+# D-136's maximum simulated duration, in ms (revising D-134's 2000,
+# which conflicted with D-133's bound at N=1000).  Reported against so
+# that the N values where it is not executable are named, not inferred.
+MAXDUR = 1500
+# --verify's single configuration: D-136's maximum at the largest N
+# D-133 admits, which is where the margin is thinnest.
+VERIFY_N = 1000
+VERIFY_STEPS = 15000
 
 
 def report(rows, gocpu, wall, hcpu0, hcpu1):
@@ -157,12 +162,12 @@ def report(rows, gocpu, wall, hcpu0, hcpu1):
     for n, per, _ in results:
         factor = LIMIT / per
         longest = factor * 1000.0
-        # D-134 caps a request at MAXDUR. Flag any N where the stated
+        # D-136 caps a request at MAXDUR. Flag any N where the stated
         # maximum is not actually executable inside the bound -- that
-        # condition is recorded against D-134 and is easy to lose.
+        # condition is recorded against D-136 and is easy to lose.
         flag = ""
         if longest < MAXDUR:
-            flag = "  <-- D-134's %d ms maximum does NOT fit here" % MAXDUR
+            flag = "  <-- D-136's %d ms maximum does NOT fit here" % MAXDUR
         print("    N=%-5d  %6.1fx the standard duration "
               "(~%.0f ms of simulated time)%s"
               % (n, factor, longest, flag))
@@ -275,6 +280,21 @@ def main(argv):
     def onfly(relpath):
         return mvsbld.with_defines(relpath, ["ONF_FP_SOFT2C"])
 
+    # --verify measures ONE configuration directly instead of trusting
+    # a scaled figure.  D-136's 1500 ms maximum rests on 578 s at
+    # N=1000, which is VL-41's 385 s times 1.5 -- a 22 s margin, 3.7%,
+    # on a single sample.  with_defines only emits `#define NAME 1`, so
+    # the valued defines are written as cards directly; that is all -D
+    # means to the preprocessor anyway.
+    verify = "--verify" in argv
+    if verify:
+        probe = (["#define ONFPRF_STEPS %d" % VERIFY_STEPS,
+                  "#define ONFPRF_ONLY %d" % VERIFY_N,
+                  "#define ONF_FP_SOFT2C 1"]
+                 + mvsbld.cards_of("tests/tstprf.c"))
+    else:
+        probe = onfly("tests/tstprf.c")
+
     sources = [
         (library, "SF2C", mvsbld.CC_FLAGS_VENDOR),
         (backend, "ONFFP2C"),
@@ -282,11 +302,18 @@ def main(argv):
         (onfly("engine/src/onfrnd.c"), "ONFRNDC"),
         (onfly("engine/src/onfstm.c"), "ONFSTMC"),
         (onfly("engine/src/onfker.c"), "ONFKERC"),
-        (onfly("tests/tstprf.c"), "TSTPRFC"),
+        (probe, "TSTPRFC"),
     ]
 
-    deck = mvsbld.build(JOB, "ONFLY GATE G3 PERF", sources, headers=HEADERS)
+    title = ("ONFLY G3 VERIFY" if verify else "ONFLY GATE G3 PERF")
+    deck = mvsbld.build(JOB, title, sources, headers=HEADERS)
     mvsub.check_cards(deck)
+    if verify:
+        sys.stdout.write("mvsprf: --verify measures N=%d at %d steps "
+                         "(%d ms) directly; D-136 predicts %.0f s and "
+                         "the bound is %.0f s\n"
+                         % (VERIFY_N, VERIFY_STEPS, VERIFY_STEPS // 10,
+                            385.0 * VERIFY_STEPS / 10000.0, LIMIT))
     if "--print" in argv:
         sys.stdout.write("\n".join(deck) + "\n")
         return 0

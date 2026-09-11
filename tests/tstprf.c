@@ -46,8 +46,22 @@
 #define DELAY 18
 #define REFRACT 22
 
-/* D-37's provisional standard duration, 1000 ms, in steps. */
-#define STDSTEPS 10000
+/*
+ * D-73's standard duration, 1000 ms, in steps at dt=100us.
+ *
+ * Overridable so that a specific (N, duration) pair can be measured
+ * directly instead of extrapolated.  D-136 set the maximum simulated
+ * duration to 1500 ms on the strength of a figure that was VL-41's
+ * 385 s scaled by 1.5, leaving a 22-second margin at N=1000 -- 3.7%,
+ * resting on a single sample with one-second quantisation.  Scaling in
+ * steps is sound in principle, since every step does identical work,
+ * but a commitment that thin deserves the real number.  Define
+ * ONFPRF_STEPS to 15000 and ONFPRF_ONLY to 1000 to take it.
+ */
+#ifndef ONFPRF_STEPS
+#define ONFPRF_STEPS 10000
+#endif
+#define STDSTEPS ONFPRF_STEPS
 
 /* Minimum seconds per configuration, given time()'s one-second
    resolution.  Twenty seconds holds the quantisation error near 5%. */
@@ -218,6 +232,13 @@ int main(void)
 
     for (ci = 0; ci < NSIZES; ci++) {
         n = sizes[ci];
+#ifdef ONFPRF_ONLY
+        /* Measuring one configuration directly: skip the rest rather
+           than spend an hour of guest time reproducing known rows. */
+        if (n != ONFPRF_ONLY) {
+            continue;
+        }
+#endif
         edges = build(&net, n);
 
         /* Start on a tick boundary: time() has one-second resolution,
