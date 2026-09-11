@@ -112,10 +112,12 @@ GOCPU = re.compile(r"IEF374I STEP /GO\s*/ STOP\s+\S+\s+CPU\s+"
 LIMIT = 600.0
 # D-73's standard duration, matching tests/tstprf.c.
 STDSTEPS = 10000
-# D-136's maximum simulated duration, in ms (revising D-134's 2000,
-# which conflicted with D-133's bound at N=1000).  Reported against so
-# that the N values where it is not executable are named, not inferred.
-MAXDUR = 1500
+# D-138's maximum simulated duration, in ms.  Measured, not estimated:
+# 1300 ms is the largest value directly shown to fit at N=1000 (507 s
+# against a 600 s bound, VL-43).  D-134's 2000 and D-136's 1500 were
+# both set from estimates and both refuted.  Reported against so that
+# any N where it is not executable is named, not inferred.
+MAXDUR = 1300
 # --verify's single configuration: the largest N D-133 admits, which is
 # where the margin is thinnest.  The step count is the default only;
 # D-137 settles the maximum duration by measuring where the bound is
@@ -185,12 +187,12 @@ def report(rows, gocpu, wall, hcpu0, hcpu1, steps=None):
     for n, per, _ in results:
         factor = LIMIT / per
         longest = factor * (steps / 10.0)
-        # D-136 caps a request at MAXDUR. Flag any N where the stated
+        # D-138 caps a request at MAXDUR. Flag any N where the stated
         # maximum is not actually executable inside the bound -- that
-        # condition is recorded against D-136 and is easy to lose.
+        # condition is recorded against D-138 and is easy to lose.
         flag = ""
         if longest < MAXDUR:
-            flag = "  <-- D-136's %d ms maximum does NOT fit here" % MAXDUR
+            flag = "  <-- D-138's %d ms maximum does NOT fit here" % MAXDUR
         print("    N=%-5d  %6.1fx this duration "
               "(~%.0f ms of simulated time)%s"
               % (n, factor, longest, flag))
@@ -304,10 +306,14 @@ def main(argv):
         return mvsbld.with_defines(relpath, ["ONF_FP_SOFT2C"])
 
     # --verify measures ONE configuration directly instead of trusting
-    # a scaled figure.  D-136's 1500 ms maximum rests on 578 s at
-    # N=1000, which is VL-41's 385 s times 1.5 -- a 22 s margin, 3.7%,
-    # on a single sample.  with_defines only emits `#define NAME 1`, so
-    # the valued defines are written as cards directly; that is all -D
+    # a scaled figure.  That is the whole point of D-137: the maximum
+    # duration was set twice from estimates and refuted twice by
+    # measurement, because cost grows super-linearly with duration
+    # (VL-42) and the curve steepens unpredictably (VL-43).  D-138
+    # closed it at 1300 ms on a measured point, and any future change
+    # to that value should be measured the same way rather than
+    # interpolated.  with_defines only emits `#define NAME 1`, so the
+    # valued defines are written as cards directly; that is all -D
     # means to the preprocessor anyway.
     verify = "--verify" in argv
     steps = VERIFY_STEPS
@@ -337,9 +343,14 @@ def main(argv):
     deck = mvsbld.build(JOB, title, sources, headers=HEADERS)
     mvsub.check_cards(deck)
     if verify:
+        # The linear projection is printed to be BEATEN, not believed:
+        # VL-42 and VL-43 both measured the real cost above it. Showing
+        # it makes the gap visible in the same output as the result.
         sys.stdout.write("mvsprf: --verify measures N=%d at %d steps "
-                         "(%d ms) directly; D-136 predicts %.0f s and "
-                         "the bound is %.0f s\n"
+                         "(%d ms) directly. Linear projection from "
+                         "VL-41 is %.0f s; the bound is %.0f s. "
+                         "Linear has understated it every time so far "
+                         "(VL-42, VL-43).\n"
                          % (VERIFY_N, steps, steps // 10,
                             385.0 * steps / 10000.0, LIMIT))
     if "--print" in argv:
