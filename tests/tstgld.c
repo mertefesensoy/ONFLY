@@ -26,10 +26,13 @@
 #include "onffpr.h"
 #include "onfker.h"
 
-#define MAXFILE (4 * 1024 * 1024)
-#define MAXN 4096
-#define MAXE 65536
-#define MAXD 64
+/*
+ * Storage is sized from the file and its header, not fixed at compile time.
+ * D-70 points this suite at the real 2-hop MaleCNS network -- 13,521 neurons
+ * and 1,704,385 edges -- which no reasonable static array would hold on a
+ * 32-bit host.  FR-SIM-07's ban on allocation applies to the simulation core,
+ * which still receives caller-owned storage.
+ */
 
 /* D-37 and D-42: provisional, x86 Phase B only. */
 #define STD_MS 1000
@@ -40,13 +43,23 @@
 #define RC_WARN 4
 #define RC_ERR 8
 
-static onf_u8 buf[MAXFILE];
-static onf_u32 rowptr[MAXN + 1], target[MAXE], stim[MAXN], readout[MAXN];
-static onf_f64 weight[MAXE];
-static onf_f64 su[MAXN], sg[MAXN], sring[MAXD * MAXN];
-static onf_i32 srfr[MAXN], sspk[MAXN], sfst[MAXN], sfrc[MAXN];
-static onf_i32 sstm[MAXN];
+static onf_u8 *buf;
+static onf_u32 *rowptr, *target, *stim, *readout;
+static onf_f64 *weight, *su, *sg, *sring;
+static onf_i32 *srfr, *sspk, *sfst, *sfrc, *sstm;
 static onf_i32 oid[ONF_MAXOUT], olat[ONF_MAXOUT], ospk[ONF_MAXOUT];
+
+/* malloc that reports which array failed rather than a bare null. */
+static void *xalloc(size_t bytes, const char *what)
+{
+    void *p = malloc(bytes);
+    if (p == NULL) {
+        fprintf(stderr, "cannot allocate %lu bytes for %s\n",
+                (unsigned long)bytes, what);
+        exit(2);
+    }
+    return p;
+}
 
 struct gold {
     const char *id;
@@ -93,7 +106,14 @@ int main(int argc, char **argv)
         fprintf(stderr, "cannot open %s\n", argv[1]);
         return 2;
     }
-    len = (onf_i32)fread(buf, 1, MAXFILE, f);
+    if (fseek(f, 0L, SEEK_END) != 0) {
+        fclose(f);
+        return 2;
+    }
+    len = (onf_i32)ftell(f);
+    rewind(f);
+    buf = (onf_u8 *)xalloc((size_t)len, "the network file");
+    len = (onf_i32)fread(buf, 1, (size_t)len, f);
     fclose(f);
 
     rc = onfdec(buf, len, 0, &net, &need);
@@ -101,6 +121,21 @@ int main(int argc, char **argv)
         printf("DECODE rc=%d\n", rc);
         return 1;
     }
+    rowptr  = (onf_u32 *)xalloc(sizeof(onf_u32) * (size_t)(net.n + 1), "rowptr");
+    target  = (onf_u32 *)xalloc(sizeof(onf_u32) * (size_t)net.e, "target");
+    weight  = (onf_f64 *)xalloc(sizeof(onf_f64) * (size_t)net.e, "weight");
+    stim    = (onf_u32 *)xalloc(sizeof(onf_u32) * (size_t)net.ns, "stim");
+    readout = (onf_u32 *)xalloc(sizeof(onf_u32) * (size_t)net.nr, "readout");
+    su    = (onf_f64 *)xalloc(sizeof(onf_f64) * (size_t)net.n, "u");
+    sg    = (onf_f64 *)xalloc(sizeof(onf_f64) * (size_t)net.n, "g");
+    sring = (onf_f64 *)xalloc(sizeof(onf_f64) * (size_t)net.delay
+                              * (size_t)net.n, "ring");
+    srfr  = (onf_i32 *)xalloc(sizeof(onf_i32) * (size_t)net.n, "rfr");
+    sspk  = (onf_i32 *)xalloc(sizeof(onf_i32) * (size_t)net.n, "spikes");
+    sfst  = (onf_i32 *)xalloc(sizeof(onf_i32) * (size_t)net.n, "first");
+    sfrc  = (onf_i32 *)xalloc(sizeof(onf_i32) * (size_t)net.n, "force");
+    sstm  = (onf_i32 *)xalloc(sizeof(onf_i32) * (size_t)net.n, "isstim");
+
     if (onfldp(buf, &net, rowptr, target, weight, stim, readout) != ONFD_OK) {
         printf("LOAD failed\n");
         return 1;

@@ -19,13 +19,13 @@ Run:  python tests/run_gld.py <path-to-tstgld-executable>
 import os
 import subprocess
 import sys
-import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 for sub in ("layout", "generated", "oracle"):
     sys.path.insert(0, os.path.join(ROOT, sub))
 
+import netread                                   # noqa: E402
 import netwrite                                  # noqa: E402
 import onfcom_py as L                            # noqa: E402
 from onfly_oracle import kernel as okernel       # noqa: E402
@@ -35,9 +35,12 @@ from onfly_oracle.fingerprint import fingerprint  # noqa: E402
 STD_MS, SHORT_MS = 1000, 100          # D-37, D-42 -- provisional
 RC_OK, RC_WARN, RC_ERR = 0, 4, 8      # Appendix E RC column, proposal P-08
 
-DT_US, DELAY, REFRACT, MAX_MS = 100, 18, 22, 5000
-P11, P12, P22 = 0.9950124791926823, 0.004937935295309022, 0.9801986733067553
-U_TH, U_RESET, G_EPS = 7.0, 0.0, 1e-300
+#: The real network the suite runs against (D-70).  Its parameters are read
+#: from the file rather than restated here, so this module cannot disagree with
+#: the artifact under test.
+NETWORK = os.path.join(ROOT, "data", "networks",
+                       "onfnet-malecns-v1.0-hop2.bin")
+MAX_MS = 5000                          # read back from the file and asserted
 
 SUITE = [
     ("G-01", "SUGR", 1,    0, STD_MS,        1),
@@ -57,29 +60,21 @@ SUITE = [
 
 
 def make_network():
-    """A 32-neuron synthetic network, plus the oracle view of it."""
-    n = 32
-    rowptr, target, weight = [0], [], []
-    for i in range(n):
-        row = sorted(set(((i + 1 + k * 5) % n) for k in range(4)))
-        target.extend(row)
-        for j, _t in enumerate(row):
-            w = 0.275 * ((i + j) % 7 + 1)
-            weight.append(-w if (i % 3 == 0) else w)   # SR-MOD-05 sign
-        rowptr.append(len(target))
-    stim, readout = [0, 1, 2, 3], [24, 25, 26, 27, 28, 29, 30, 31]
-    blob = netwrite.build(
-        n=n, rowptr=rowptr, target=target, weight=weight,
-        stim=stim, readout=readout, dt_us=DT_US, delay=DELAY,
-        refract=REFRACT, max_ms=MAX_MS, u_th=U_TH, u_reset=U_RESET,
-        p11=P11, p12=P12, p22=P22, g_eps=G_EPS, w_syn=0.275, v_rest=-52.0)
-    net = okernel.Network(
-        n=n, rowptr=rowptr, target=target, weight=weight, stim=stim,
-        readout=readout, dt_us=DT_US, delay=DELAY, refract=REFRACT,
-        u_th=U_TH, u_reset=U_RESET, p11=P11, p12=P12, p22=P22, g_eps=G_EPS)
-    paycrc = crc32(blob[L.NETHDR_LEN:L.NETHDR_LEN
-                        + int.from_bytes(blob[152:156], "big")])
-    return blob, net, paycrc
+    """Load the real 2-hop MaleCNS network (D-70).
+
+    The suite used to build a synthetic 32-neuron network, and that network
+    never drove its readouts: all 80 output entries came back spk=0, lat=-1, so
+    every fingerprint depended only on the request fields and eight constant
+    entries.  Four kernel semantics changed under D-67, D-68 and D-69 and not
+    one fingerprint moved.  A determinism test that cannot detect a kernel
+    change is not testing determinism.
+
+    The 2-hop network drives MN9 demonstrably, so the fingerprints depend on the
+    kernel, and running the suite against an emitted artifact exercises the real
+    decode and load path as well.
+    """
+    spec = netread.read(NETWORK)
+    return spec, netread.as_oracle_network(spec), spec["paycrc"]
 
 
 def oracle_request(net, paycrc, stimid, rate, ms, seed):
@@ -111,13 +106,16 @@ def main():
         sys.stderr.write("not found: %s\n" % exe)
         return 2
 
-    blob, net, paycrc = make_network()
-    tmp = tempfile.mkdtemp(prefix="onfly_gld_")
-    path = os.path.join(tmp, "golden.net")
-    with open(path, "wb") as fh:
-        fh.write(blob)
+    if not os.path.exists(NETWORK):
+        sys.stderr.write("network not found: %s\n" % NETWORK)
+        sys.stderr.write("Emit it first:  python prep/emit.py hop2\n")
+        return 2
+    spec, net, paycrc = make_network()
+    assert spec["max_ms"] == MAX_MS, (
+        "the file's maximum duration is %d but this suite assumes %d"
+        % (spec["max_ms"], MAX_MS))
 
-    proc = subprocess.Popen([exe, path], stdout=subprocess.PIPE)
+    proc = subprocess.Popen([exe, NETWORK], stdout=subprocess.PIPE)
     out, _ = proc.communicate()
     if proc.returncode != 0:
         sys.stderr.write("tstgld exited %d\n" % proc.returncode)
