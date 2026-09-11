@@ -13,7 +13,6 @@ Run:  python tools/cmpgld.py <soft exe> <native exe>
 import os
 import subprocess
 import sys
-import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests"))
@@ -35,11 +34,15 @@ def main():
     if len(sys.argv) < 3:
         sys.stderr.write("usage: cmpgld.py <soft exe> <native exe>\n")
         return 2
-    blob, _net, _crc = run_gld.make_network()
-    tmp = tempfile.mkdtemp(prefix="onfly_cmpgld_")
-    path = os.path.join(tmp, "golden.net")
-    with open(path, "wb") as fh:
-        fh.write(blob)
+    # Both backends run against the same emitted artifact (D-75), not a network
+    # rebuilt here: comparing two builds against two separately generated files
+    # would leave a difference in the file as a possible explanation for a
+    # difference in the output.
+    path = run_gld.NETWORK
+    if not os.path.exists(path):
+        sys.stderr.write("network not found: %s\n" % path)
+        sys.stderr.write("Emit it first:  python prep/emit.py path\n")
+        return 2
 
     a, b = run(sys.argv[1], path), run(sys.argv[2], path)
     if a != b:

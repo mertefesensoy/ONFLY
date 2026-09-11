@@ -39,7 +39,7 @@ RC_OK, RC_WARN, RC_ERR = 0, 4, 8      # Appendix E RC column, proposal P-08
 #: from the file rather than restated here, so this module cannot disagree with
 #: the artifact under test.
 NETWORK = os.path.join(ROOT, "data", "networks",
-                       "onfnet-malecns-v1.0-hop2.bin")
+                       "onfnet-malecns-v1.0-path.bin")
 MAX_MS = 5000                          # read back from the file and asserted
 
 SUITE = [
@@ -60,18 +60,30 @@ SUITE = [
 
 
 def make_network():
-    """Load the real 2-hop MaleCNS network (D-70).
+    """Load the real path fixture: 913 MaleCNS neurons (D-70, D-74, D-75).
 
-    The suite used to build a synthetic 32-neuron network, and that network
-    never drove its readouts: all 80 output entries came back spk=0, lat=-1, so
-    every fingerprint depended only on the request fields and eight constant
-    entries.  Four kernel semantics changed under D-67, D-68 and D-69 and not
-    one fingerprint moved.  A determinism test that cannot detect a kernel
-    change is not testing determinism.
+    Why this fixture and not the two earlier ones.
 
-    The 2-hop network drives MN9 demonstrably, so the fingerprints depend on the
-    kernel, and running the suite against an emitted artifact exercises the real
-    decode and load path as well.
+    The suite originally used a synthetic 32-neuron network whose readouts never
+    fired -- all 80 output entries came back spk=0, lat=-1 -- so every
+    fingerprint depended only on request fields and eight constant entries.
+    Four kernel semantics changed under D-67, D-68 and D-69 and **not one
+    fingerprint moved**.  A determinism test that cannot detect a kernel change
+    is not testing determinism.
+
+    D-70 moved the suite to the real 2-hop network, which fixed that but cost
+    the oracle over 35 minutes without finishing: about 1.9 billion neuron-steps
+    across the suite.
+
+    D-74 then proposed restricting to neurons on a stimulus-to-MN9 path.  Taken
+    literally that is 28 neurons, and MN9 never fires in it: MN9 has 321
+    presynaptic partners and needs their summed input to cross threshold.  So
+    D-75 settled on stimulus + hop-1 successors + every MN9 input + MN9: 913
+    neurons in which MN9 fires 138 to 194 spikes with latency falling as rate
+    rises, and which the oracle can run in minutes rather than hours.
+
+    Parameters are read from the file, not restated here, so this module cannot
+    disagree with the artifact under test.
     """
     spec = netread.read(NETWORK)
     return spec, netread.as_oracle_network(spec), spec["paycrc"]
@@ -108,7 +120,7 @@ def main():
 
     if not os.path.exists(NETWORK):
         sys.stderr.write("network not found: %s\n" % NETWORK)
-        sys.stderr.write("Emit it first:  python prep/emit.py hop2\n")
+        sys.stderr.write("Emit it first:  python prep/emit.py path\n")
         return 2
     spec, net, paycrc = make_network()
     assert spec["max_ms"] == MAX_MS, (

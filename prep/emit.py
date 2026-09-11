@@ -109,6 +109,41 @@ def two_hop(pre, post, seeds):
     return np.sort(np.fromiter(seen, dtype=pre.dtype, count=len(seen)))
 
 
+def path_restricted(pre, post, stim, read):
+    """Neurons on a stimulus-to-readout path within the two-hop horizon (D-74).
+
+    MN9 is first reached at hop 2, so the path set is the stimulus neurons, the
+    hop-1 neurons that are themselves presynaptic to a readout neuron, and the
+    readouts.  Most hop-1 neurons are not: of 590 downstream of the stimulus
+    set, only 12 reach MN9.
+
+    The point is a network small enough for the Python oracle to run the whole
+    golden suite, while still being real data in which MN9 actually spikes --
+    so ACC-5's fingerprints stay sensitive to the kernel.
+    """
+    order = np.argsort(pre, kind="stable")
+    pre_s, post_s = pre[order], post[order]
+    lo = np.searchsorted(pre_s, stim, "left")
+    hi = np.searchsorted(pre_s, stim, "right")
+    hop1 = np.setdiff1d(
+        np.unique(np.concatenate([post_s[a:b] for a, b in zip(lo, hi)])), stim)
+
+    rorder = np.argsort(post, kind="stable")
+    post_r, pre_r = post[rorder], pre[rorder]
+    rlo = np.searchsorted(post_r, np.sort(read), "left")
+    rhi = np.searchsorted(post_r, np.sort(read), "right")
+    into_read = np.unique(
+        np.concatenate([pre_r[a:b] for a, b in zip(rlo, rhi)]))
+
+    # D-75 amends D-74.  Taking only the hop-1 neurons that reach a readout
+    # ("on a path") gives 28 neurons in which MN9 NEVER FIRES: it has 321
+    # presynaptic partners and needs their summed input to cross threshold.
+    # The fixture is therefore stimulus + every hop-1 successor + every
+    # presynaptic partner of the readouts + the readouts: 913 neurons, in which
+    # MN9 fires and fingerprints are sensitive to the kernel.
+    return np.unique(np.concatenate([stim, hop1, into_read, read]))
+
+
 def build_network(arrays, nodes, stim_bodies, read_bodies, label):
     """Assemble one network file from a node subset."""
     pre, post = arrays["body_pre"], arrays["body_post"]
@@ -200,6 +235,8 @@ def main():
     if which in ("hop2", "both"):
         hop = two_hop(pre, post, stim_bodies)
         targets["hop2"] = np.union1d(hop, read_bodies)
+    if which in ("path", "both"):
+        targets["path"] = path_restricted(pre, post, stim_bodies, read_bodies)
 
     # The manifest describes what is on disk, not merely what this run emitted.
     # Running `emit.py full` must not erase the record of a network already

@@ -123,6 +123,44 @@ mingw32-make test
 The C kernel and the Python oracle were amended **independently** and still
 agree: `run_ker` 449 passed on both backends, `cmpback` identical on 778 lines.
 
+### Fixing the hole, and proving it is fixed
+
+D-70 pointed the suite at the real 2-hop network (13,521 neurons). That made
+fingerprints kernel-sensitive but cost the Python oracle about 1.9 billion
+neuron-steps across the suite; a run exceeded 35 minutes without finishing, and
+a suite nobody can afford to run stops being run.
+
+D-74 proposed restricting to neurons on a stimulus-to-MN9 path. Implemented
+literally that is 28 neurons, and **MN9 never fires in it**: MN9 has 321
+presynaptic partners and needs their summed input to cross threshold. That
+fixture would have been exactly as blind as the one it replaced.
+
+D-75 settled it: stimulus + hop-1 successors + every MN9 input + MN9 — **913
+neurons, 72,852 edges**.
+
+| Fixture | Neurons | MN9 spikes at 40 / 120 / 200 Hz |
+|---|---|---|
+| synthetic (original) | 32 | 0 / 0 / 0 |
+| D-74 literal | 28 | 0 / 0 / 0 |
+| 2-hop (D-70) | 13,521 | fires, but oracle > 35 min |
+| **D-75 fixture** | **913** | **138 / 194 / 187** |
+
+The whole suite now runs in **1m54s** and `make test` from clean in **2m11s**.
+
+**The proof that the blindness is gone.** Reverting just one of the four
+amendments — D-67's reset of `g` on spike — and rerunning:
+
+```
+run_gld [NATIVE backend]: 5 passed, 9 failed
+  ok   G-01 ... fp=21BBF610
+  FAIL G-02 C fp=7C14D717 | oracle fp=D89BE9DD
+  FAIL G-03 C fp=4B1606BB | oracle fp=EA2EF71F
+```
+
+Nine of fourteen fail. Before the fixture change, four simultaneous kernel
+amendments produced **zero** failures. G-01 still passes, correctly: at rate 0
+nothing spikes, so no kernel semantics are exercised.
+
 ### What these results do not prove
 
 - **x86 32-bit mingw32 gcc 6.3.0, SOFT and NATIVE backends.** Nothing ran under

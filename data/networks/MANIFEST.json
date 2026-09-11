@@ -30,6 +30,14 @@
       "file": "onfnet-malecns-v1.0-hop2.bin",
       "neurons": 13521,
       "sha256": "493075042d75edddc06ecad8e0a34b6b060606eb7c6e68a31b17e3d34f59c340"
+    },
+    "path": {
+      "bytes": 885416,
+      "crc32": "44D486F1",
+      "edges": 72852,
+      "file": "onfnet-malecns-v1.0-path.bin",
+      "neurons": 913,
+      "sha256": "c108bfd8daf8f4f82ab31c20a87ca44ee99899ffec4b9df235c6c43765e28cf3"
     }
   },
   "not_the_srext_subcircuit": "SR-EXT-01 defines the MVP subcircuit by activity in a full-brain run, which needs W_syn calibrated first. Both files are provisional with respect to SR-EXT.",

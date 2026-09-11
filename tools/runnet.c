@@ -59,7 +59,7 @@ int main(int argc, char **argv)
     onf_u8 *buf;
     onf_u32 *rowptr, *target, *stim, *readout;
     onf_f64 *weight, *su, *sg, *sring;
-    onf_i32 *srfr, *sspk, *sfst, *sfrc;
+    onf_i32 *srfr, *sspk, *sfst, *sfrc, *sstm;
     struct rank *order;
     onf_i32 len, need, rate, simms, steps, i, topn;
     onf_u32 seed;
@@ -147,8 +147,9 @@ int main(int argc, char **argv)
     sspk  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
     sfst  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
     sfrc  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
+    sstm  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
     if (su == NULL || sg == NULL || sring == NULL || srfr == NULL
-        || sspk == NULL || sfst == NULL || sfrc == NULL) {
+        || sspk == NULL || sfst == NULL || sfrc == NULL || sstm == NULL) {
         printf("ALLOC failed for simulation state (n=%ld delay=%ld)\n",
                (long)net.n, (long)net.delay);
         return 2;
