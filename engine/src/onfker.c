@@ -35,6 +35,13 @@ int onfrun(const struct onfnet *net, struct onfsta *st,
         st->spikes[i] = 0;
         st->first[i] = -1;
         st->force[i] = 0;
+        st->isstim[i] = 0;
+    }
+    /* D-68: stimulus neurons have no refractory period, matching Shiu's
+       rfc = 0 for Poisson targets.  Marked once here rather than searched for
+       on every spike. */
+    for (s = 0; s < net->ns; s++) {
+        st->isstim[net->stim[s]] = 1;
     }
     for (i = 0; i < net->delay * net->n; i++) {
         st->ring[i] = zero;
@@ -65,7 +72,9 @@ int onfrun(const struct onfnet *net, struct onfsta *st,
 
             if (st->rfr[i] > 0) {
                 st->rfr[i] = st->rfr[i] - 1;
-                st->g[i] = onffmul(net->p22, st->g[i]);   /* u held at U_reset */
+                /* D-67: g is FROZEN while refractory, matching Shiu's
+                   "(unless refractory)" on dg/dt.  u is held at U_reset.
+                   Appendix C decayed it here until that amendment. */
                 was_rfr = 1;
             } else {
                 a = onffmul(net->p11, st->u[i]);
@@ -88,9 +97,14 @@ int onfrun(const struct onfnet *net, struct onfsta *st,
                 return ONFK_NONFIN;
             }
 
-            if (!was_rfr && (onffle(net->uth, st->u[i]) || st->force[i])) {
+            /* D-69: the threshold is STRICT (u > U_th), matching Shiu's
+               eq_th 'v > v_th'.  onfflt(uth, u) is exactly u > uth. */
+            if (!was_rfr && (onfflt(net->uth, st->u[i]) || st->force[i])) {
                 st->u[i] = net->ureset;
-                st->rfr[i] = net->refract;
+                /* D-67: g is reset on every spike (Shiu's eq_rst 'g = 0*mV'). */
+                st->g[i] = zero;
+                /* D-68: stimulus neurons never become refractory. */
+                st->rfr[i] = st->isstim[i] ? 0 : net->refract;
                 st->spikes[i] = st->spikes[i] + 1;
                 if (st->first[i] < 0) {
                     st->first[i] = (t + 1) * net->dtus;

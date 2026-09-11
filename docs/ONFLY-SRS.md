@@ -652,6 +652,12 @@ Each decision below was made by the owner during the requirements question round
 | D-61 | This cycle's scope is **FR-PRP-04, the full-brain run on x86** | Calibration setup (TBD-07, TBD-08, TBC-06); TT-01; verify-only mode and the run manifest | SR-CAL-01 requires W_syn to be calibrated on the full-brain model and SR-EXT-01 defines the MVP subcircuit by activity in that run, so both are blocked until it exists. Sizing shows it fits on this host: 630 MB peak, or 330 MB once the file buffer is released after loading |
 | D-62 | **TBC-12 fully closed.** The repository is licensed **MIT** | Apache 2.0; three-clause BSD matching the vendored components; leave TBC-12 open | Short, widely understood, and compatible with the three-clause BSD of the vendored SoftFloat and TestFloat. The project's value is the demonstration rather than the code, so a permissive licence imposing nothing on reusers suits it. The MaleCNS data half was already closed by D-50 as CC BY 4.0, which requires attribution and is recorded separately in third_party and the data manifest |
 | D-63 | FR-PRP-04's full-brain protocol for this session is **7 rates x 1 seed x 1000 ms**: the union of TBD-07's proposed calibration {20, 80, 160} and validation {10, 40, 120, 200} Hz sets, at D-37's provisional standard duration. About 25 minutes of compute | 7 rates x 3 seeds x 300 ms; one rate x 30 seeds x 1000 ms; settle TBD-06 and TBD-07 before running anything | Measured throughput on this host is 8.5 million neuron-steps per second, so the protocol SR-EXT-01 actually asks for -- all rates with all seeds -- is about 12.6 hours and cannot run in a session. One seed rather than the thirty TBD-06 proposes makes the resulting activity ranking **provisional**: it is not the SR-EXT-01 selection, and must not be used as one without re-running with the seed count TBD-06 finally fixes |
+| D-64 | This cycle's scope is **confirming TBC-01, TBC-02 and TBC-05 against Shiu et al.'s published model code** at github.com/philshiu/Drosophila_brain_model (MIT), comparing `model.py` line by line against SRS Appendix C and the SR-MOD-02 parameter table, and bringing the differences to the owner to rule on | TBC-06 only (obtain the reference curve); TT-01; verify-only mode and the run manifest | Four open items are all defined as "confirm against Shiu et al." and this is that source. It unblocks calibration and ACC-4, and it is the only way to learn whether Appendix C's **draft** step ordering is actually correct — fitting a W_syn against the wrong kernel would produce a calibrated wrong answer |
+| D-65 | **TBD-09 and TBD-10 stay open.** The magic constant is not frozen and the ONF prefix collision check is not performed yet | Close TBD-09 now at the proposed 0x4F4E4631; investigate TBD-10 now | The network format will still change as calibration and extraction settle the header's parameter values, so freezing v1.0 in one respect before the rest of it is ready would give the version a meaning it has not earned. IR-NET-03's proposed value keeps working in the meantime |
+| D-66 | **TBC-02 closed.** Every SR-MOD-02 parameter is confirmed against Shiu et al.'s published `model.py`: V_th −45 mV, τ_mbr 20 ms, τ_syn 5 ms, t_rfr 2.2 ms, T_dly 1.8 ms, V_rest = V_reset = −52 mV, W_syn 0.275 mV, dt 0.1 ms, and the synaptic form dg/dt = −g/τ_syn. `method='linear'` confirms the **exact propagator** | Close but record dt as separately derived; keep open pending the paper's methods section | Confirmed against the implementation that produced the published results, not merely the paper text. The SR-MOD-02 table needed no change because it was already correct; only the TBC marking is removed. dt is Brian2's default rather than an explicit setting, which is recorded here rather than hidden |
+| D-67 | **Appendix C amended (authorised):** the synaptic term **g is frozen while a neuron is refractory** and **reset to exactly +0.0 on every spike**, matching Shiu's `(unless refractory)` on dg/dt and `eq_rst: g = 0*mV` | Keep Appendix C as drafted and record a verification limit; adopt the spike reset only | SR-MOD-03 requires the integration method and within-step event ordering to match Shiu's published implementation, and ACC-4 compares against his reference. A kernel difference here would sit on top of the male/female and stimulus-set differences already in VL-06 and VL-12 |
+| D-68 | **Appendix C amended (authorised):** stimulus neurons have **no refractory period**, matching Shiu's `rfc = 0` for Poisson targets. The forced-spike delivery of Appendix C is kept rather than adopting Shiu's 68.75 mV injection into v | Match Shiu fully by injecting w_syn × 250 into v; keep refractory gating on stimulus neurons | 68.75 mV against a 7 mV threshold gap means every Poisson event causes a spike, so the forced spike is behaviourally equivalent and avoids adding a voltage-injection path. The refractory gating is the part that genuinely differs: at 200 Hz with a 2.2 ms refractory period ONFLY would silently drop stimulus spikes Shiu's model delivers, biasing exactly the high-rate end ACC-4 tests |
+| D-69 | **Appendix C amended (authorised):** the firing condition is **strict**, u > U_th, matching Shiu's `eq_th: v > v_th` | Keep u >= U_th and record a verification limit | One comparison operator removes a known kernel difference. The case bites only when the membrane potential lands exactly on threshold, which in binary64 is rare but reachable, and bit-exact reproducibility is ONFLY's premise |
 
 ### A.2 Design decisions proposed in this draft
 
@@ -671,7 +677,7 @@ These were introduced by the architect while writing the specification. They are
 | ID | Item | Affects | Resolved in |
 |---|---|---|---|
 | TBC-01 | Shiu et al.'s integration method, within-step event ordering, stimulus delivery and refractory semantics | SR-MOD-01, SR-MOD-03, Appendix C | Phase C |
-| TBC-02 | Unconfirmed parameter values (V_th, τ_mbr, t_rfr, τ_syn, dt) and the exact form of the synaptic equation | SR-MOD-02 | Phase C |
+| ~~TBC-02~~ | Unconfirmed parameter values (V_th, τ_mbr, t_rfr, τ_syn, dt) and the exact form of the synaptic equation | SR-MOD-02 | **CLOSED 2026-09-11 by D-66** — all confirmed against Shiu et al.'s published model.py; the SR-MOD-02 table was already correct |
 | ~~TBC-03~~ | MaleCNS cell types for the sugar-sensing neurons and MN9 | FR-PRP-02 | **CLOSED 2026-09-11 by D-52** — stimulus PhG9 + dorsal_tpGRN (14 neurons), readout MN9 (2 neurons) |
 | ~~TBC-04~~ | Neurotransmitter-to-sign mapping as used by Shiu et al. | FR-PRP-03 | **CLOSED 2026-09-11 by D-54 and D-55** — ACh +1; GABA/glutamate/histamine −1; monoamines excluded; neurons without a definite prediction have their outgoing edges excluded |
 | TBC-05 | Stimulation protocol details (neuron set, hemisphere, trial duration) | SR-MOD-04 | Phase C |
@@ -720,7 +726,8 @@ These were introduced by the architect while writing the specification. They are
    for i = 0 .. N-1 (ascending):
        if rfr[i] > 0:
            rfr[i] = rfr[i] - 1
-           g[i]   = P22 (x) g[i]                # u held at U_reset
+           # D-67: g is FROZEN while refractory, matching Shiu's
+           # "(unless refractory)" on dg/dt.  u is held at U_reset.
            was_refractory = true
        else:
            a      = P11 (x) u[i]
@@ -729,9 +736,14 @@ These were introduced by the architect while writing the specification. They are
            g[i]   = P22 (x) g[i]
            was_refractory = false
        if |g[i]| < G_EPS: g[i] = +0.0         # NR-08
-       if not was_refractory and (u[i] >= U_th or force[i]):
+       # D-69: the threshold is STRICT, matching Shiu's eq_th 'v > v_th'.
+       if not was_refractory and (u[i] > U_th or force[i]):
            u[i]   = U_reset
-           rfr[i] = REFRACTORY_STEPS
+           g[i]   = +0.0            # D-67: g is reset on every spike,
+                                    # matching Shiu's eq_rst 'g = 0*mV'
+           # D-68: stimulus neurons have NO refractory period, matching
+           # Shiu's 'rfc = 0' for Poisson targets.
+           rfr[i] = 0 if i is a stimulus neuron else REFRACTORY_STEPS
            spikes[i] = spikes[i] + 1
            if first[i] < 0: first[i] = (t + 1) * dt_us
            for each target k of i (ascending, CSR order):

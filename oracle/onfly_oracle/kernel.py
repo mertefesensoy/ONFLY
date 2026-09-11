@@ -30,8 +30,11 @@ different coefficients, which is why the method changes constants and not code
     u' = P11*u + P12*g              g' = P22*g
 
 A spike from neuron j raises g of each target i by w_ji, arriving D steps later.
-When u >= U_th the neuron spikes, u is set to U_reset, and it is refractory for
-REFRACTORY_STEPS during which u is held and g continues to decay.
+When u > U_th the neuron spikes (strict, D-69), u is set to U_reset, g is reset
+to +0.0 (D-67), and the neuron is refractory for REFRACTORY_STEPS during which u
+is held and g is FROZEN (D-67).  Stimulus neurons never become refractory
+(D-68).  All four of those follow Shiu et al.'s published model.py, read in this
+session; before D-66..D-69 Appendix C differed from it on every one.
 """
 
 from . import prng as _prng
@@ -109,6 +112,11 @@ def run(net, seed, rate_hz, steps):
     spikes = [0] * n
     first = [-1] * n
     force = [False] * n
+    # D-68: stimulus neurons have no refractory period, matching Shiu's
+    # rfc = 0 for Poisson targets.
+    is_stim = [False] * n
+    for s in net.stim:
+        is_stim[s] = True
 
     # Delay ring: ring[slot][i].  Spikes emitted at step t arrive at the start
     # of step t + D, because slot (t + D) mod D is the slot consumed at step t.
@@ -133,7 +141,8 @@ def run(net, seed, rate_hz, steps):
         for i in range(n):
             if rfr[i] > 0:
                 rfr[i] = rfr[i] - 1
-                g[i] = net.p22 * g[i]          # u held at U_reset
+                # D-67: g is FROZEN while refractory, matching Shiu's
+                # "(unless refractory)" on dg/dt.  u is held at U_reset.
                 was_refractory = True
             else:
                 a = net.p11 * u[i]
@@ -147,9 +156,13 @@ def run(net, seed, rate_hz, steps):
             if abs(g[i]) < net.g_eps:
                 g[i] = 0.0
 
-            if (not was_refractory) and (u[i] >= net.u_th or force[i]):
+            # D-69: the threshold is STRICT, matching Shiu's eq_th 'v > v_th'.
+            if (not was_refractory) and (u[i] > net.u_th or force[i]):
                 u[i] = net.u_reset
-                rfr[i] = net.refract
+                # D-67: g is reset on every spike (Shiu's eq_rst 'g = 0*mV').
+                g[i] = 0.0
+                # D-68: stimulus neurons never become refractory.
+                rfr[i] = 0 if is_stim[i] else net.refract
                 spikes[i] = spikes[i] + 1
                 if first[i] < 0:
                     first[i] = (t + 1) * net.dt_us

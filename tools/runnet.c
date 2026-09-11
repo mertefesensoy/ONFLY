@@ -154,7 +154,7 @@ int main(int argc, char **argv)
         return 2;
     }
     st.u = su; st.g = sg; st.rfr = srfr; st.spikes = sspk;
-    st.first = sfst; st.force = sfrc; st.ring = sring;
+    st.first = sfst; st.force = sfrc; st.isstim = sstm; st.ring = sring;
 
     steps = simms * 1000 / net.dtus;
     t0 = clock();

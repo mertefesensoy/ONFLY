@@ -56,6 +56,7 @@ static onf_u32 readlist[8];
 
 static onf_f64 su[NEURONS], sg[NEURONS], sring[DELAY * NEURONS];
 static onf_i32 srfr[NEURONS], sspk[NEURONS], sfst[NEURONS], sfrc[NEURONS];
+static onf_i32 sstm[NEURONS];
 
 /*
  * Build a deterministic synthetic network.
@@ -178,7 +179,7 @@ int main(void)
     print_net(&net);
 
     st.u = su; st.g = sg; st.rfr = srfr; st.spikes = sspk;
-    st.first = sfst; st.force = sfrc; st.ring = sring;
+    st.first = sfst; st.force = sfrc; st.isstim = sstm; st.ring = sring;
 
     for (c = 0; c < NCASES; c++) {
         rc = onfrun(&net, &st, (onf_u32)cases[c][0], cases[c][1], cases[c][2]);

@@ -45,6 +45,7 @@ static onf_u32 rowptr[MAXN + 1], target[MAXE], stim[MAXN], readout[MAXN];
 static onf_f64 weight[MAXE];
 static onf_f64 su[MAXN], sg[MAXN], sring[MAXD * MAXN];
 static onf_i32 srfr[MAXN], sspk[MAXN], sfst[MAXN], sfrc[MAXN];
+static onf_i32 sstm[MAXN];
 static onf_i32 oid[ONF_MAXOUT], olat[ONF_MAXOUT], ospk[ONF_MAXOUT];
 
 struct gold {
@@ -117,7 +118,7 @@ int main(int argc, char **argv)
     paycrc_i = (onf_i32)net.nr;
 
     st.u = su; st.g = sg; st.rfr = srfr; st.spikes = sspk;
-    st.first = sfst; st.force = sfrc; st.ring = sring;
+    st.first = sfst; st.force = sfrc; st.isstim = sstm; st.ring = sring;
 
     printf("# tstgld backend=%s platform=%s paycrc=%08lX maxms=%ld nr=%ld\n",
            ONF_FPID, ONF_PLATID, (unsigned long)paycrc, (long)maxms,

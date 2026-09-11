@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     if (rc == ONFD_OK && argc > 3) {
         onf_u32 *rowptr, *target, *stim, *readout;
         onf_f64 *weight, *su, *sg, *sring;
-        onf_i32 *srfr, *sspk, *sfst, *sfrc;
+        onf_i32 *srfr, *sspk, *sfst, *sfrc, *sstm;
         struct onfsta st;
         onf_i32 i;
         int lrc, krc;
@@ -99,10 +99,11 @@ int main(int argc, char **argv)
         sspk = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
         sfst = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
         sfrc = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
+        sstm = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
         if (rowptr == NULL || target == NULL || weight == NULL
             || stim == NULL || readout == NULL || su == NULL || sg == NULL
             || sring == NULL || srfr == NULL || sspk == NULL
-            || sfst == NULL || sfrc == NULL) {
+            || sfst == NULL || sfrc == NULL || sstm == NULL) {
             printf("ALLOC failed for n=%ld e=%ld delay=%ld\n",
                    (long)net.n, (long)net.e, (long)net.delay);
             return 2;
@@ -114,7 +115,7 @@ int main(int argc, char **argv)
             return 0;
         }
         st.u = su; st.g = sg; st.rfr = srfr; st.spikes = sspk;
-        st.first = sfst; st.force = sfrc; st.ring = sring;
+        st.first = sfst; st.force = sfrc; st.isstim = sstm; st.ring = sring;
         krc = onfrun(&net, &st, 1UL, 120, 500);
         printf("RUN seed=1 rate=120 steps=500 rc=%d\n", krc);
         for (i = 0; i < net.n; i++) {

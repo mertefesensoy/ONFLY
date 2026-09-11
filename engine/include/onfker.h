@@ -73,6 +73,7 @@ struct onfsta {
     onf_i32 *spikes;            /* n */
     onf_i32 *first;             /* n, first-spike latency in us, -1 if none */
     onf_i32 *force;             /* n, stimulus-driven spike flags */
+    onf_i32 *isstim;            /* n, non-zero for stimulus neurons (D-68) */
     onf_f64 *ring;              /* delay * n, delayed synaptic input */
 };
 
