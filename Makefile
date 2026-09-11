@@ -65,7 +65,12 @@ ONFSF = softfloat/onfrpk.c softfloat/onfflag.c softfloat/onfsub.c
 GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
             generated/onfcom_py.py generated/onfnhd.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden tt02 testfloat c04 prep runner
+# TT-01's known-answer table (D-79).  Separate from $(GENERATED) because that
+# list shares a single rule whose recipe is layout/generate.py; this one comes
+# from tools/genint.py instead.
+IVEC = generated/onfivec.h
+
+.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 testfloat c04 prep runner
 
 all: test
 
@@ -74,12 +79,16 @@ all: test
 generate:
 	$(PYTHON) layout/generate.py
 	$(PYTHON) softfloat/derive.py
+	$(PYTHON) tools/genint.py
 
 $(GENERATED): layout/master.py layout/generate.py
 	$(PYTHON) layout/generate.py
 
 softfloat/onfsub.c: softfloat/derive.py
 	$(PYTHON) softfloat/derive.py
+
+$(IVEC): tools/genint.py
+	$(PYTHON) tools/genint.py
 
 # --- NR-05 lint -------------------------------------------------------------
 # Mandatory in every build: a stray double compiled by GCCMVS would silently be
@@ -176,12 +185,13 @@ golden: $(BUILD) $(GENERATED) softfloat/onfsub.c
 # ONFLY's own externals must stay within 8 characters and be unique ignoring
 # case.  The vendored SoftFloat names are far longer; that is a Gate G1
 # question (D-45), so they are reported and not failed on.
-c04: $(BUILD) $(GENERATED) softfloat/onfsub.c
+c04: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c
 	$(PYTHON) tools/mkobjs.py $(BUILD)/obj \
 	  $(CC) $(SFFLAGS) $(INC) $(SFINC) -- \
 	  engine/src/onfcrc.c engine/src/onfrnd.c engine/src/onfstm.c \
 	  engine/src/onffpc.c engine/src/onffps.c engine/src/onfker.c \
 	  engine/src/onfdec.c engine/src/onffpr.c generated/onfcom.c \
+	  softfloat/onfint.c \
 	  $(SFSRCS) $(ONFSF)
 	$(PYTHON) tools/lint_c04.py $(BUILD)/obj
 
@@ -196,6 +206,26 @@ TFGEN = $(TFDIR)/testfloat_gen.exe
 testfloat:
 	cd $(SFLIBDIR) && mingw32-make
 	cd $(TFDIR) && mingw32-make testfloat_gen.exe
+
+# --- TT-01: the 64-bit integer self-test (NR-04, NR-14, A-05) -------------
+# Level L0 of Section 8.1, and the earliest thing in the whole plan: every
+# level above it assumes the compiler's 64-bit arithmetic is right.  S/370 has
+# no 64-bit integer instructions, so GCCMVS must synthesise all of it, and
+# assumption A-05 says so while recording itself Unverified.  Gate G1 settles
+# it; this is half of that gate's exit criterion.
+#
+# Built from softfloat/onfint.c alone, with no SoftFloat source and no float
+# layer.  Risk R-01's mitigation is that "TT-01 isolates integer bugs from
+# float bugs", which only holds if TT-01 still runs when SoftFloat does not.
+#
+# -Wno-long-long is the one relaxation, and it is exactly NR-04's: the dialect
+# is "C89 plus long long", and -pedantic otherwise rejects the second half of
+# that sentence.  Everything else stays strict, so a construct GCCMVS would
+# refuse still fails here first.
+tt01: $(BUILD) $(IVEC)
+	$(CC) $(CFLAGS) -Wno-long-long $(INC) -Isoftfloat \
+	  -o $(BUILD)/tstint.exe tests/tstint.c softfloat/onfint.c
+	$(PYTHON) tests/run_tt01.py $(BUILD)/tstint.exe
 
 tt02: $(BUILD) softfloat/onfsub.c
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstflt_soft.exe \
@@ -224,8 +254,11 @@ runner: $(BUILD) $(GENERATED)
 	  engine/src/onffpc.c engine/src/onffpn.c engine/src/onfker.c \
 	  engine/src/onfrnd.c engine/src/onfstm.c
 
-test: lint c04 layout units fp kernel decode golden tt02 prep
-	@echo "ONFLY: NR-05 + C-04 lints, TT-02, TU-01..TU-07, kernel, TE-01..TE-08, ACC-5 golden suite and TP-01 all passed"
+# Section 8.1 runs bottom-up: "A level may start only when the level below it
+# passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
+# TT-02, come before the L1 unit tests and everything above them.
+test: lint c04 tt01 tt02 layout units fp kernel decode golden prep
+	@echo "ONFLY: NR-05 + C-04 lints, TT-01, TT-02, TU-01..TU-07, kernel, TE-01..TE-08, ACC-5 golden suite and TP-01 all passed"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"

@@ -30,3 +30,18 @@ data/networks/*.bin
 
 # Full-brain run outputs: large, regenerable from tools/fullbrain.sh
 data/fullbrain/*.txt
+
+# D-80: upstream's own build/<target>/Makefile and platform.h under third_party
+# are vendored SOURCE, not build output -- `make testfloat` reads them.  The
+# `build/` rule above swallowed them, so a fresh clone could not rebuild the
+# TestFloat generator and TT-02 was reproducible only in the checkout where the
+# archive was first extracted.  Git refuses to re-include a file whose parent
+# directory is excluded, so every level of the path is re-included in turn and
+# then re-excluded, leaving exactly these two filenames tracked.  The .o, .a
+# and .exe products stay ignored.
+!third_party/*/build/
+third_party/*/build/*
+!third_party/*/build/*/
+third_party/*/build/*/*
+!third_party/*/build/*/Makefile
+!third_party/*/build/*/platform.h

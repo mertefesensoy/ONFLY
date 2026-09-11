@@ -19,6 +19,10 @@ Reported in three groups, because the remedies differ completely:
   SOFTFLOAT names from the vendored library. Gate G1 decides what happens.
   OTHER     C runtime and compiler support names, supplied on MVS by PDPCLIB.
 
+Symbols whose names contain a dot are skipped: section symbols such as .text,
+and the optimiser's own clones such as onfirun.part.0. A dot cannot occur in a
+C identifier, so those never reach the linkage editor (D-83).
+
 Case-insensitive collisions are checked on the first 8 characters, because two
 names that differ only after character 8, or only in case, are the same symbol
 to the MVS linkage editor. That is the failure mode that produces a program
@@ -56,8 +60,14 @@ def nm_symbols(path):
             continue
         if typ.upper() not in DEFINED | UNDEFINED:
             continue
-        # Section symbols such as .text carry no linkage name.
-        if name.startswith("."):
+        # Section symbols such as .text carry no linkage name.  Neither do the
+        # optimiser's clones of a function -- onfirun.part.0, foo.isra.1,
+        # bar.constprop.2 -- which GCC emits at -O2 and names after the
+        # function it split.  A dot cannot appear in a C identifier at all, so
+        # no name containing one is something the MVS linkage editor will ever
+        # be shown, and measuring it against C-04 reports a defect that does
+        # not exist (D-83).
+        if "." in name:
             continue
         # mingw32 and other COFF targets prefix externals with an underscore;
         # it is an ABI artifact, not part of the identifier the linkage editor
