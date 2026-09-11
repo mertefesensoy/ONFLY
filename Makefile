@@ -70,7 +70,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 testfloat c04 prep runner
+.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 testfloat c04 prep runner eng
 
 all: test
 
@@ -243,6 +243,34 @@ tt02: $(BUILD) softfloat/onfsub.c
 prep:
 	$(PYTHON) tests/test_signs.py
 
+# --- TE-09: ONFLYENG, verify-only mode and the run manifest ---------------
+# The minimal engine level of D-78: the self-test, the FR-LOD-02 load checks,
+# the NFR-OBS-01 manifest, and IR-TRN-03's PARM='VERIFY'.  No request loop --
+# Section 9.2 puts that in Phase E, which depends on Phase C and Phase D.
+#
+# Built on both backends, because NFR-OBS-01 requires the manifest to name the
+# backend and a manifest that named the wrong one would be worse than none.
+#
+# onflyeng.c is compiled on its own with the strict ONFLY flags and only then
+# linked against the SoftFloat set, which SFFLAGS builds without -pedantic.
+# Compiling them in one invocation, as the golden target does, would quietly
+# relax -pedantic -Werror on ONFLY's own code as well.
+eng: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c
+	$(CC) $(CFLAGS) $(INC) -Isoftfloat -c \
+	  -o $(BUILD)/onflyeng.o engine/src/onflyeng.c
+	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/onflyeng_soft.exe \
+	  $(BUILD)/onflyeng.o engine/src/onfdec.c engine/src/onfcrc.c \
+	  engine/src/onffpc.c engine/src/onffps.c engine/src/onffpr.c \
+	  softfloat/onfint.c $(SFSRCS) $(ONFSF)
+	$(PYTHON) tests/run_eng.py $(BUILD)/onflyeng_soft.exe
+	$(CC) $(CFLAGS) $(NATFLAGS) $(INC) -Isoftfloat -c \
+	  -o $(BUILD)/onflyengn.o engine/src/onflyeng.c
+	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/onflyeng_nat.exe \
+	  $(BUILD)/onflyengn.o engine/src/onfdec.c engine/src/onfcrc.c \
+	  engine/src/onffpc.c engine/src/onffpn.c engine/src/onffpr.c \
+	  softfloat/onfint.c
+	$(PYTHON) tests/run_eng.py $(BUILD)/onflyeng_nat.exe
+
 # --- FR-PRP-04: the full-brain runner --------------------------------------
 # Built as part of the project rather than by hand, so it cannot drift from
 # the engine it exercises.  Not part of `test`: a full-brain run takes
@@ -257,8 +285,8 @@ runner: $(BUILD) $(GENERATED)
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint c04 tt01 tt02 layout units fp kernel decode golden prep
-	@echo "ONFLY: NR-05 + C-04 lints, TT-01, TT-02, TU-01..TU-07, kernel, TE-01..TE-08, ACC-5 golden suite and TP-01 all passed"
+test: lint c04 tt01 tt02 layout units fp kernel decode eng golden prep
+	@echo "ONFLY: NR-05 + C-04 lints, TT-01, TT-02, TU-01..TU-07, kernel, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"
