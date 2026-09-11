@@ -5,7 +5,7 @@
 | Date | 2026-09-11 |
 | Author | Claude (senior engineer), with owner decisions by Mert |
 | Phase / gate | Gate G1 (SoftFloat port / toolchain), part of Gate G2 (transport) |
-| Owner decisions relied on | D-97, D-98, D-99, D-100, D-101, D-102, D-103 |
+| Owner decisions relied on | D-97, D-98, D-99, D-100, D-101, D-102, D-103, D-104 |
 | Requirements touched | NR-02, NR-03, NR-04, NR-14, A-05, C-06, IR-TRN-01, TT-01 |
 | Open items closed | none. **Gate G1: still FAILED**, with a different and much sharper answer |
 
@@ -38,7 +38,13 @@ measure that first.
 | `tools/mvsgcc.py` | New. Reproduces every measurement below against a running TK5: `--chars`, `--levels`, `--ops`, `--shifts`. |
 | `tools/mvsub.py` | Refuses to submit unless Hercules is on codepage 819/1047 (D-103); `current_codepage()` and `check_codepage()` added. |
 | `tools/mvstt01.py` | `--opt=` parameter, defaulting to `-O1` (D-100); the continued PARM card moved to column 5; an `a()` wrapper enforcing JCL's column-71 limit; header rewritten around the two host-configuration preconditions. |
-| `docs/ONFLY-SRS.md` | D-97…D-103 in Appendix A.1; VL-17…VL-20 in Appendix D. |
+| `tools/mvsbld.py` | New. The GCCMVS compile-assemble-link-go deck shape, factored out of mvstt01.py so D-104's job does not copy it. Adds the VB/255 include library and an assembler-listing knob. |
+| `tools/mvssfs.py` | New. Submits tests/tstsfs.c with the two vendored SoftFloat units (D-104). |
+| `softfloat/c89/stdint.h` | New. The NR-04 C89 shim; PDPCLIB has none. |
+| `softfloat/c89/stdbool.h` | New. The NR-04 C89 shim; PDPCLIB has none. |
+| `tests/tstsfs.c` | New. Drives SoftFloat's two jam functions so that every result must be 1. |
+| `Makefile` | `sfs` and `shim` targets, both wired into `test`. |
+| `docs/ONFLY-SRS.md` | D-97…D-104 in Appendix A.1; VL-17…VL-21 in Appendix D; VL-14 and VL-20 annotated as answered. |
 
 Nothing under `C:\hercules-lab` is in the repository (D-89). The Hercules
 codepage change (D-101) is host configuration and is **not** carried here.
@@ -146,10 +152,56 @@ a dropped top bit changes a *result*, not merely a flag. At `dist = 63` the
 `shortShiftRightJam64` mask turns from 0x7FFF…F into 0xFFFF…F, which is not a
 rounding nuance but a different number.
 
-So the prediction is that SoftFloat 3e built by GCCMVS computes wrong
-binary64 values silently. That is analysis, not measurement — the shift
-defect was measured in isolation and these call sites were read from the
-source. NR-03 and D-06 anticipate exactly this case.
+So the prediction was that SoftFloat 3e built by GCCMVS computes wrong
+binary64 values silently. **D-104 then measured it, and the prediction was
+wrong in the direction that matters — see §3.6.**
+
+### 3.6 What SoftFloat 3e actually does under GCCMVS (VL-21)
+
+The NR-04 shims were written and the vendored sources submitted unmodified.
+
+| Unit | Result |
+|---|---|
+| `tests/tstsfs.c` | **compiled and assembled, RC 0** — the shims work on MVS |
+| `s_shortShiftRightJam64.c` | **ICE at 6970** |
+| `s_shiftRightJam64.c` | compiled, then `IFO188 @@UCMPDI IS AN UNDEFINED SYMBOL` |
+
+SoftFloat never reaches the point of computing anything, so the failure is
+loud. Behind that one assembler message are two separate defects.
+
+**PDPCLIB has no 64-bit runtime helpers.** A minimal assembly declaring
+`@@UCMPDI` (`__ucmpdi2`, unsigned 64-bit compare), `@@UDIVDI` (`__udivdi3`)
+and `@@UMODDI` (`__umoddi3`) EXTRN, linked against `PDPCLIB.NCALIB`, left all
+three unresolved:
+
+```
+@@UCMPDI       $UNRESOLVED
+@@UDIVDI       $UNRESOLVED
+@@UMODDI       $UNRESOLVED
+IEW0132 ERROR - SYMBOL PRINTED IS AN UNRESOLVED EXTERNAL REFERENCE.
+```
+
+That answers VL-14 and D-84 definitively. It also explains VL-19's DIV and
+MOD rejections: the same defect with the other two names.
+
+**GCCMVS asks for them the wrong way.** The generated assembler contains
+
+```
+         L     15,=A(@@UCMPDI)
+               =A(@@UCMPDI)
+```
+
+An A-type address constant must resolve inside the assembly; an external
+routine needs `=V(...)` or an `EXTRN`. So the failure surfaces at *assembly*
+time as an undefined symbol rather than cleanly at link time as an
+unresolved reference, which is why VL-19 recorded "the assembler rejects the
+output" without knowing what it was rejecting.
+
+The consequence is decisive for Gate G1: `a != 0` on a `uint64_t` compiles
+to a call to `@@UCMPDI`, that expression is pervasive in SoftFloat, and
+there is nothing on the system to link it to.
+
+NR-03 and D-06 anticipate exactly this case.
 
 ### 3.5 A JCL limit that is not the card limit
 
@@ -232,7 +284,8 @@ python tools/mvsgcc.py
 reproduces all four measurements: the character set, the optimisation-level
 table, the 64-bit operation matrix and the shift sweep. Individual parts run
 as `--chars`, `--levels`, `--ops`, `--shifts`. `python tools/mvstt01.py`
-submits TT-01 itself. Every one of these refuses to run if Hercules is not on
+submits TT-01 itself, and `python tools/mvssfs.py` submits the SoftFloat
+units of D-104. Every one of these refuses to run if Hercules is not on
 codepage 819/1047 (D-103).
 
 ```bash
@@ -245,9 +298,21 @@ x86-64, MinGW gcc, SOFT and NATIVE backends.
 
 - **Gate G1 is not passed.** TT-01 has still never run on MVS: `onfirun` ICEs.
   TT-02 has not been attempted. Both halves of the exit criterion are open.
-- **No engine or SoftFloat source has been compiled on MVS.** `tests/tstint.c`
-  compiled and assembled; that is one translation unit of a test, not the
-  engine, and it was never linked or run.
+- **No SoftFloat object exists on MVS, so nothing about SoftFloat's numerical
+  behaviour there has been measured.** Two of its source files were submitted;
+  one ICEd and one was rejected by the assembler. `tests/tstint.c` and
+  `tests/tstsfs.c` compiled and assembled, but neither was linked or run,
+  because the units they depend on did not build.
+- **The variable-shift defect has not been observed inside SoftFloat.** It was
+  measured in isolated probes (VL-19) and the affected call sites were read
+  from the source (VL-20). Whether it would change a rounding decision in
+  practice is unknown and now unknowable on this compiler, since the code
+  containing those sites cannot be built.
+- **The NR-04 shims are proven on x86 and, for `stdint.h` only, on MVS.**
+  `make shim` forces the whole x86 SoftFloat build through them with
+  bit-identical results; on MVS only `tests/tstsfs.c` consumed `<stdint.h>`,
+  and `stdbool.h` was transported into the library but never included by
+  anything.
 - **The `-O1` results are `-O1` results.** VL-15's and VL-16's findings were
   taken at the default level and are not superseded except where VL-19 says so.
 - **Every MVS result here is conditional on host configuration the repository

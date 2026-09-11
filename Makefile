@@ -246,6 +246,39 @@ tt02: $(BUILD) softfloat/onfsub.c
 	$(PYTHON) tests/run_tt02.py $(BUILD)/tstflt_soft.exe \
 	  $(BUILD)/tstflt_nat.exe $(TFGEN)
 
+# --- D-104: SoftFloat's variable 64-bit shifts, x86 reference -------------
+# The x86 half of the D-104 measurement.  The MVS half is
+# `python tools/mvssfs.py`, which submits this same source together with the
+# same two vendored SoftFloat units.  The comparison only means anything if
+# the reference is regenerated rather than remembered, so it runs here.
+#
+# -Isoftfloat/c89 is deliberately NOT passed: this target uses the host's
+# real <stdint.h>, which is what makes it a reference for an MVS build that
+# has to use ONFLY's shim.  The shim is exercised by `shim` below.
+#
+# Every result must be 1, and tstsfs exits nonzero if any is not.
+sfs: $(BUILD)
+	$(CC) $(CFLAGS) -Wno-long-long -Isoftfloat $(SFINC) \
+	  -o $(BUILD)/tstsfs.exe tests/tstsfs.c \
+	  $(SF)/s_shiftRightJam64.c $(SF)/s_shortShiftRightJam64.c
+	$(BUILD)/tstsfs.exe | tail -1
+
+# --- NR-04: the C89 shims are exercised, not merely shipped ---------------
+# The shims are only USED on a platform that lacks its own headers, so on
+# x86 they would otherwise be files nobody ever compiles.  Putting
+# softfloat/c89 first on the include path forces every SoftFloat
+# translation unit through them, and the result must be bit-identical to
+# the ordinary build: a shim that changed one rounding decision would show
+# up here rather than as a one-platform fingerprint mismatch much later.
+shim: $(BUILD) softfloat/onfsub.c
+	$(CC) $(SFFLAGS) -Isoftfloat/c89 $(INC) $(SFINC) \
+	  -o $(BUILD)/tstfp_shim.exe \
+	  tests/tstfp.c engine/src/onffpc.c engine/src/onffps.c \
+	  engine/src/onfrnd.c $(SFSRCS) $(ONFSF)
+	$(PYTHON) tests/run_fp.py $(BUILD)/tstfp_shim.exe
+	$(PYTHON) tools/cmpback.py $(BUILD)/tstfp_soft.exe \
+	  $(BUILD)/tstfp_shim.exe
+
 # --- TP-01: sign and weight assignment (FR-PRP-03, SR-MOD-05) ------------
 # Unit tests run on a small fixture so a failure points at one rule; two
 # further tests check the mapping's vocabulary against the real MaleCNS
@@ -295,8 +328,9 @@ runner: $(BUILD) $(GENERATED)
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint col80 c04 tt01 tt02 layout units fp kernel decode eng golden prep
-	@echo "ONFLY: NR-05 + col80 + C-04 lints, TT-01, TT-02, TU-01..TU-07, kernel, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed"
+test: lint col80 c04 tt01 tt02 sfs shim layout units fp kernel decode eng \
+      golden prep
+	@echo "ONFLY: NR-05 + col80 + C-04 lints, TT-01, TT-02, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"
