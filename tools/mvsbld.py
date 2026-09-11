@@ -208,10 +208,16 @@ def amalgamated_order(relpath, include_map):
 
 
 def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
-          asm_parm="DECK,NOLIST", region=REGION):
+          asm_parm="DECK,NOLIST", region=REGION, go_parm=None,
+          go_dd=()):
     """Return a deck that compiles `sources`, links them and runs the result.
 
     sources     [(repo path OR cards, 8-char member)]  units, in link order
+    go_parm     PARM= for the GO step, or None for no PARM.  Every card
+                it produces is checked against column 71 like any other.
+    go_dd       extra DD cards for the GO step, appended verbatim after
+                the standard three.  The caller writes whole JCL cards
+                because a DD's operands vary far too much to model.
     headers     [(repo path, 8-char member)]  found by  #include "x.h"
     vb_headers  [(repo path, 8-char member)]  found by  #include <x.h>
     opt         GCCMVS optimisation flag
@@ -338,9 +344,20 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
     a("//SYSLMOD  DD DSN=&&GOSET(GO),UNIT=SYSALLDA,")
     a("//            SPACE=(1024,(50,20,1)),DISP=(,PASS)")
     a("//*")
-    a("//GO       EXEC PGM=*.LKED.SYSLMOD,COND=(4,LT)")
+    # ONFLYENG is driven by its PARM (IR-TRN-03's VERIFY) and reads the
+    # network through a DD the caller must allocate (IR-JCL-01), neither
+    # of which any earlier job here needed.  Both stay optional so every
+    # existing caller emits exactly the cards it emitted before.
+    if go_parm:
+        a("//GO       EXEC PGM=*.LKED.SYSLMOD,PARM='%s',"
+          % go_parm)
+        a("//            COND=(4,LT)")
+    else:
+        a("//GO       EXEC PGM=*.LKED.SYSLMOD,COND=(4,LT)")
     a("//SYSPRINT DD SYSOUT=*")
     a("//SYSTERM  DD SYSOUT=*")
     a("//SYSIN    DD DUMMY")
+    for card in go_dd:
+        a(card)
     a("//")
     return d
