@@ -43,6 +43,17 @@ NATFLAGS = -msse2 -mfpmath=sse -ffp-contract=off -DONF_FP_NATIVE -DONF_FP_LITTLE
 SF      = third_party/SoftFloat-3e/source
 SP      = $(SF)/ARM-VFPv2-defaultNaN
 
+# Release 2c, the MVS backend (D-105, NR-03).  Its bits32 build uses only
+# 32-bit integers, which is the property GCCMVS forces (VL-19, VL-21).
+SF2C    = third_party/SoftFloat-2c/softfloat/bits32
+SF2CINC = -Isoftfloat/c2c
+
+# Upstream 2c warns in float32_rem and float64_rem -- unused variables and one
+# pointer-sign mismatch -- neither of which ONFLY compiles into anything it
+# calls.  third_party is not edited (D-28, D-35), so -Werror cannot be used on
+# it.  Everything else stays as strict as the rest of the build.
+C2CFLAGS = -std=c89 -pedantic -Wall -O2
+
 INC     = -Iengine/include -Igenerated
 SFINC   = -Isoftfloat -I$(SF)/include -I$(SP)
 
@@ -70,7 +81,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 testfloat c04 col80 prep runner eng
+.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 c2c sfs shim testfloat c04 col80 prep runner eng
 
 all: test
 
@@ -246,6 +257,25 @@ tt02: $(BUILD) softfloat/onfsub.c
 	$(PYTHON) tests/run_tt02.py $(BUILD)/tstflt_soft.exe \
 	  $(BUILD)/tstflt_nat.exe $(TFGEN)
 
+# --- D-106: SoftFloat 2c against TestFloat --------------------------------
+# The question that decides whether NR-03's fallback is cheap or expensive.
+# Every ACC-5 fingerprint was computed with 3e, so if 2c disagrees on any of
+# ONFLY's six operations then every fingerprint changes.
+#
+# 2c is checked against TestFloat's reference rather than against 3e
+# directly: two libraries agreeing with an independent oracle is a stronger
+# statement than two agreeing with each other, and `tt02` runs 3e through
+# the same vectors, so agreement between them follows from both passing.
+#
+# derive2c.py --check runs first because the configuration files under
+# softfloat/c2c are generated.  A hand edit there would silently change what
+# is being tested, which is the failure class D-70 exists to rule out.
+c2c: $(BUILD)
+	$(PYTHON) softfloat/derive2c.py --check
+	$(CC) $(C2CFLAGS) $(SF2CINC) -o $(BUILD)/tstc2c.exe \
+	  tests/tstc2c.c $(SF2C)/softfloat.c
+	$(PYTHON) tests/run_c2c.py $(BUILD)/tstc2c.exe $(TFGEN)
+
 # --- D-104: SoftFloat's variable 64-bit shifts, x86 reference -------------
 # The x86 half of the D-104 measurement.  The MVS half is
 # `python tools/mvssfs.py`, which submits this same source together with the
@@ -328,9 +358,9 @@ runner: $(BUILD) $(GENERATED)
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint col80 c04 tt01 tt02 sfs shim layout units fp kernel decode eng \
+test: lint col80 c04 tt01 tt02 c2c sfs shim layout units fp kernel decode eng \
       golden prep
-	@echo "ONFLY: NR-05 + col80 + C-04 lints, TT-01, TT-02, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed"
+	@echo "ONFLY: NR-05 + col80 + C-04 lints, TT-01, TT-02, SoftFloat 2c vs TestFloat, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"
