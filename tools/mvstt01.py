@@ -1,0 +1,289 @@
+# -*- coding: utf-8 -*-
+"""Build, submit and read TT-01 on MVS 3.8j (Gate G1, D-90, D-92, D-94).
+
+TT-01 is the 64-bit integer self-test.  Its whole purpose is to run on a
+machine where 64-bit arithmetic does not exist in hardware and the compiler
+must synthesise it -- assumption A-05, risk R-01 -- so running it on x86
+proves almost nothing.  This is the job that runs it where it matters.
+
+The deck is generated from the actual files in the repository.  Nothing is
+transcribed, amalgamated or edited on the way in (D-94): each source becomes
+its own PDS member, and `#include "onfint.h"` is resolved by the compiler
+through a real include path.  If the MVS result differs from the x86 result,
+the difference is the compiler's, which is the only way this test means
+anything.
+
+How quoted includes actually resolve
+------------------------------------
+JCC.CNTL(JCC) documents its two include DDs:
+
+    JCCINCL   library include pds (<...> files, with .h removed)
+    JCCINCS   user include pds (quoted files, with .h removed)
+
+So `#include "onfint.h"` is looked up as member ONFINT in whatever dataset
+is allocated to JCCINCS.  The JCCCLG procedure points JCCINCS at JCC's own
+library, so it must be *overridden* rather than supplemented -- adding a DD
+of one's own naming does nothing, which cost one looping job to learn.
+
+REGION is not optional
+----------------------
+Every job in JCC.CNTL carries REGION=8M,TIME=1440.  Submitted without a
+REGION, JCC does not fail: it spins forever and has to be cancelled.  Two
+probe jobs were lost to this before JCC's own JCL was read.  The region is
+therefore stated here, and stated loudly, because the failure mode is a hang
+rather than a message.
+
+Member names
+------------
+MVS members are eight characters, so the mapping is explicit rather than
+derived: a rule that silently truncated would reintroduce exactly the class
+of problem D-93 closed.
+
+Run:  python tools/mvstt01.py [--print]
+      --print writes the deck to stdout instead of submitting it.
+"""
+import io
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+
+import mvsub  # noqa: E402
+
+JOB = "ONFTT01"
+USER = "HERC01"
+HDR_DSN = "%s.ONFLY.H" % USER
+SRC_DSN = "%s.ONFLY.C" % USER
+
+# repository file -> PDS member.  Stated, not derived (see the note above).
+HEADERS = [
+    ("engine/include/onfplat.h", "ONFPLAT"),
+    ("softfloat/onfint.h", "ONFINT"),
+    ("generated/onfivec.h", "ONFIVEC"),
+]
+SOURCES = [
+    ("tests/tstint.c", "TSTINT"),
+    ("softfloat/onfint.c", "ONFINTC"),
+]
+
+
+# The inline-data delimiter.
+#
+# A C source opens with `/*` in column 1, and `/*` in columns 1-2 is JES2's
+# end-of-data delimiter.  With a plain `//SYSIN DD *`, the first card of
+# onfplat.h therefore ends the data stream and IEBUPDTE reports
+# "IEB823I SYSIN HAS NO RECORDS" -- it is handed nothing at all, and the
+# compile then fails with 013-18, member not found, three steps later where
+# the cause is no longer visible.
+#
+# `DD DATA,DLM=` fixes it: the stream then ends only at the named delimiter,
+# and cards beginning with `/*` or `//` are passed through as data.  The
+# delimiter is checked against every card below rather than assumed safe.
+DLM = "ZZ"
+
+
+def cards_of(relpath):
+    """The file as card images, checked against the 80-column limit."""
+    path = os.path.join(ROOT, relpath)
+    text = io.open(path, encoding="ascii").read()
+    out = []
+    for n, line in enumerate(text.splitlines(), 1):
+        line = line.rstrip()
+        if len(line) > 80:
+            raise SystemExit("mvstt01: %s:%d is %d columns; the reader would "
+                             "discard the rest silently (D-93)"
+                             % (relpath, n, len(line)))
+        if line.startswith("./"):
+            raise SystemExit("mvstt01: %s:%d starts with './', which IEBUPDTE "
+                             "would read as a control card" % (relpath, n))
+        if line.startswith(DLM):
+            raise SystemExit("mvstt01: %s:%d starts with the delimiter %r, "
+                             "which would end the data stream early"
+                             % (relpath, n, DLM))
+        out.append(line)
+    return out
+
+
+def build_deck():
+    d = []
+    a = d.append
+
+    a("//%-8s JOB (001),'ONFLY TT-01',CLASS=A,MSGCLASS=A," % JOB)
+    a("//             USER=%s,PASSWORD=CUL8TR," % USER)
+    # REGION=8M matches every job in JCC.CNTL.  Without it JCC hangs rather
+    # than failing, so this line is load-bearing.
+    a("//             REGION=8M,TIME=1440,MSGLEVEL=(1,1)")
+    a("//*")
+    a("//* TT-01, the 64-bit integer self-test (NR-04, NR-14, A-05).")
+    a("//* Gate G1 asks whether the compiler synthesises 64-bit integer")
+    a("//* arithmetic correctly on S/370, where none of it exists in")
+    a("//* hardware.  Risk R-01 is that it does not.")
+    a("//*")
+    a("//* Generated by tools/mvstt01.py from the repository sources.")
+    a("//*")
+
+    # --- delete anything left by an earlier run ---------------------------
+    # The job must be re-runnable.  Without this the second submission fails
+    # with IEF253I DUPLICATE NAME ON DIRECT ACCESS VOLUME and nothing runs at
+    # all.  DISP=(MOD,DELETE) is the idiom: it deletes the dataset if it is
+    # there, and creates then deletes it if it is not, so either way the next
+    # step starts from nothing.
+    a("//SCRATCH  EXEC PGM=IEFBR14")
+    a("//D1       DD DSN=%s,DISP=(MOD,DELETE)," % HDR_DSN)
+    a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
+    a("//D2       DD DSN=%s,DISP=(MOD,DELETE)," % SRC_DSN)
+    a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
+    a("//*")
+
+    # --- allocate the two libraries ---------------------------------------
+    a("//ALLOC    EXEC PGM=IEFBR14")
+    # FB/80, the same as the source library.  This dataset is NOT
+    # concatenated with PDPCLIB.INCLUDE -- it cannot be, because that
+    # library is VB/255 and MVS will not concatenate unlike record
+    # formats (an FB/80 library there abends the compile S001-1).  It
+    # does not need to be: INCLUDE and SYSINCL are separate DDs, so
+    # the angled-bracket library and the quoted-include library are
+    # simply pointed at different datasets.  IEBUPDTE writes card
+    # images and cannot write a VB dataset at all, so FB/80 it is.
+    a("//MKH      DD DSN=%s,DISP=(,CATLG,DELETE)," % HDR_DSN)
+    a("//            UNIT=SYSDA,SPACE=(TRK,(30,10,20)),")
+    a("//            DCB=(RECFM=FB,LRECL=80,BLKSIZE=3200)")
+    a("//MKC      DD DSN=%s,DISP=(,CATLG,DELETE)," % SRC_DSN)
+    a("//            UNIT=SYSDA,SPACE=(TRK,(30,10,20)),")
+    a("//            DCB=(RECFM=FB,LRECL=80,BLKSIZE=3200)")
+    a("//*")
+
+    # --- write the headers ------------------------------------------------
+    a("//WRITEH   EXEC PGM=IEBUPDTE,PARM=NEW")
+    a("//SYSPRINT DD SYSOUT=*")
+    a("//SYSUT2   DD DSN=%s,DISP=OLD" % HDR_DSN)
+    a("//SYSIN    DD DATA,DLM='%s'" % DLM)
+    for relpath, member in HEADERS:
+        a("./ ADD NAME=%s" % member)
+        d.extend(cards_of(relpath))
+    a("./ ENDUP")
+    a(DLM)
+    a("//*")
+
+    # --- write the sources ------------------------------------------------
+    a("//WRITEC   EXEC PGM=IEBUPDTE,PARM=NEW")
+    a("//SYSPRINT DD SYSOUT=*")
+    a("//SYSUT2   DD DSN=%s,DISP=OLD" % SRC_DSN)
+    a("//SYSIN    DD DATA,DLM='%s'" % DLM)
+    for relpath, member in SOURCES:
+        a("./ ADD NAME=%s" % member)
+        d.extend(cards_of(relpath))
+    a("./ ENDUP")
+    a(DLM)
+    a("//*")
+
+    # --- compile and assemble each unit with GCCMVS ------------------------
+    # GCCMVS is a real GCC: it compiles to assembler, IFOX00 assembles that,
+    # and the linkage editor combines the object sets.  This is written out
+    # rather than invoked through SYS2.PROCLIB(GCCCLG) because that procedure
+    # builds exactly one translation unit, and TT-01 has two.  Every DD below
+    # is taken from GCCCLG so the shape stays the one TK5 supports.
+    #
+    # -Wno-long-long is required, not cosmetic.  The procedures compile with
+    # -ansi -pedantic-errors, under which `long long` is an ERROR, and NR-04
+    # defines the dialect as "C89 plus long long".  This is the same single
+    # relaxation the x86 build makes, for the same reason.
+    #
+    # ONFLY's headers are added to INCLUDE and SYSINCL, which is what GCCCLG's
+    # own comment says to do: "INCLUDE SHOULD HAVE YOUR OWN HEADERS ADDED".
+    # PDPCLIB's library comes first in each concatenation because it carries
+    # the larger block size.
+    for n, (_relpath, member) in enumerate(SOURCES, 1):
+        a("//COMP%d    EXEC PGM=GCC," % n)
+        a("//         PARM='-S -ansi -pedantic-errors -Wno-long-long"
+          " -o dd:out -'")
+        # SYSINCL carries the angled-bracket library and INCLUDE the
+        # quoted one, which is the opposite of what the DD names
+        # suggest; the other way round, GCCMVS reported
+        # "onfint.h: An error has occurred" and could not find it.
+        a("//SYSINCL  DD DSN=PDPCLIB.INCLUDE,DISP=SHR,"
+          "DCB=BLKSIZE=32720")
+        a("//INCLUDE  DD DSN=%s,DISP=SHR" % HDR_DSN)
+        a("//SYSIN    DD DSN=%s(%s),DISP=SHR" % (SRC_DSN, member))
+        a("//OUT      DD DSN=&&ASM%d,DISP=(,PASS),UNIT=SYSALLDA," % n)
+        a("//            DCB=(LRECL=80,BLKSIZE=6160,RECFM=FB),")
+        a("//            SPACE=(6160,(500,500))")
+        a("//SYSPRINT DD SYSOUT=*")
+        a("//SYSTERM  DD SYSOUT=*")
+        a("//*")
+        a("//ASM%d     EXEC PGM=IFOX00,PARM='DECK,NOLIST'," % n)
+        a("//            COND=(4,LT,COMP%d)" % n)
+        a("//SYSLIB   DD DSN=SYS1.MACLIB,DISP=SHR,DCB=BLKSIZE=32720")
+        a("//         DD DSN=PDPCLIB.MACLIB,DISP=SHR")
+        a("//SYSUT1   DD UNIT=SYSALLDA,SPACE=(CYL,(20,10))")
+        a("//SYSUT2   DD UNIT=SYSALLDA,SPACE=(CYL,(10,10))")
+        a("//SYSUT3   DD UNIT=SYSALLDA,SPACE=(CYL,(10,10))")
+        a("//SYSPRINT DD SYSOUT=*")
+        a("//SYSLIN   DD DUMMY")
+        a("//SYSGO    DD DUMMY")
+        a("//SYSPUNCH DD DSN=&&OBJ%d,UNIT=SYSALLDA," % n)
+        a("//            SPACE=(80,(500,500)),DISP=(,PASS)")
+        a("//SYSIN    DD DSN=&&ASM%d,DISP=(OLD,DELETE)" % n)
+        a("//*")
+
+
+    # --- link and run ------------------------------------------------------
+    # NCAL is deliberately NOT specified: PDPCLIB.NCALIB is the C runtime and
+    # the linkage editor must search it, which is how GCCCLG does it.  The
+    # two object sets are concatenated on SYSLIN, which IEWL reads correctly
+    # -- the thing JCC's prelink stage could not be made to do.
+    a("//LKED     EXEC PGM=IEWL,PARM='MAP,LIST',COND=(4,LT)")
+    a("//SYSLIN   DD DSN=&&OBJ1,DISP=(OLD,DELETE)")
+    a("//         DD DSN=&&OBJ2,DISP=(OLD,DELETE)")
+    a("//SYSLIB   DD DSN=PDPCLIB.NCALIB,DISP=SHR")
+    a("//SYSUT1   DD UNIT=SYSALLDA,SPACE=(CYL,(2,1))")
+    a("//SYSPRINT DD SYSOUT=*")
+    a("//SYSLMOD  DD DSN=&&GOSET(GO),UNIT=SYSALLDA,")
+    a("//            SPACE=(1024,(50,20,1)),DISP=(,PASS)")
+    a("//*")
+    a("//GO       EXEC PGM=*.LKED.SYSLMOD,COND=(4,LT)")
+    a("//SYSPRINT DD SYSOUT=*")
+    a("//SYSTERM  DD SYSOUT=*")
+    a("//SYSIN    DD DUMMY")
+    a("//")
+    return d
+
+
+def main(argv):
+    deck = build_deck()
+    mvsub.check_cards(deck)
+    if "--print" in argv:
+        sys.stdout.write("\n".join(deck) + "\n")
+        return 0
+
+    sys.stdout.write("mvstt01: %d cards, longest %d columns\n"
+                     % (len(deck), max(len(c) for c in deck)))
+    before = mvsub.submit(deck)
+    out = mvsub.collect(JOB, before, timeout=900, poll=5)
+    if out is None:
+        sys.stderr.write("mvstt01: %s did not finish in 900 s\n" % JOB)
+        return 1
+
+    sys.stdout.write("=== step results ===\n")
+    for line in mvsub.summarise(out):
+        sys.stdout.write("  %s\n" % line[:116])
+
+    sys.stdout.write("=== TT-01 output ===\n")
+    shown = 0
+    for line in out.splitlines():
+        s = line.rstrip()
+        if s.startswith("SELF ") or s.startswith("IVEC ") \
+                or s.startswith("# tstint") or s.startswith("# TT-01") \
+                or s.startswith("# cross-check") \
+                or s.startswith("# ONF901S"):
+            sys.stdout.write("  %s\n" % s[:116])
+            shown += 1
+    if not shown:
+        sys.stdout.write("  (no TT-01 output found in the job's printout)\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
