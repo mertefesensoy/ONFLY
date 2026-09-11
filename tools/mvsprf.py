@@ -127,7 +127,7 @@ VERIFY_STEPS = 15000
 # The bracket VL-41 and VL-42 measured at N=1000, in (steps, seconds).
 # Printed alongside a new point so each run is read against what is
 # already known instead of in isolation.
-BRACKET = ((10000, 385.0), (15000, 658.0))
+BRACKET = ((10000, 385.0), (13000, 507.0), (15000, 658.0))
 
 
 def report(rows, gocpu, wall, hcpu0, hcpu1, steps=None):
