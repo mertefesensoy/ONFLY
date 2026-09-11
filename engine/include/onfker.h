@@ -1,11 +1,13 @@
 /*
  * onfker.h - the ONFLY simulation kernel (FR-SIM-01, SRS Appendix C).
  *
- * Appendix C is the normative step algorithm.  It is marked *draft*: its
- * ordering becomes final only when TBC-01 is resolved against Shiu et al.'s
- * published code in Phase C.  Until then it is the working hypothesis, used
- * identically here and in the Python oracle, so any disagreement between the
- * two is a coding error rather than a modelling question.
+ * Appendix C is the normative step algorithm, and it is now genuinely
+ * normative: D-71 closed TBC-01 after the 2026-09-11 session reconciled it
+ * against Shiu et al.'s published model.py.  Four semantics were corrected in
+ * the process -- g frozen while refractory and reset on spike (D-67), stimulus
+ * neurons exempt from refractoriness (D-68), and a strict firing threshold
+ * (D-69).  The Python oracle implements the same algorithm independently, so a
+ * disagreement between them is a coding error, not a modelling question.
  *
  * The model (SR-MOD-01).  With u = v - V_rest,
  *     du/dt = (g - u) / tau_mbr        dg/dt = -g / tau_syn

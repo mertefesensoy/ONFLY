@@ -13,11 +13,11 @@ Rules this file obeys, from SRS section 8.2:
     accumulation in C.  Every accumulation below is an explicit loop.
   * operations happen in Appendix C's order and are never reassociated (NR-07)
 
-Status caveat.  Appendix C is marked *draft*: its step ordering becomes
-normative only once TBC-01 is resolved against Shiu et al.'s published code in
-Phase C.  Until then it is the working hypothesis, used identically by this
-oracle and by the C engine, so a disagreement between them is a coding error
-rather than a modelling question.
+Status.  Appendix C is NORMATIVE as of D-71: the 2026-09-11 session reconciled
+it against Shiu et al.'s published model.py and closed TBC-01.  Four semantics
+were corrected in the process (D-67, D-68, D-69), each marked at its point of
+use below.  The C engine implements the same algorithm independently, so a
+disagreement between the two is a coding error, not a modelling question.
 
 The model (SR-MOD-01).  With u = v - V_rest, each neuron follows
 
