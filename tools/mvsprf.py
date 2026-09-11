@@ -33,6 +33,7 @@ trust() certifies on the one clock outside the guest: host CPU charged
 to the Hercules process.  See its docstring.
 
 Run:  python tools/mvsprf.py [--print]
+      python tools/mvsprf.py --verify [--steps N] [--print]
 """
 import os
 import re
@@ -115,10 +116,18 @@ STDSTEPS = 10000
 # which conflicted with D-133's bound at N=1000).  Reported against so
 # that the N values where it is not executable are named, not inferred.
 MAXDUR = 1500
-# --verify's single configuration: D-136's maximum at the largest N
-# D-133 admits, which is where the margin is thinnest.
+# --verify's single configuration: the largest N D-133 admits, which is
+# where the margin is thinnest.  The step count is the default only;
+# D-137 settles the maximum duration by measuring where the bound is
+# actually crossed, so --steps overrides it rather than requiring the
+# source to be edited between runs.
 VERIFY_N = 1000
 VERIFY_STEPS = 15000
+
+# The bracket VL-41 and VL-42 measured at N=1000, in (steps, seconds).
+# Printed alongside a new point so each run is read against what is
+# already known instead of in isolation.
+BRACKET = ((10000, 385.0), (15000, 658.0))
 
 
 def report(rows, gocpu, wall, hcpu0, hcpu1, steps=None):
@@ -155,6 +164,10 @@ def report(rows, gocpu, wall, hcpu0, hcpu1, steps=None):
 
     print()
     print("  NFR-PERF-01 bound: %.0f s of wall clock per request" % LIMIT)
+    # D-137: read each new point against the measured bracket rather
+    # than in isolation, so a run that lands outside it is obvious.
+    known = " ".join("%dms=%.0fs" % (st // 10, sec) for st, sec in BRACKET)
+    print("  Measured at N=%d so far: %s" % (VERIFY_N, known))
     ok = [n for n, per, _ in results if per <= LIMIT]
     if ok:
         print("  Largest N meeting it at this duration: %d" % max(ok))
@@ -297,8 +310,13 @@ def main(argv):
     # the valued defines are written as cards directly; that is all -D
     # means to the preprocessor anyway.
     verify = "--verify" in argv
+    steps = VERIFY_STEPS
+    for i, a in enumerate(argv):
+        if a == "--steps" and i + 1 < len(argv):
+            steps = int(argv[i + 1])
+            verify = True
     if verify:
-        probe = (["#define ONFPRF_STEPS %d" % VERIFY_STEPS,
+        probe = (["#define ONFPRF_STEPS %d" % steps,
                   "#define ONFPRF_ONLY %d" % VERIFY_N,
                   "#define ONF_FP_SOFT2C 1"]
                  + mvsbld.cards_of("tests/tstprf.c"))
@@ -322,8 +340,8 @@ def main(argv):
         sys.stdout.write("mvsprf: --verify measures N=%d at %d steps "
                          "(%d ms) directly; D-136 predicts %.0f s and "
                          "the bound is %.0f s\n"
-                         % (VERIFY_N, VERIFY_STEPS, VERIFY_STEPS // 10,
-                            385.0 * VERIFY_STEPS / 10000.0, LIMIT))
+                         % (VERIFY_N, steps, steps // 10,
+                            385.0 * steps / 10000.0, LIMIT))
     if "--print" in argv:
         sys.stdout.write("\n".join(deck) + "\n")
         return 0
@@ -395,7 +413,7 @@ def main(argv):
         return 1
 
     report(rows, gocpu, wall, hcpu0, hcpu1,
-           VERIFY_STEPS if verify else STDSTEPS)
+           steps if verify else STDSTEPS)
     return 0
 
 
