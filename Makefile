@@ -91,7 +91,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 c2c sfs shim testfloat c04 c04mvs col80 prep runner eng
+.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng
 
 all: test
 
@@ -281,6 +281,19 @@ tt02: $(BUILD) softfloat/onfsub.c
 	  tests/tstflt.c engine/src/onffpc.c engine/src/onffpn.c
 	$(PYTHON) tests/run_tt02.py $(BUILD)/tstflt_soft.exe \
 	  $(BUILD)/tstflt_nat.exe $(TFGEN)
+
+# --- TT-02's shipped table, x86 side (D-112, D-115) ----------------------
+# The same TestFloat vectors that run on MVS, run here.  The MVS result is
+# only meaningful against an x86 result from the identical table: a
+# mismatch there with agreement here is a platform difference, which is
+# what TT-02 is for.  `make tt02` still runs the full 260,376-case stream;
+# this is the 4,500-vector sample MVS can hold (VL-29).
+tf2: $(BUILD) generated/onf2cnm.h generated/onftfv.h
+	$(CC) $(C2CFLAGS) $(SF2CINC) -Igenerated 	  -include generated/onf2cnm.h 	  -o $(BUILD)/tsttf2.exe tests/tsttf2.c $(SF2C)/softfloat.c
+	$(BUILD)/tsttf2.exe | tail -1
+
+generated/onftfv.h: tools/gentf2.py
+	$(PYTHON) tools/gentf2.py --per-op 750
 
 # --- D-106: SoftFloat 2c against TestFloat --------------------------------
 # The question that decides whether NR-03's fallback is cheap or expensive.

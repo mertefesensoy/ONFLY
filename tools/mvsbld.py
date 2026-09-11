@@ -54,6 +54,13 @@ DLM = "ZZ"
 CARD = 80
 JCL_FIELD = 71
 
+# The default region.  Every job in JCC.CNTL and SYS2.JCLLIB(TESTGCC)
+# carries 8M, and without a region GCCMVS spins at 100% of a core instead
+# of failing.  It is a parameter because it is also a measured limit: a
+# 12,000-vector TT-02 table ended COMP2 in ABEND S878, insufficient
+# virtual storage, at 8M (TBD-14).
+REGION = "8M"
+
 # The default C flags.  -Wno-long-long is required, not cosmetic: the
 # procedures compile with -ansi -pedantic-errors, under which `long long`
 # is an ERROR, and NR-04 defines the dialect as "C89 plus long long".
@@ -168,7 +175,7 @@ def amalgamated_order(relpath, include_map):
 
 
 def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
-          asm_parm="DECK,NOLIST"):
+          asm_parm="DECK,NOLIST", region=REGION):
     """Return a deck that compiles `sources`, links them and runs the result.
 
     sources     [(repo path OR cards, 8-char member)]  units, in link order
@@ -205,7 +212,7 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
 
     a("//%-8s JOB (001),'%s',CLASS=A,MSGCLASS=A," % (job, title[:20]))
     a("//             USER=%s,PASSWORD=CUL8TR," % USER)
-    a("//             REGION=8M,TIME=1440,MSGLEVEL=(1,1)")
+    a("//             REGION=%s,TIME=1440,MSGLEVEL=(1,1)" % region)
     a("//*")
 
     # --- clear and allocate the libraries --------------------------------
