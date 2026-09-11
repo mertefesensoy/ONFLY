@@ -1,36 +1,36 @@
 # -*- coding: utf-8 -*-
 """Gate G3: measure one request at the standard duration on MVS 3.8j.
 
-G3 asks how large N and the duration can be within five minutes, and
-NFR-PERF-01 bounds one request at the standard duration to five minutes
-of wall-clock time on the TK5 reference host.  SR-EXT-03 makes N the
-smallest of 250, 500, 1000, 2000, 4000 that satisfies it.  Until now
-those have rested on an estimate -- D-128 records "two to three orders
-of magnitude slower than x86" and says plainly that it is not a
-measurement.  This replaces it with one.
+G3 asks how large N and the duration can be within NFR-PERF-01's bound,
+which is 10 minutes of wall clock on the TK5 reference host (D-133
+raised it from 5 on the strength of this tool's first run).  SR-EXT-03
+makes N the smallest of 250, 500, 1000, 2000, 4000 that satisfies it.
+Before this, those rested on an estimate -- D-128 recorded "two to
+three orders of magnitude slower than x86" and said plainly it was not
+a measurement.  It is now measured, and the estimate was optimistic:
+about 1,180x.
 
 tests/tstprf.c runs the real workload rather than a micro-benchmark:
-one onfrun() call at 10,000 steps, the provisional standard duration
-(D-37), at each N in SR-EXT-03's sequence.
+one onfrun() call at 10,000 steps, the 1000 ms standard duration D-73
+fixed against Shiu's `t_run`, at each N in SR-EXT-03's sequence.
 
-THREE CLOCKS, DELIBERATELY
---------------------------
-VL-40 measured what is available: clock() is a PDPCLIB stub returning
--1, time() has one-second resolution, and MVS itself reports per-step
-CPU time via IEF374I at centisecond resolution.  All three matter here
-for different reasons, so all three are reported:
+WHICH CLOCK TO BELIEVE, WHICH IS THE POINT
+------------------------------------------
+VL-40 measured what exists: clock() is a PDPCLIB stub returning -1,
+time() has one-second resolution, and MVS reports per-step CPU time via
+IEF374I at centisecond resolution.  All are reported.  Only one is
+believed.
 
-  time() inside the program   attributes time to a specific N, which
-                              the other two cannot do
-  IEF374I for the GO step     MVS's own accounting, independent of
-                              PDPCLIB, and a cross-check that the
-                              program's own arithmetic is not lying
-  host wall clock             what NFR-PERF-01 is actually written in,
-                              and the only one that includes Hercules'
-                              own overhead
+Every clock visible INSIDE the guest -- time() and MVS's own accounting
+alike -- is ultimately driven by Hercules from the host clock, so all
+of them advance through a host sleep while nothing executes.  The
+contaminated run proved it: `CPU 61MIN 21.92SEC` against 61 minutes 32
+seconds elapsed, a ratio of 1.00, with roughly 38 of those minutes
+spent in Modern Standby.  A cross-check between two guest clocks is
+therefore worthless, however reasonable it looks.
 
-A disagreement between the first two would matter more than either
-number, which is why they are not collapsed into one.
+trust() certifies on the one clock outside the guest: host CPU charged
+to the Hercules process.  See its docstring.
 
 Run:  python tools/mvsprf.py [--print]
 """
@@ -104,10 +104,16 @@ PERF = re.compile(r"^PERF n=(\d+) e=(\d+) reps=(\d+) secs=(\d+) "
 GOCPU = re.compile(r"IEF374I STEP /GO\s*/ STOP\s+\S+\s+CPU\s+"
                    r"(\d+)MIN\s+([\d.]+)SEC")
 
-# NFR-PERF-01's bound, in seconds.
-LIMIT = 300.0
-# D-37's provisional standard duration, matching tests/tstprf.c.
+# NFR-PERF-01's bound, in seconds.  Raised from 300 to 600 by D-133,
+# on the strength of the measurement this tool produced: at the 1000 ms
+# standard duration N=1000 needed 385 s and was excluded by 85 seconds
+# against a bound chosen before anything had been measured.
+LIMIT = 600.0
+# D-73's standard duration, matching tests/tstprf.c.
 STDSTEPS = 10000
+# D-134's maximum simulated duration, in ms.  Reported against so that
+# the N values where it is not executable are named, not inferred.
+MAXDUR = 2000
 
 
 def report(rows, gocpu, wall, hcpu0, hcpu1):
@@ -147,12 +153,19 @@ def report(rows, gocpu, wall, hcpu0, hcpu1):
     # Headroom is the useful form for TBD-06: how much longer than the
     # provisional standard duration would still fit.
     print()
-    print("  Duration headroom at the five-minute bound:")
+    print("  Duration headroom at the %.0f-minute bound:" % (LIMIT / 60.0))
     for n, per, _ in results:
         factor = LIMIT / per
+        longest = factor * 1000.0
+        # D-134 caps a request at MAXDUR. Flag any N where the stated
+        # maximum is not actually executable inside the bound -- that
+        # condition is recorded against D-134 and is easy to lose.
+        flag = ""
+        if longest < MAXDUR:
+            flag = "  <-- D-134's %d ms maximum does NOT fit here" % MAXDUR
         print("    N=%-5d  %6.1fx the standard duration "
-              "(~%.0f ms of simulated time)"
-              % (n, factor, factor * 1000.0))
+              "(~%.0f ms of simulated time)%s"
+              % (n, factor, longest, flag))
 
     print()
     if gocpu is not None:
