@@ -37,21 +37,24 @@ def fields(parts):
     return out
 
 
-def main():
-    if len(sys.argv) < 2:
-        sys.stderr.write("usage: run_ker.py <tstker executable>\n")
-        return 2
-    exe = os.path.abspath(sys.argv[1])
-    if not os.path.exists(exe):
-        sys.stderr.write("not found: %s\n" % exe)
-        return 2
+class Result(object):
+    """What compare() found, so a caller can print it or fail on it."""
 
-    proc = subprocess.Popen([exe], stdout=subprocess.PIPE)
-    out, _ = proc.communicate()
-    if proc.returncode != 0:
-        sys.stderr.write("tstker exited %d\n" % proc.returncode)
-        return 2
+    def __init__(self):
+        self.passed = 0
+        self.failed = 0
+        self.backend = "?"
+        self.lines = []
 
+
+def compare(text):
+    """Judge tstker output against the Python oracle.  Returns a Result.
+
+    Split out from main() so that the same comparison judges a run on any
+    platform.  tools/mvsker.py captures these lines from an MVS job
+    listing rather than from a pipe, and a second implementation of the
+    comparison would be a second thing to keep right.
+    """
     backend = "?"
     meta = {}
     rowptr, target, weight, stim, read = {}, {}, {}, {}, {}
@@ -59,7 +62,7 @@ def main():
     runs = {}          # case -> dict(seed, rate, steps, rc)
     cout = {}          # case -> {i: (spikes, first)}
 
-    for line in out.decode("ascii", "replace").splitlines():
+    for line in text.splitlines():
         line = line.strip()
         if not line:
             continue
@@ -137,14 +140,39 @@ def main():
                 msgs.append("  FAIL case %d: rate 0 produced %d spikes "
                             "(ACC-2 requires exact silence)" % (c, tot))
 
-    print("run_ker [%s backend]: %d passed, %d failed" % (backend, passed, failed))
+    res = Result()
+    res.passed, res.failed, res.backend = passed, failed, backend
     for c in sorted(runs):
         r = runs[c]
-        print("    case %d seed=%-9d rate=%-5d steps=%-4d rc=%d  total spikes=%d"
-              % (c, r["seed"], r["rate"], r["steps"], r["rc"], total_spikes[c]))
-    for m in msgs:
-        print(m)
-    return 1 if failed else 0
+        res.lines.append(
+            "    case %d seed=%-9d rate=%-5d steps=%-4d rc=%d  total spikes=%d"
+            % (c, r["seed"], r["rate"], r["steps"], r["rc"],
+               total_spikes[c]))
+    res.lines.extend(msgs)
+    return res
+
+
+def main():
+    if len(sys.argv) < 2:
+        sys.stderr.write("usage: run_ker.py <tstker executable>\n")
+        return 2
+    exe = os.path.abspath(sys.argv[1])
+    if not os.path.exists(exe):
+        sys.stderr.write("not found: %s\n" % exe)
+        return 2
+
+    proc = subprocess.Popen([exe], stdout=subprocess.PIPE)
+    out, _ = proc.communicate()
+    if proc.returncode != 0:
+        sys.stderr.write("tstker exited %d\n" % proc.returncode)
+        return 2
+
+    r = compare(out.decode("ascii", "replace"))
+    print("run_ker [%s backend]: %d passed, %d failed"
+          % (r.backend, r.passed, r.failed))
+    for line in r.lines:
+        print(line)
+    return 1 if r.failed else 0
 
 
 if __name__ == "__main__":

@@ -117,8 +117,12 @@ def main(argv):
     seen = {}
     for line in out.splitlines():
         s = line.strip()
+        # A real Assembler XF message starts the line.  The D-111
+        # prologue quotes IFO196 inside a comment block, and GCCMVS
+        # echoes the source into the listing, so an unanchored search
+        # reports the explanation as the failure.
         if (s.startswith("<stdin>") or "Internal compiler" in s
-                or re.search(r"IFO\d{3} ", s)):
+                or re.match(r"IFO\d{3}\b", s)):
             if s not in seen:
                 seen[s] = 1
                 sys.stdout.write("  %s\n" % s[:116])
