@@ -58,14 +58,18 @@ SUFFIX = [
     ("to_int32_round_to_zero", "TOIZ"),
 ]
 
-# The four externals that are not float32_/float64_/int32_to_.  All are
-# over eight characters even though none of them collides, and C-04 is a
-# length rule as well as a uniqueness rule.
+# The externals that are not float32_/float64_/int32_to_.  Over eight
+# characters even though they do not collide, and C-04 is a length rule as
+# well as a uniqueness rule.
+#
+# Upstream 2c has four of these.  Three of them -- float_rounding_mode,
+# float_detect_tininess and float_exception_flags -- no longer exist:
+# D-123 removed them, so the library holds no writable static data
+# (NFR-MNT-02).  They are not listed, because this map is stated rather
+# than derived and a name in it that nothing defines is a lie about what
+# the library contains, which is the failure class D-111 set out to close.
 OTHER = [
     ("float_raise", "FRAISE"),
-    ("float_rounding_mode", "FRNDMODE"),
-    ("float_detect_tininess", "FTININES"),
-    ("float_exception_flags", "FEXCFLAG"),
 ]
 
 

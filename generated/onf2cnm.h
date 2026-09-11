@@ -59,8 +59,5 @@
 #define int32_to_float32               I32TOF32
 #define int32_to_float64               I32TOF64
 #define float_raise                    FRAISE
-#define float_rounding_mode            FRNDMODE
-#define float_detect_tininess          FTININES
-#define float_exception_flags          FEXCFLAG
 
 #endif /* ONFLY_ONF2CNM_H */

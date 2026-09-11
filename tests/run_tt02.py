@@ -3,10 +3,12 @@
 
 Runs TestFloat's generated vectors for every operation SRS Appendix C uses --
 addition, subtraction, multiplication and the ordered comparisons -- through
-both float backends and requires zero mismatches.
+every float backend given and requires zero mismatches.
 
-For the SOFT backend this is a correctness check on the vendored library as
-ONFLY builds it, including the two ONFLY-owned derived files (D-35).
+For SOFT3E this is a correctness check on the vendored library as ONFLY builds
+it, including the two ONFLY-owned derived files (D-35).  For SOFT2C (D-105,
+D-121) it is the same check on the library MVS uses, run through onf_fp rather
+than through raw SoftFloat calls as `make c2c` does.
 
 For the NATIVE backend it is one of NR-09's admission conditions: "passing the
 TestFloat vectors for the used operations". The other conditions -- SSE2 rather
@@ -22,9 +24,10 @@ Exclusions, both declared rather than silent:
   Exception flags are ignored: NR-10 forbids depending on them and D-34 removed
   the storage they would accumulate into.
 
-Run:  python tests/run_tt02.py <soft exe> <native exe> <testfloat_gen exe>
+Run:  python tests/run_tt02.py <exe> [<exe> ...] <testfloat_gen exe>
 """
 import os
+import re
 import subprocess
 import sys
 
@@ -52,16 +55,33 @@ def run_op(gen, exe, short, full):
     return fields, p2.returncode
 
 
+def label_of(exe):
+    """The backend a build declares, read from its own TT02 banner line."""
+    proc = subprocess.Popen([exe, "add"], stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, _ = proc.communicate(b"")
+    for line in out.decode("ascii", "replace").splitlines():
+        m = re.search(r"backend=(\S+)", line)
+        if m:
+            return m.group(1)
+    return os.path.basename(exe)
+
+
 def main():
+    # The last argument is testfloat_gen; everything before it is a build to
+    # run.  Two or more builds may be given: since D-121 there are three
+    # backends (D-124), and each names itself in its own output rather than
+    # being labelled by position here, so a report cannot mislabel a run.
     if len(sys.argv) < 4:
         sys.stderr.write(
-            "usage: run_tt02.py <soft exe> <native exe> <testfloat_gen exe>\n")
+            "usage: run_tt02.py <exe> <exe> [<exe> ...] <testfloat_gen exe>\n")
         return 2
-    soft, native, gen = (os.path.abspath(a) for a in sys.argv[1:4])
-    for path, what in ((soft, "soft"), (native, "native"), (gen, "testfloat_gen")):
+    exes = [os.path.abspath(a) for a in sys.argv[1:-1]]
+    gen = os.path.abspath(sys.argv[-1])
+    for path in exes + [gen]:
         if not os.path.exists(path):
-            sys.stderr.write("%s not found: %s\n" % (what, path))
-            if what == "testfloat_gen":
+            sys.stderr.write("not found: %s\n" % path)
+            if path == gen:
                 sys.stderr.write(
                     "Build it with:  mingw32-make testfloat\n")
             return 2
@@ -69,7 +89,7 @@ def main():
     failed = 0
     total_checked = total_skipped = 0
     rows = []
-    for exe, label in ((soft, "SOFT"), (native, "NATIVE")):
+    for exe, label in [(e, label_of(e)) for e in exes]:
         for short, full in OPS:
             f, rc = run_op(gen, exe, short, full)
             if not f:
@@ -89,9 +109,10 @@ def main():
                 rows.append("  FAIL %-6s %-4s checked=%-6d mismatch=%d"
                             % (label, short, checked, bad))
 
+    runs = len(OPS) * len(exes)
     print("run_tt02: %d of %d operation runs passed, %d cases checked, "
           "%d NaN cases skipped (VL-11)"
-          % (len(OPS) * 2 - failed, len(OPS) * 2, total_checked, total_skipped))
+          % (runs - failed, runs, total_checked, total_skipped))
     for r in rows:
         print(r)
     return 1 if failed else 0

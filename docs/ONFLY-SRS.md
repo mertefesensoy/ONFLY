@@ -438,7 +438,7 @@ Unless stated otherwise, each criterion is evaluated over the validation rates w
 | NFR-REL-01 | No abnormal outcome shall be silent: each produces an ONF message and a defined return code. | T — error-path tests |
 | NFR-MNT-01 | Record layouts shall be generated from the master definition (IR-COM-01). | I |
 | NFR-MNT-02 | The engine shall contain no writable static data, so that it is reentrant for the future CICS path. | I; build with RENT where supported |
-| NFR-OBS-01 | At the start of every run, ONFLYENG shall print a manifest to SYSPRINT: engine version, float backend (SOFT or NATIVE), compiler identification, network format version, network CRCs, dt, N and E. | D |
+| NFR-OBS-01 | At the start of every run, ONFLYENG shall print a manifest to SYSPRINT: engine version, float backend (SOFT3E, SOFT2C or NATIVE), compiler identification, network format version, network CRCs, dt, N and E. | D |
 | NFR-LIC-01 | Third-party components and their licenses shall be tracked in the repository: SoftFloat and TestFloat (license text to be recorded, TBC), PDPCLIB (public domain), GCCMVS (GPL compiler; compiled programs are not encumbered), and the MaleCNS data terms (TBC-12). | I |
 | NFR-BRD-01 | "CICS" and other IBM marks shall be used only descriptively (C-08). | I |
 
@@ -476,12 +476,12 @@ ACC-5 is satisfied when each golden request produces the same fingerprint in eve
 | Row | Platform | Backend | Compiler |
 |---|---|---|---|
 | 1 | x86-64 | Oracle (Python) | — |
-| 2 | x86-64 | Native | gcc or clang |
-| 3 | x86-64 | Soft | gcc or clang |
-| 4 | Linux s390x (QEMU) | Soft | gcc |
-| 5 | Linux s390x (QEMU) | Native | gcc |
-| 6 | TK5 MVS 3.8j | Soft | GCCMVS |
-| 7 | TK5 MVS 3.8j | Soft | JCC (engine-only if JCC cannot build SoftFloat 3e, VL-03) |
+| 2 | x86-64 | NATIVE | gcc or clang |
+| 3 | x86-64 | SOFT3E | gcc or clang |
+| 4 | Linux s390x (QEMU) | SOFT3E | gcc |
+| 5 | Linux s390x (QEMU) | NATIVE | gcc |
+| 6 | TK5 MVS 3.8j | SOFT2C | GCCMVS |
+| 7 | TK5 MVS 3.8j | SOFT2C | JCC (engine-only if JCC cannot build the soft backend, VL-03) |
 | 8 | z/OS (Phase 3) | Soft and native | IBM compiler, TBC |
 
 ### 8.4 Golden request suite
@@ -708,6 +708,10 @@ Each decision below was made by the owner during the requirements question round
 | D-118 | **TT-01 keeps its 64-bit form where the type exists, and gains a 32-bit form (TT-01/32) for platforms whose engine uses none. NR-14's text and Gate G1's exit criterion are amended accordingly (authorised SRS text changes)** | Rewrite TT-01 over 32-bit halves and drop the 64-bit form everywhere; narrow NR-14 so TT-01 is simply not applicable where no 64-bit integer is used, leaving Gate G1 on MVS resting on TT-02 alone | NR-14 exists for risk R-01 — a compiler synthesising wrong integer arithmetic — and its value comes from testing the arithmetic that actually runs. Under NR-03 the MVS path uses no 64-bit integers, so the existing TT-01 there tests something the engine never does, cannot be compiled (`onfirun` ICEs, VL-21) and would fail if it could (VL-19). But SoftFloat 2c's 32-bit arithmetic on MVS currently has no L0 check at all, and this compiler has already been measured returning a silently wrong answer once, so simply declaring TT-01 inapplicable would leave the least trustworthy toolchain the least tested. Dropping the 64-bit form was rejected because 3e and its 64-bit types remain the backend on x86 and on the s390x and z/OS paths |
 | D-119 | **Gate G1 is recorded CLOSED, with Spike S1's own answer noted separately.** The Section 9.1 row cites VL-29 and VL-30 and states plainly that Spike S1 as originally framed — "can GCCMVS build and run SoftFloat 3e correctly?" — was answered **NO**, and that what passes is Release 2c under NR-03's fallback | Close the gate without distinguishing the two; leave Gate G1 open until ONFLY engine code itself compiles and runs on MVS | Both halves of the criterion as D-118 amended it have run on real MVS 3.8j under GCCMVS and passed. Noting S1 separately keeps the record from reading better than it is: the gate is satisfied by the fallback the SRS planned for, not by the primary path, and a reader who saw only "G1 closed" would take away that 3e works on MVS, which VL-21 measured to be false. Holding the gate open for engine code was rejected as stricter than its own stated terms — that is Phase E's work, and a gate that cannot close on its criterion is not a gate |
 | D-120 | **The session finishes on the GOAL REPORT.** The `docs/implementations` note covering the 2c integration, C-04, TT-02 and TT-01/32 on MVS is written first, since the project's standing convention is that no session ends with undocumented changes and much of this currently lives only in the SRS and in commit messages | Carry on into the `onf_fp` backend for 2c | Gate G1 was the session's subject and its criterion is met, so this is a completed front rather than an interrupted one. The backend opens a large new piece of work that would be better begun cold |
+| D-121 | **Session scope 2026-09-11 (second session of the day): the `onf_fp` backend over SoftFloat 2c, and then the first ONFLY engine build on MVS.** Chosen by the owner over the narrower x86-only backend slice | The 2c backend on x86 only, ending on a closed front; Gate G4, the COBOL spike (S4); Gate G2, the transport spike (S2) | The owner selected the larger scope knowing, as stated in the question, that the MVS half is where new GCCMVS defects would surface and that the session may therefore end mid-discovery rather than on a finished front. The x86 half is a precondition for the MVS half, so the narrower option is contained inside this one |
+| D-122 | **The plan for D-121's scope is approved as written.** Stage 1 on x86: an `onf_fp` backend over SoftFloat 2c, TU-02 and TT-02 run through that backend, and the golden suite's thirteen fingerprints compared byte-for-byte against the Python oracle, the 3e soft backend and the native backend; then Stage 2 on MVS: ONFLY's own units compiled under GCCMVS against x86-generated known answers, then the decoder and kernel against a small synthetic network embedded as a C array | Approve Stage 1 and re-ask before any MVS job; approve but drop the synthetic-network step; discuss the shape first | The owner approved the whole plan knowing, as stated in the question, that Stage 2 may run out of road and that a real ONFNET dataset cannot be used because an 885 KB binary needs Gate G2 transport, which is not done |
+| D-123 | **SoftFloat 2c's global state is removed by derivation, exactly as D-34 and D-35 did for Release 3e.** `softfloat/derive2c.py` is extended to emit a modified `softfloat.c` in which the `float_exception_flags` writes are removed and the `float_rounding_mode` and `float_detect_tininess` reads are replaced by the constants NR-01 and NR-10 already fix. VL-22's TestFloat identity check is re-run to prove the results did not change | Accept the globals for the MVP and carry NFR-MNT-02 compliance as an open item due before Phase G; measure the derivation cost first and decide afterwards | Measured on 2026-09-11, not assumed: `third_party/SoftFloat-2c/softfloat/bits32/softfloat.c:187` writes `float_exception_flags` inside `roundAndPackFloat64`, and lines 386, 1337 and 1668 read `float_detect_tininess` and `float_rounding_mode` — all on the binary64 add, subtract and multiply path ONFLY uses. Leaving them would give the MVS backend writable static data that the 3e backend does not have, which NFR-MNT-02 forbids and which the future CICS path (Section 3.7) cannot tolerate |
+| D-124 | **The float backend identifier gains a third value: the manifest prints `SOFT3E`, `SOFT2C` or `NATIVE`. NFR-OBS-01's text and the Section 8.3 determinism matrix are amended accordingly (authorised SRS text changes)** | Keep `SOFT`/`NATIVE` as NFR-OBS-01 states and add a separate field carrying the release; keep `SOFT` alone and carry the ambiguity as a caveat | Two different soft libraries can now produce golden fingerprints, and a determinism claim that cannot name the library that produced it is not a claim. One unambiguous field is cheaper to read than a field plus a qualifier, and every report this project writes has to state its backend anyway |
 
 ### A.2 Design decisions proposed in this draft
 
@@ -722,6 +726,7 @@ These were introduced by the architect while writing the specification. They are
 | P-05 | Absolute tolerance floors alongside relative tolerances (ACC-3, ACC-4) | Relative tolerances become meaningless near zero firing rates |
 | P-06 | Verify-only mode (IR-TRN-03) | Makes transport spikes and operational checks cheap |
 | ~~P-07~~ | Source line length on MVS | **CLOSED 2026-09-11 by D-93** — measured: the TK5 card reader truncates at 80 columns silently. ONFLY sources are held to 80 columns and linted; vendored `third_party/` is exempt and needs a different transport |
+| P-08 | Add an x86-64 / SOFT2C row to the Section 8.3 determinism matrix | D-124 renamed the matrix's backend values but did not add rows, so ACC-5 is unchanged. x86 can run both soft libraries, and the 2c backend's golden fingerprints on x86 are what make a later MVS fingerprint meaningful — an MVS-only 2c row would have nothing on the same library to be compared against. Proposed, not decided; ACC-5's row set is the owner's to change |
 
 ## Appendix B. Open items
 

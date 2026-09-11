@@ -45,13 +45,30 @@ SFFLAGS = -O2 -Wall -Wno-unused-function -include generated/onf3enm.h
 # admitted backend.
 NATFLAGS = -msse2 -mfpmath=sse -ffp-contract=off -DONF_FP_NATIVE -DONF_FP_LITTLE
 
+# D-121, D-124: the SOFT2C backend, Berkeley SoftFloat 2c's bits32 build.
+# This is the library MVS uses (D-105, NR-03), so a golden fingerprint
+# produced with it on x86 is the only thing an MVS fingerprint can later be
+# compared against on equal terms.  -include forces the C-04 renames into
+# every unit that sees 2c's header (D-111).
+SF2CFLAGS = -DONF_FP_SOFT2C $(SF2CINC) -include generated/onf2cnm.h
+
 SF      = third_party/SoftFloat-3e/source
 SP      = $(SF)/ARM-VFPv2-defaultNaN
 
 # Release 2c, the MVS backend (D-105, NR-03).  Its bits32 build uses only
 # 32-bit integers, which is the property GCCMVS forces (VL-19, VL-21).
 SF2C    = third_party/SoftFloat-2c/softfloat/bits32
-SF2CINC = -Isoftfloat/c2c
+
+# The library ONFLY compiles is the DERIVED softfloat.c, not upstream's
+# (D-123).  The three pieces of writable static state are gone from it, so
+# the 2c backend matches the 3e backend's NFR-MNT-02 property.  Upstream's
+# file is still the input to softfloat/derive2c.py and is never edited.
+SF2CSRC = softfloat/c2c/softfloat.c
+
+# -Isoftfloat/c2c first so milieu.h, softfloat.h and softfloat-specialize
+# come from the derived configuration; -I$(SF2C) after it for
+# softfloat-macros, which is vendored unmodified and has no ONFLY version.
+SF2CINC = -Isoftfloat/c2c -I$(SF2C)
 
 # Upstream 2c warns in float32_rem and float64_rem -- unused variables and one
 # pointer-sign mismatch -- neither of which ONFLY compiles into anything it
@@ -148,7 +165,7 @@ units: $(BUILD)
 # demonstrates NR-09's bit-identity condition on this host; NR-09 admission is
 # NOT complete until TestFloat vectors (TT-02) and golden-suite fingerprints
 # also pass.
-fp: $(BUILD) softfloat/onfsub.c softfloat/onfprim.c
+fp: $(BUILD) softfloat/onfsub.c softfloat/onfprim.c $(SF2CSRC) generated/onf2cnm.h
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstfp_soft.exe \
 	  tests/tstfp.c engine/src/onffpc.c engine/src/onffps.c engine/src/onfrnd.c \
 	  $(SFSRCS) $(ONFSF)
@@ -156,7 +173,12 @@ fp: $(BUILD) softfloat/onfsub.c softfloat/onfprim.c
 	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/tstfp_nat.exe \
 	  tests/tstfp.c engine/src/onffpc.c engine/src/onffpn.c engine/src/onfrnd.c
 	$(PYTHON) tests/run_fp.py $(BUILD)/tstfp_nat.exe
-	$(PYTHON) tools/cmpback.py $(BUILD)/tstfp_soft.exe $(BUILD)/tstfp_nat.exe
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/tstfp_2c.exe  \
+	  tests/tstfp.c engine/src/onffpc.c engine/src/onffp2.c  \
+	  engine/src/onfrnd.c $(SF2CSRC)
+	$(PYTHON) tests/run_fp.py $(BUILD)/tstfp_2c.exe
+	$(PYTHON) tools/cmpback.py $(BUILD)/tstfp_soft.exe  \
+	  $(BUILD)/tstfp_nat.exe $(BUILD)/tstfp_2c.exe
 
 # --- L2: the kernel against the Python oracle ------------------------------
 # Runs the same synthetic network through both float backends and then compares
@@ -164,7 +186,7 @@ fp: $(BUILD) softfloat/onfsub.c softfloat/onfprim.c
 # rows 1, 2 and 3 of the Section 8.3 determinism matrix -- the three x86 rows.
 # Rows 4 to 8 need Linux s390x, MVS 3.8j and z/OS, none of which is available
 # on this host.
-kernel: $(BUILD) softfloat/onfsub.c
+kernel: $(BUILD) softfloat/onfsub.c $(SF2CSRC) generated/onf2cnm.h
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstker_soft.exe \
 	  tests/tstker.c engine/src/onfker.c engine/src/onffpc.c \
 	  engine/src/onffps.c engine/src/onfrnd.c engine/src/onfstm.c \
@@ -174,7 +196,13 @@ kernel: $(BUILD) softfloat/onfsub.c
 	  tests/tstker.c engine/src/onfker.c engine/src/onffpc.c \
 	  engine/src/onffpn.c engine/src/onfrnd.c engine/src/onfstm.c
 	$(PYTHON) tests/run_ker.py $(BUILD)/tstker_nat.exe
-	$(PYTHON) tools/cmpback.py $(BUILD)/tstker_soft.exe $(BUILD)/tstker_nat.exe
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/tstker_2c.exe  \
+	  tests/tstker.c engine/src/onfker.c engine/src/onffpc.c  \
+	  engine/src/onffp2.c engine/src/onfrnd.c engine/src/onfstm.c  \
+	  $(SF2CSRC)
+	$(PYTHON) tests/run_ker.py $(BUILD)/tstker_2c.exe
+	$(PYTHON) tools/cmpback.py $(BUILD)/tstker_soft.exe  \
+	  $(BUILD)/tstker_nat.exe $(BUILD)/tstker_2c.exe
 
 # --- TE-01..TE-08: network integrity checks ------------------------------
 # Each case corrupts exactly one thing and requires the engine to report the
@@ -198,7 +226,7 @@ decode: $(BUILD) $(GENERATED)
 # The durations come from D-37 and D-42 and are PROVISIONAL: TBD-06 is open
 # and Gate G3 fixes the real values.  Changing one changes every
 # fingerprint, so these are not yet reference values.
-golden: $(BUILD) $(GENERATED) softfloat/onfsub.c
+golden: $(BUILD) $(GENERATED) softfloat/onfsub.c $(SF2CSRC) generated/onf2cnm.h
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstgld_soft.exe \
 	  tests/tstgld.c engine/src/onfdec.c engine/src/onfcrc.c \
 	  engine/src/onffpc.c engine/src/onffps.c engine/src/onfker.c \
@@ -210,7 +238,14 @@ golden: $(BUILD) $(GENERATED) softfloat/onfsub.c
 	  engine/src/onffpc.c engine/src/onffpn.c engine/src/onfker.c \
 	  engine/src/onfrnd.c engine/src/onfstm.c engine/src/onffpr.c
 	$(PYTHON) tests/run_gld.py $(BUILD)/tstgld_nat.exe
-	$(PYTHON) tools/cmpgld.py $(BUILD)/tstgld_soft.exe $(BUILD)/tstgld_nat.exe
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/tstgld_2c.exe  \
+	  tests/tstgld.c engine/src/onfdec.c engine/src/onfcrc.c  \
+	  engine/src/onffpc.c engine/src/onffp2.c engine/src/onfker.c  \
+	  engine/src/onfrnd.c engine/src/onfstm.c engine/src/onffpr.c  \
+	  $(SF2CSRC)
+	$(PYTHON) tests/run_gld.py $(BUILD)/tstgld_2c.exe
+	$(PYTHON) tools/cmpgld.py $(BUILD)/tstgld_soft.exe  \
+	  $(BUILD)/tstgld_nat.exe $(BUILD)/tstgld_2c.exe
 
 # --- C-04: external identifier lengths -----------------------------------
 # ONFLY's own externals must stay within 8 characters and be unique ignoring
@@ -235,10 +270,12 @@ c04: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c
 # This compiles the 2c unit the way tools/mvs2c.py presents it to GCCMVS --
 # same source, same rename prologue -- so a name that would be rejected on
 # MVS is rejected here first, without a lab job.
-c04mvs: $(BUILD) generated/onf2cnm.h
+c04mvs: $(BUILD) $(GENERATED) generated/onf2cnm.h $(SF2CSRC)
 	$(PYTHON) tools/mkobjs.py $(BUILD)/obj2c \
-	  $(CC) $(C2CFLAGS) $(SF2CINC) -include generated/onf2cnm.h -- \
-	  $(SF2C)/softfloat.c
+	  $(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -- \
+	  $(SF2CSRC) engine/src/onffp2.c engine/src/onffpc.c \
+	  engine/src/onfcrc.c engine/src/onfrnd.c engine/src/onfstm.c \
+	  engine/src/onfker.c engine/src/onfdec.c engine/src/onffpr.c
 	$(PYTHON) tools/lint_c04.py --enforce-all $(BUILD)/obj2c
 
 # --- TT-02: Berkeley TestFloat vectors (NR-14, and one NR-09 condition) ---
@@ -273,14 +310,16 @@ tt01: $(BUILD) $(IVEC)
 	  -o $(BUILD)/tstint.exe tests/tstint.c softfloat/onfint.c
 	$(PYTHON) tests/run_tt01.py $(BUILD)/tstint.exe
 
-tt02: $(BUILD) softfloat/onfsub.c
+tt02: $(BUILD) softfloat/onfsub.c $(SF2CSRC) generated/onf2cnm.h
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstflt_soft.exe \
 	  tests/tstflt.c engine/src/onffpc.c engine/src/onffps.c \
 	  $(SFSRCS) $(ONFSF)
 	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/tstflt_nat.exe \
 	  tests/tstflt.c engine/src/onffpc.c engine/src/onffpn.c
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/tstflt_2c.exe \
+	  tests/tstflt.c engine/src/onffpc.c engine/src/onffp2.c $(SF2CSRC)
 	$(PYTHON) tests/run_tt02.py $(BUILD)/tstflt_soft.exe \
-	  $(BUILD)/tstflt_nat.exe $(TFGEN)
+	  $(BUILD)/tstflt_nat.exe $(BUILD)/tstflt_2c.exe $(TFGEN)
 
 # --- TT-01/32: the 32-bit integer self-test (D-118, NR-14) ---------------
 # NR-14 requires an integer self-test for each width the platform's engine
@@ -302,7 +341,7 @@ generated/onf32v.h: tools/gen32v.py
 # what TT-02 is for.  `make tt02` still runs the full 260,376-case stream;
 # this is the 4,500-vector sample MVS can hold (VL-29).
 tf2: $(BUILD) generated/onf2cnm.h generated/onftfv.h
-	$(CC) $(C2CFLAGS) $(SF2CINC) -Igenerated 	  -include generated/onf2cnm.h 	  -o $(BUILD)/tsttf2.exe tests/tsttf2.c $(SF2C)/softfloat.c
+	$(CC) $(C2CFLAGS) $(SF2CINC) -Igenerated 	  -include generated/onf2cnm.h 	  -o $(BUILD)/tsttf2.exe tests/tsttf2.c $(SF2CSRC)
 	$(BUILD)/tsttf2.exe | tail -1
 
 generated/onftfv.h: tools/gentf2.py
@@ -330,11 +369,11 @@ c2c: $(BUILD) generated/onf2cnm.h generated/onf2cv.h
 	$(PYTHON) tools/gen2cnm.py --check
 	$(PYTHON) tools/gen2cv.py --check
 	$(CC) $(C2CFLAGS) $(SF2CINC) -include generated/onf2cnm.h \
-	  -o $(BUILD)/tstc2c.exe tests/tstc2c.c $(SF2C)/softfloat.c
+	  -o $(BUILD)/tstc2c.exe tests/tstc2c.c $(SF2CSRC)
 	$(PYTHON) tests/run_c2c.py $(BUILD)/tstc2c.exe $(TFGEN)
 	$(CC) $(C2CFLAGS) $(SF2CINC) -Igenerated \
 	  -include generated/onf2cnm.h \
-	  -o $(BUILD)/tst2c.exe tests/tst2c.c $(SF2C)/softfloat.c
+	  -o $(BUILD)/tst2c.exe tests/tst2c.c $(SF2CSRC)
 	$(BUILD)/tst2c.exe | tail -1
 
 generated/onf3enm.h: tools/gen3enm.py
@@ -345,6 +384,12 @@ softfloat/onfprim.c: softfloat/derive3e.py generated/onf3enm.h
 
 generated/onf2cnm.h: tools/gen2cnm.py
 	$(PYTHON) tools/gen2cnm.py
+
+# The derived SoftFloat 2c configuration and library (D-106, D-123).  All
+# four files come out of one script, so any of them is a valid target for
+# it; softfloat.c is named because it is the one the builds compile.
+$(SF2CSRC): softfloat/derive2c.py $(SF2C)/softfloat.c
+	$(PYTHON) softfloat/derive2c.py
 
 generated/onf2cv.h: tools/gen2cv.py
 	$(PYTHON) tools/gen2cv.py

@@ -60,7 +60,9 @@ INCLUDES = {
     "onfproc.h": "softfloat/c2c/onfproc.h",
 }
 
-UNIT = B32 + "softfloat.c"
+# The derived library, not upstream's: D-123 removed the writable static
+# state from it, so this is what MVS must build too.
+UNIT = "softfloat/c2c/softfloat.c"
 
 
 def main(argv):

@@ -2,16 +2,26 @@
  * onffp.h - the ONFLY binary64 floating-point API (NR-01, D-04, D-05).
  *
  * Every floating-point operation in ONFLY goes through this API, in the exact
- * order Appendix C specifies (NR-07).  Two backends implement it:
+ * order Appendix C specifies (NR-07).  Three backends implement it:
  *
- *   SOFT    Berkeley SoftFloat 3e, binary64 subset, flags-free (D-33, D-34).
- *           Correct everywhere, including S/370, which has no IEEE hardware
- *           at all (C-02).  This is the reference backend.
+ *   SOFT3E  Berkeley SoftFloat 3e, binary64 subset, flags-free (D-33, D-34).
+ *           The reference backend, and the one every x86 and s390x result so
+ *           far was produced with.
+ *   SOFT2C  Berkeley SoftFloat 2c, bits32 build, flags-free (D-105, D-123).
+ *           The backend MVS uses, because Gate G1 measured that GCCMVS
+ *           cannot build 3e (VL-19, VL-21) and 2c needs no 64-bit integer at
+ *           all.  NR-03's fallback.
  *   NATIVE  the host's own IEEE binary64.  Admissible only where NR-09's
  *           conditions are proven, never assumed.
  *
- * Select with -DONF_FP_NATIVE; the soft backend is the default, deliberately,
- * so that a build which forgets to state its backend gets the portable one.
+ * Select with -DONF_FP_NATIVE or -DONF_FP_SOFT2C.  Release 3e is the default,
+ * deliberately: a build that forgets to state its backend gets a portable one
+ * rather than the host's hardware.
+ *
+ * The two soft backends are different libraries, so they are named apart
+ * (D-124).  A fingerprint that cannot say which library produced it proves
+ * nothing about determinism, which is the property this project exists to
+ * demonstrate.
  *
  * ------------------------------------------------------------------------
  * Why values are carried as two 32-bit halves
@@ -58,10 +68,18 @@ typedef struct onff64 onf_f64;
 
 /* Backend identification for the run manifest (NFR-OBS-01).  Every reported
    result must name the backend it was produced with. */
+#if defined(ONF_FP_NATIVE) && defined(ONF_FP_SOFT2C)
+#error "ONF_FP_NATIVE and ONF_FP_SOFT2C are mutually exclusive"
+#endif
+
 #ifdef ONF_FP_NATIVE
 #define ONF_FPID "NATIVE"
 #else
-#define ONF_FPID "SOFT"
+#ifdef ONF_FP_SOFT2C
+#define ONF_FPID "SOFT2C"
+#else
+#define ONF_FPID "SOFT3E"
+#endif
 #endif
 
 /*
