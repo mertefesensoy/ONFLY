@@ -115,7 +115,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng
+.PHONY: all test generate lint liclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng
 
 all: test
 
@@ -152,6 +152,17 @@ col80: $(GENERATED) $(IVEC) softfloat/onfsub.c
 lint: $(GENERATED)
 	$(PYTHON) tools/lint_nr05.py --exclude engine/src/onffpn.c \
 	  engine generated softfloat tests tools
+
+# --- licence lint (D-132) -------------------------------------------------
+# INTERCOMM is non-commercial-only including derivative works (VL-38) and
+# this repository is MIT (D-62); the two cannot both govern one file.  D-132
+# removes the question by keeping INTERCOMM-derived material out of the tree
+# entirely -- it lives under local/ or on TK5.  A rule kept only in prose is
+# one that gets broken later by a pasted copybook that looks like ordinary
+# COBOL in review, so it is checked instead of trusted.  No prerequisites:
+# it reads the git index, not the build.
+liclint:
+	$(PYTHON) tools/lint_lic.py
 
 $(BUILD):
 	$(PYTHON) -c "import os; os.path.isdir('$(BUILD)') or os.makedirs('$(BUILD)')"
@@ -516,9 +527,9 @@ runner: $(BUILD) $(GENERATED)
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint col80 c04 c04mvs tt01 tt02 c2c sfs shim layout units fp kernel syn \
+test: lint liclint col80 c04 c04mvs tt01 tt02 c2c sfs shim layout units fp kernel syn \
       decode eng golden prep
-	@echo "ONFLY: NR-05 + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE"
+	@echo "ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"
