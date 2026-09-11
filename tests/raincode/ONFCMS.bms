@@ -1,0 +1,31 @@
+*ONFLY probe 3a of 3 (D-129): a BMS mapset, the BUZZ menu in miniature.
+*
+*Section 3.7 says BUZZ "will be a menu transaction (BMS screen) that
+*lets the user pick a stimulus, rate, duration and seed".  This is that
+*screen cut down to two fields, because the question is not whether the
+*menu is complete but whether BMS exists at all under Raincode's QIX.
+*
+*BMS maps are assembler macros and have to be assembled twice: once as
+*TYPE=MAP to produce the physical map the terminal server uses, and once
+*as TYPE=DSECT to produce the symbolic map ONFCMAP.cbl copies.  Whether
+*Raincode ships anything that can do that is exactly what this probe
+*asks.  If it does not, D-127's 3270 half needs another route and
+*ONFCTRM's SEND TEXT is the fallback.
+*
+*Continuation is column 72, operands resume in column 16.  Verified
+*mechanically rather than by eye - see the README.
+*
+ONFCMS   DFHMSD TYPE=&SYSPARM,MODE=INOUT,LANG=COBOL,STORAGE=AUTO,      X
+               TIOAPFX=YES,CTRL=(FREEKB,ALARM)
+ONFCMP   DFHMDI SIZE=(24,80)
+         DFHMDF POS=(1,1),LENGTH=17,ATTRB=(PROT,BRT),                  X
+               INITIAL='ONFLY - BUZZ menu'
+         DFHMDF POS=(3,1),LENGTH=11,ATTRB=(PROT),INITIAL='Stimulus :'
+STIMC    DFHMDF POS=(3,14),LENGTH=8,ATTRB=(UNPROT,IC)
+         DFHMDF POS=(3,23),LENGTH=1,ATTRB=(PROT)
+         DFHMDF POS=(4,1),LENGTH=11,ATTRB=(PROT),INITIAL='Rate Hz  :'
+RATEF    DFHMDF POS=(4,14),LENGTH=4,ATTRB=(UNPROT)
+         DFHMDF POS=(4,19),LENGTH=1,ATTRB=(PROT)
+MSGF     DFHMDF POS=(6,1),LENGTH=60,ATTRB=(PROT,BRT)
+         DFHMSD TYPE=FINAL
+         END
