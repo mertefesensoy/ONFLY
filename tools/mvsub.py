@@ -43,6 +43,17 @@ import time
 CARD = 80
 DEFAULT_TK5 = r"C:\hercules-lab\mvs-tk5"
 DEFAULT_RDR = "127.0.0.1:3505"
+DEFAULT_CON = "127.0.0.1:8038"
+
+# The codepage the reader must be on (D-101, D-103, VL-18).  On Hercules'
+# `default` page ASCII '|' is delivered as EBCDIC 0x6A, which GCCMVS will
+# not lex, so every ONFLY source using '|=' or '||' fails to compile with a
+# diagnostic that points at the source rather than at the configuration.
+# 819/037 fixes '|' and breaks '^', '[' and ']'.  Only 819/1047 carries all
+# of them.  This is host configuration, it is not in the repository, and a
+# Hercules restart silently reverts it -- which is why it is checked here
+# rather than merely written down.
+REQUIRED_CP = "819/1047"
 
 
 def tk5_dir():
@@ -59,8 +70,70 @@ def reader_addr():
     return host, int(port or "3505")
 
 
+def console_addr():
+    spec = os.environ.get("ONFLY_CON", DEFAULT_CON)
+    host, _, port = spec.partition(":")
+    return host, int(port or "8038")
+
+
 class CardTooLong(Exception):
     pass
+
+
+class WrongCodepage(Exception):
+    pass
+
+
+def current_codepage():
+    """Ask the running Hercules which codepage it is on.
+
+    Returns the name, or None if the console cannot be reached.  The
+    command is a query and changes nothing.
+    """
+    try:
+        from urllib.request import urlopen
+        from urllib.parse import quote
+    except ImportError:                                  # Python 2
+        from urllib2 import urlopen                      # noqa: F401
+        from urllib import quote                         # noqa: F401
+    host, port = console_addr()
+    url = ("http://%s:%d/cgi-bin/tasks/syslog?command=%s"
+           % (host, port, quote("codepage")))
+    try:
+        body = urlopen(url, timeout=10).read().decode("latin-1")
+    except Exception:
+        return None
+    # The console echoes the whole log, so take the LAST answer: an
+    # earlier line could be from a previous query.
+    found = None
+    for m in re.finditer(r"Codepage is ([^\s<]+)", body):
+        found = m.group(1)
+    return found
+
+
+def check_codepage(required=REQUIRED_CP):
+    """Raise unless Hercules is on the codepage ONFLY source needs.
+
+    D-103.  A wrong codepage does not fail loudly on its own: the deck is
+    accepted, the job runs, and the compile fails on a source line, so the
+    hours go into reading C rather than into reading the configuration.
+    An unreachable console is also refused rather than assumed good --
+    every lab operation here already depends on that console, so silence
+    from it means something is wrong.
+    """
+    cp = current_codepage()
+    if cp is None:
+        raise WrongCodepage(
+            "cannot reach the Hercules console at %s:%d to check the "
+            "codepage; ONFLY needs %s (D-101, VL-18). Set ONFLY_CON if "
+            "the console is elsewhere." % (console_addr() + (required,)))
+    if cp != required:
+        raise WrongCodepage(
+            "Hercules is on codepage %s but ONFLY source needs %s: on any "
+            "other page '|' does not survive into GCCMVS and every source "
+            "using '|=' or '||' fails to compile (D-101, VL-18). Fix it "
+            "with the Hercules console command:  codepage %s"
+            % (cp, required, required))
 
 
 def check_cards(cards):
@@ -87,8 +160,16 @@ def read_printer():
     return io.open(path, encoding="latin-1", errors="replace").read()
 
 
-def submit(cards, check=True):
-    """Send a deck to the reader.  Returns the printer length before it."""
+def submit(cards, check=True, codepage=True):
+    """Send a deck to the reader.  Returns the printer length before it.
+
+    Two preconditions are enforced, both because their failure is silent:
+    the reader truncates past column 80 without a message (D-93), and a
+    wrong codepage corrupts '|' on the way in (D-103).  Pass
+    codepage=False only to submit a deck that contains no C source.
+    """
+    if codepage:
+        check_codepage()
     if check:
         check_cards(cards)
     before = len(read_printer())

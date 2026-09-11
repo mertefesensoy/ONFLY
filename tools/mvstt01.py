@@ -15,16 +15,26 @@ anything.
 
 THIS JOB CANNOT SUCCEED TODAY, AND THAT IS THE FINDING
 ------------------------------------------------------
-Gate G1 failed on 2026-09-11.  GCCMVS cannot compile a 64-bit addition at
-all: it ends in "unable to generate reloads" and an internal compiler error.
-`onfi2p32` in softfloat/onfint.c adds, so this job stops in COMP1 every
-time.  The test written to detect bad 64-bit code generation cannot be
-compiled by the compiler it was written to test (VL-15, VL-16).
+Gate G1 has not been passed.  How far this job gets depends on two pieces
+of host configuration that the repository does not carry, so read a failure
+here against both before suspecting the tooling:
 
-Run it anyway when revisiting G1: it is the shortest reproduction of the
-defect, and if a future GCCMVS fixes the code generation this job is what
-says so.  Do not read a COMP failure here as a defect in the tooling until
-the twelve-line probe in VL-15 has been re-run and passes.
+  1. The Hercules codepage must be 819/1047 (D-101, VL-18).  On the
+     `default` page the reader delivers `|` as EBCDIC 0x6A, GCCMVS rejects
+     it, and every source using `|=` or `||` dies in COMP.  A lab restart
+     returns Hercules to `default` and reintroduces this silently.
+  2. The optimisation level must be -O1 (D-100, VL-17).  It is the only
+     level of five that compiles a 64-bit addition at all.
+
+With both in place, COMP1 and ASM1 pass RC 0 -- tests/tstint.c compiles and
+assembles on MVS -- and COMP2 fails with an internal compiler error at 902,
+on the closing brace of `onfirun`, the function whose switch holds every
+64-bit operation at once.
+
+It would fail even if it compiled.  Measured per operation at -O1 (VL-19):
+multiply returns zero for a product that is not zero, and `a << 7` drops
+bit 63, both silently.  That is what TT-01 exists to detect, arrived at by
+probe instead because TT-01 itself will not build.
 
 Which DD carries which include
 ------------------------------
@@ -70,6 +80,10 @@ sys.path.insert(0, HERE)
 import mvsub  # noqa: E402
 
 JOB = "ONFTT01"
+
+# The GCCMVS optimisation level (D-100, VL-17).  -O1 is the only one of
+# -O0, -O1, -O2, -O3 and -Os that compiles a 64-bit addition at all.
+OPT = "-O1"
 USER = "HERC01"
 HDR_DSN = "%s.ONFLY.H" % USER
 SRC_DSN = "%s.ONFLY.C" % USER
@@ -123,9 +137,42 @@ def cards_of(relpath):
     return out
 
 
-def build_deck():
+def build_deck(opt=OPT):
+    """Build the TT-01 deck.  `opt` is an optimisation flag for GCCMVS.
+
+    The default is -O1 (D-100).  D-97 established that the level is
+    decisive and not incidental: on one twelve-line 64-bit addition,
+    GCCMVS ICEs at -O0 ("unable to generate reloads", at 3590), ICEs
+    differently at -O2, -O3 and -Os (at 447), and at -O1 compiles,
+    assembles, links, runs and returns the right answer.  -O1 is the only
+    level of five that works, so it is not a preference (VL-17).
+
+    The flag stays a parameter rather than becoming a constant so that a
+    measurement can always name the level it was taken at, and so that
+    re-running VL-15's and VL-16's default-level results stays possible:
+    pass --opt= with an empty value for no -O flag at all.
+    """
     d = []
-    a = d.append
+
+    def a(card):
+        """Append one card, enforcing JCL's column-71 field limit.
+
+        Two different limits apply to a deck and they are easy to confuse.
+        The card reader truncates at column 80 (D-93), and mvsub refuses
+        any card longer than that.  A JCL *statement* has a tighter rule:
+        its fields must end by column 71, because column 72 is the
+        continuation indicator.  A JCL card between 72 and 80 columns
+        therefore passes every check D-93 put in place and is still
+        wrong -- which is exactly how D-97's " -O1" produced
+        "IEF629I INCORRECT USE OF APOSTROPHE IN THE PARM FIELD" and a job
+        that did not run.  Data cards written into an inline stream are
+        not JCL and keep the full 80 columns, so only lines beginning
+        "//" are checked here.
+        """
+        if card.startswith("//") and len(card) > 71:
+            raise ValueError(
+                "JCL card exceeds column 71 (%d): %s" % (len(card), card))
+        d.append(card)
 
     a("//%-8s JOB (001),'ONFLY TT-01',CLASS=A,MSGCLASS=A," % JOB)
     a("//             USER=%s,PASSWORD=CUL8TR," % USER)
@@ -214,8 +261,17 @@ def build_deck():
     # the larger block size.
     for n, (_relpath, member) in enumerate(SOURCES, 1):
         a("//COMP%d    EXEC PGM=GCC," % n)
-        a("//         PARM='-S -ansi -pedantic-errors -Wno-long-long"
-          " -o dd:out -'")
+        # The continued parameter starts in column 5.  JCL allows columns 4
+        # to 16, and the original layout used column 12 -- which fitted
+        # until D-97 added " -O1" and pushed the closing apostrophe to
+        # column 74.  A JCL field must end by column 71, so MVS read an
+        # unterminated string and rejected the job with
+        # "IEF629I INCORRECT USE OF APOSTROPHE IN THE PARM FIELD".  The
+        # card was only 74 columns, well inside the 80-column reader
+        # limit, so the col80 lint could not have caught it: 71 is a
+        # different limit with a different cause.  jcl() below enforces it.
+        a("//  PARM='-S -ansi -pedantic-errors -Wno-long-long"
+          "%s -o dd:out -'" % (" " + opt if opt else ""))
         # SYSINCL carries the angled-bracket library and INCLUDE the
         # quoted one, which is the opposite of what the DD names
         # suggest; the other way round, GCCMVS reported
@@ -269,14 +325,19 @@ def build_deck():
 
 
 def main(argv):
-    deck = build_deck()
+    opt = OPT
+    for arg in argv:
+        if arg.startswith("--opt="):
+            opt = arg[len("--opt="):]
+    deck = build_deck(opt)
     mvsub.check_cards(deck)
     if "--print" in argv:
         sys.stdout.write("\n".join(deck) + "\n")
         return 0
 
-    sys.stdout.write("mvstt01: %d cards, longest %d columns\n"
-                     % (len(deck), max(len(c) for c in deck)))
+    sys.stdout.write("mvstt01: %d cards, longest %d columns, GCCMVS %s\n"
+                     % (len(deck), max(len(c) for c in deck),
+                        opt if opt else "(no -O flag)"))
     before = mvsub.submit(deck)
     out = mvsub.collect(JOB, before, timeout=900, poll=5)
     if out is None:
