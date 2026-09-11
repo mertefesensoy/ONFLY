@@ -81,7 +81,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 c2c sfs shim testfloat c04 col80 prep runner eng
+.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 c2c sfs shim testfloat c04 c04mvs col80 prep runner eng
 
 all: test
 
@@ -216,6 +216,21 @@ c04: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c
 	  $(SFSRCS) $(ONFSF)
 	$(PYTHON) tools/lint_c04.py $(BUILD)/obj
 
+# --- C-04 on the objects that actually go to MVS (D-111) ------------------
+# The lint above reports vendored collisions and passes, which is exactly
+# how SoftFloat 2c got as far as Assembler XF before anyone noticed that
+# eighteen of its float64_* names truncate to FLOAT64@ (VL-25).  Here
+# nothing is exempt, because the MVS linkage editor exempts nothing.
+#
+# This compiles the 2c unit the way tools/mvs2c.py presents it to GCCMVS --
+# same source, same rename prologue -- so a name that would be rejected on
+# MVS is rejected here first, without a lab job.
+c04mvs: $(BUILD) generated/onf2cnm.h
+	$(PYTHON) tools/mkobjs.py $(BUILD)/obj2c \
+	  $(CC) $(C2CFLAGS) $(SF2CINC) -include generated/onf2cnm.h -- \
+	  $(SF2C)/softfloat.c
+	$(PYTHON) tools/lint_c04.py --enforce-all $(BUILD)/obj2c
+
 # --- TT-02: Berkeley TestFloat vectors (NR-14, and one NR-09 condition) ---
 # Needs testfloat_gen, which needs a complete softfloat.a.  That library is
 # built with the 8086 specialization because ARM-VFPv2-defaultNaN cannot
@@ -270,11 +285,27 @@ tt02: $(BUILD) softfloat/onfsub.c
 # derive2c.py --check runs first because the configuration files under
 # softfloat/c2c are generated.  A hand edit there would silently change what
 # is being tested, which is the failure class D-70 exists to rule out.
-c2c: $(BUILD)
+# -include applies the C-04 renames (D-111) to the vendored unit without
+# editing it.  They are used on x86 as well as MVS deliberately: a
+# mechanism exercised only on the platform that is hard to test is a
+# mechanism nobody has tested.
+c2c: $(BUILD) generated/onf2cnm.h generated/onf2cv.h
 	$(PYTHON) softfloat/derive2c.py --check
-	$(CC) $(C2CFLAGS) $(SF2CINC) -o $(BUILD)/tstc2c.exe \
-	  tests/tstc2c.c $(SF2C)/softfloat.c
+	$(PYTHON) tools/gen2cnm.py --check
+	$(PYTHON) tools/gen2cv.py --check
+	$(CC) $(C2CFLAGS) $(SF2CINC) -include generated/onf2cnm.h \
+	  -o $(BUILD)/tstc2c.exe tests/tstc2c.c $(SF2C)/softfloat.c
 	$(PYTHON) tests/run_c2c.py $(BUILD)/tstc2c.exe $(TFGEN)
+	$(CC) $(C2CFLAGS) $(SF2CINC) -Igenerated \
+	  -include generated/onf2cnm.h \
+	  -o $(BUILD)/tst2c.exe tests/tst2c.c $(SF2C)/softfloat.c
+	$(BUILD)/tst2c.exe | tail -1
+
+generated/onf2cnm.h: tools/gen2cnm.py
+	$(PYTHON) tools/gen2cnm.py
+
+generated/onf2cv.h: tools/gen2cv.py
+	$(PYTHON) tools/gen2cv.py
 
 # --- D-104: SoftFloat's variable 64-bit shifts, x86 reference -------------
 # The x86 half of the D-104 measurement.  The MVS half is
@@ -358,9 +389,9 @@ runner: $(BUILD) $(GENERATED)
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint col80 c04 tt01 tt02 c2c sfs shim layout units fp kernel decode eng \
-      golden prep
-	@echo "ONFLY: NR-05 + col80 + C-04 lints, TT-01, TT-02, SoftFloat 2c vs TestFloat, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed"
+test: lint col80 c04 c04mvs tt01 tt02 c2c sfs shim layout units fp kernel \
+      decode eng golden prep
+	@echo "ONFLY: NR-05 + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"

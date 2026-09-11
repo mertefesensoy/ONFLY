@@ -76,7 +76,15 @@ def nm_symbols(path):
             name = name[1:]
         if not name:
             continue
-        syms.append((name, typ.upper()))
+        # The ORIGINAL case is kept.  nm spells a global symbol with an
+        # upper-case letter and a file-local one with lower case, and the
+        # difference is exactly what C-04 is about: it constrains EXTERNAL
+        # names, the ones the MVS linkage editor is shown.  SoftFloat 2c's
+        # file-local addFloat64Sigs and roundAndPackFloat64 collide at
+        # eight characters and Assembler XF accepted them without a word,
+        # because they are never ENTRY.  Measuring them would report
+        # defects that do not exist -- the same reasoning as D-83.
+        syms.append((name, typ))
     return syms
 
 
@@ -105,12 +113,21 @@ def iter_objects(paths):
 
 
 def main(argv):
-    if len(argv) < 2:
-        sys.stderr.write("usage: lint_c04.py <object-or-directory> [...]\n")
+    args = [a for a in argv[1:] if not a.startswith("--")]
+    # D-111.  Without this the lint reports vendored collisions and passes,
+    # which is how SoftFloat 2c reached the assembler on MVS before anyone
+    # noticed that eighteen of its float64_* names truncate to FLOAT64@
+    # (VL-25).  --enforce-all makes EVERY external actionable and is used
+    # on the objects that actually go to MVS: nothing there gets an
+    # exemption, because the linkage editor gives none.
+    enforce_all = "--enforce-all" in argv
+    if not args:
+        sys.stderr.write("usage: lint_c04.py [--enforce-all] "
+                         "<object-or-directory> [...]\n")
         return 2
 
     seen = {}
-    for obj in iter_objects(argv[1:]):
+    for obj in iter_objects(args):
         for name, typ in nm_symbols(obj):
             seen.setdefault(name, set()).add(typ)
 
@@ -150,8 +167,36 @@ def main(argv):
         print("  no case-insensitive collisions in the first %d characters"
               % MVS_MAX)
 
-    # Only ONFLY's own names are actionable here.  The SoftFloat names are a
-    # Gate G1 question (D-45), so they are reported and not failed on.
+    if enforce_all:
+        glob = set(n for n, types in seen.items()
+                   if any(t.isupper() for t in types))
+        bad_names = sorted(n for n in glob if len(n) > MVS_MAX)
+        bad_groups = {k: v for k, v in collisions.items()
+                      if len([n for n in v if n in glob]) > 1}
+        print("  %d of %d externals are global; C-04 constrains those"
+              % (len(glob), len(seen)))
+        for n in bad_names[:12]:
+            print("      %s (%d) is over %d characters" % (n, len(n), MVS_MAX))
+        for k in sorted(bad_groups):
+            print("      %s <- %s" % (k, ", ".join(bad_groups[k])))
+        bad = len(bad_names)
+        collisions = bad_groups
+        if bad or collisions:
+            print("lint_c04: FAIL - %d name(s) over %d characters and %d "
+                  "collision group(s); C-04 admits no exemption on an "
+                  "object bound for MVS (D-111)"
+                  % (bad, MVS_MAX, len(collisions)))
+            return 1
+        print("lint_c04: every external satisfies C-04 "
+              "(<= %d characters, unique ignoring case; C89 guarantees "
+              "only %d)" % (MVS_MAX, C89_SIGNIFICANT))
+        return 0
+
+    # Without --enforce-all only ONFLY's own names are actionable.  The
+    # Release 3e names are reported rather than failed on: under NR-03 and
+    # D-105 the MVS backend is Release 2c, so 3e is not on a path to an
+    # MVS linkage editor, and whether it ever reaches one on z/OS is an
+    # open question rather than a settled exemption.
     if onfly_bad or onfly_collisions:
         print("lint_c04: FAIL - %d ONFLY name(s) violate C-04"
               % (len(onfly_bad) + len(onfly_collisions)))

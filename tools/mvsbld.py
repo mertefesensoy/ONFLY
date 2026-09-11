@@ -54,6 +54,18 @@ DLM = "ZZ"
 CARD = 80
 JCL_FIELD = 71
 
+# The default C flags.  -Wno-long-long is required, not cosmetic: the
+# procedures compile with -ansi -pedantic-errors, under which `long long`
+# is an ERROR, and NR-04 defines the dialect as "C89 plus long long".
+#
+# A source entry may carry its own flags as a third element.  That exists
+# for third_party: upstream SoftFloat 2c warns in float64_rem about
+# pointer signedness, -pedantic-errors makes that fatal, and D-28 and
+# D-35 forbid editing the file to silence it.  The x86 Makefile makes the
+# same exception for the same reason, so the two builds stay comparable.
+CC_FLAGS = "-ansi -pedantic-errors -Wno-long-long"
+CC_FLAGS_VENDOR = "-ansi -Wno-long-long"
+
 HDR_DSN = "%s.ONFLY.H" % USER      # FB/80, quoted includes
 VBH_DSN = "%s.ONFLY.VBH" % USER    # VB/255, angle-bracket includes
 SRC_DSN = "%s.ONFLY.C" % USER      # FB/80, translation units
@@ -82,11 +94,84 @@ def cards_of(relpath):
     return out
 
 
+def _cards(src):
+    """Cards for a source entry: a repository path, or cards already built.
+
+    amalgamate() returns cards rather than writing a file (D-110), so a
+    caller can hand those straight to build() in place of a path.
+    """
+    if isinstance(src, (list, tuple)):
+        return list(src)
+    return cards_of(src)
+
+
+def amalgamate(relpath, include_map, _seen=None, _depth=0):
+    """Cards for `relpath` with its quoted includes inlined, recursively.
+
+    D-110.  This exists because GCCMVS resolves `#include "name"` to the PDS
+    member given by the first EIGHT characters of the name (VL-23), so
+    SoftFloat 2c's `softfloat.h`, `softfloat-macros` and
+    `softfloat-specialize` all name one member and three files cannot
+    occupy it.  D-109's probe established there is no way round it: the
+    compiler's own option list contains nothing that changes the mapping,
+    and `-remap`, which is GCC's mechanism for exactly this, is accepted
+    and inert on this port (VL-24).
+
+    `include_map` maps an include spelling to a repository path and is
+    supplied by the caller.  It is never derived, for the same reason
+    member names are not: a rule that guessed would fail silently on the
+    first name that did not fit it.  An include this map does not name is
+    an error rather than a passthrough, so a new `#include` appearing
+    upstream stops the build instead of being quietly left unresolved.
+
+    Angle-bracket includes are left exactly as they are: those resolve
+    from PDPCLIB on SYSINCL and have never collided.
+
+    Nothing is written to disk.  The expansion is assembled into the deck
+    on every run, so there is no second copy of the source to drift from
+    the first -- which is the concern D-94 raised about amalgamating the
+    engine source, and the reason it does not arise here.
+    """
+    if _seen is None:
+        _seen = []
+    if _depth > 8:
+        raise DeckError("include nesting too deep at %s" % relpath)
+    out = []
+    for line in cards_of(relpath):
+        stripped = line.strip()
+        if stripped.startswith("#include") and '"' in stripped:
+            name = stripped.split('"')[1]
+            if name not in include_map:
+                raise DeckError(
+                    '%s includes "%s", which is not in the include map; '
+                    "add it explicitly rather than letting it resolve by "
+                    "accident" % (relpath, name))
+            _seen.append(name)
+            out.append("/* ONFLY: inlined \"%s\" (D-110) */" % name[:40])
+            out.extend(amalgamate(include_map[name], include_map,
+                                  _seen, _depth + 1))
+            out.append("/* ONFLY: end of \"%s\" */" % name[:40])
+        else:
+            out.append(line)
+    for card in out:
+        if len(card) > CARD:
+            raise DeckError("amalgamated card over %d columns: %s"
+                            % (CARD, card[:90]))
+    return out
+
+
+def amalgamated_order(relpath, include_map):
+    """The include names inlined, in the order the preprocessor sees them."""
+    seen = []
+    amalgamate(relpath, include_map, seen)
+    return seen
+
+
 def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
           asm_parm="DECK,NOLIST"):
     """Return a deck that compiles `sources`, links them and runs the result.
 
-    sources     [(repo path, 8-char member)]  translation units, in link order
+    sources     [(repo path OR cards, 8-char member)]  units, in link order
     headers     [(repo path, 8-char member)]  found by  #include "x.h"
     vb_headers  [(repo path, 8-char member)]  found by  #include <x.h>
     opt         GCCMVS optimisation flag
@@ -110,7 +195,8 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
         d.append(card)
 
     seen = {}
-    for _p, m in list(sources) + list(headers) + list(vb_headers):
+    for entry in list(sources) + list(headers) + list(vb_headers):
+        m = entry[1]
         if len(m) > 8:
             raise DeckError("member name %r is over 8 characters" % m)
         if m in seen:
@@ -134,7 +220,7 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
             (VBH_DSN, "(RECFM=VB,LRECL=255,BLKSIZE=6144)"),
             (SRC_DSN, "(RECFM=FB,LRECL=80,BLKSIZE=3200)")), 1):
         a("//M%d       DD DSN=%s,DISP=(,CATLG,DELETE)," % (n, dsn))
-        a("//            UNIT=SYSDA,SPACE=(TRK,(30,10,20)),")
+        a("//            UNIT=SYSDA,SPACE=(TRK,(90,30,40)),")
         a("//            DCB=%s" % dcb)
     a("//*")
 
@@ -147,15 +233,16 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
         a("//SYSPRINT DD SYSOUT=*")
         a("//SYSUT2   DD DSN=%s,DISP=OLD" % dsn)
         a("//SYSIN    DD DATA,DLM='%s'" % DLM)
-        for relpath, member in items:
+        for entry in items:
+            src, member = entry[0], entry[1]
             a("./ ADD NAME=%s" % member)
-            d.extend(cards_of(relpath))
+            d.extend(_cards(src))
         a("./ ENDUP")
         a(DLM)
         a("//*")
 
     # --- write the VB/255 library with IEBGENER, one member per step ------
-    for n, (relpath, member) in enumerate(vb_headers, 1):
+    for n, (relpath, member) in enumerate(list(vb_headers), 1):
         a("//VBH%d     EXEC PGM=IEBGENER" % n)
         a("//SYSPRINT DD SYSOUT=*")
         a("//SYSUT2   DD DSN=%s(%s),DISP=OLD" % (VBH_DSN, member))
@@ -166,10 +253,12 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
         a("//*")
 
     # --- compile and assemble each unit ----------------------------------
-    for n, (_relpath, member) in enumerate(sources, 1):
+    for n, entry in enumerate(sources, 1):
+        member = entry[1]
+        flags = entry[2] if len(entry) > 2 else CC_FLAGS
         a("//COMP%d    EXEC PGM=GCC," % n)
-        a("//  PARM='-S -ansi -pedantic-errors -Wno-long-long"
-          "%s -o dd:out -'" % ((" " + opt) if opt else ""))
+        a("//  PARM='-S %s%s -o dd:out -'"
+          % (flags, (" " + opt) if opt else ""))
         a("//SYSINCL  DD DSN=PDPCLIB.INCLUDE,DISP=SHR,DCB=BLKSIZE=32720")
         if vb_headers:
             a("//         DD DSN=%s,DISP=SHR" % VBH_DSN)
