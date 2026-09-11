@@ -70,7 +70,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 testfloat c04 prep runner eng
+.PHONY: all test generate lint clean units layout fp kernel decode golden tt01 tt02 testfloat c04 col80 prep runner eng
 
 all: test
 
@@ -94,6 +94,16 @@ $(IVEC): tools/genint.py
 # Mandatory in every build: a stray double compiled by GCCMVS would silently be
 # hexadecimal floating point.  engine/src/onffpn.c is the native backend and is
 # excluded by design; it is the only file in ONFLY allowed to name `double`.
+# --- 80-column lint (D-93) ------------------------------------------------
+# Measured on the running TK5: an 85-character card submitted to the reader
+# arrived as 80 characters, columns 81 onward discarded, with no error and
+# no message.  Source that must reach MVS is held to 80 columns so that
+# truncation cannot happen silently.  third_party/ is exempt and skipped:
+# D-28 and D-35 commit it to byte-identity with upstream, so it needs a
+# transport that preserves long lines instead.
+col80: $(GENERATED) $(IVEC) softfloat/onfsub.c
+	$(PYTHON) tools/lint_col80.py engine generated softfloat tests tools
+
 lint: $(GENERATED)
 	$(PYTHON) tools/lint_nr05.py --exclude engine/src/onffpn.c \
 	  engine generated softfloat tests tools
@@ -285,8 +295,8 @@ runner: $(BUILD) $(GENERATED)
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint c04 tt01 tt02 layout units fp kernel decode eng golden prep
-	@echo "ONFLY: NR-05 + C-04 lints, TT-01, TT-02, TU-01..TU-07, kernel, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed"
+test: lint col80 c04 tt01 tt02 layout units fp kernel decode eng golden prep
+	@echo "ONFLY: NR-05 + col80 + C-04 lints, TT-01, TT-02, TU-01..TU-07, kernel, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"

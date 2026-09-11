@@ -36,10 +36,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 HEADER = os.path.join(ROOT, "generated", "onfivec.h")
 
-VEC_RE = re.compile(
-    r"^\s*\{\s*0x([0-9A-Fa-f]{8})U,\s*0x([0-9A-Fa-f]{8})U,"
-    r"\s*0x([0-9A-Fa-f]{8})U,\s*0x([0-9A-Fa-f]{8})U,"
-    r"\s*0x([0-9A-Fa-f]{8})U,\s*0x([0-9A-Fa-f]{8})U\s*\},\s*$")
+# A vector is six 32-bit halves.  D-93 splits each one across two source
+# lines so no line reaches 80 columns, so the values are gathered as tokens
+# and regrouped in sixes rather than matched a line at a time.  That also
+# means the parser does not care how the generator chooses to wrap them.
+HEX_RE = re.compile(r"0x([0-9A-Fa-f]{8})U")
 ARR_RE = re.compile(r"^static const struct onfiv (\w+)\[(\d+)\] = \{")
 GRP_RE = re.compile(r'^\s*\{\s*"(\w+)",\s*(\d+)U,\s*(\w+)\s*\},\s*$')
 CMP_RE = re.compile(r"^#define ONFI_CMP_(\w+)\s+0x([0-9A-Fa-f]+)U")
@@ -81,11 +82,19 @@ def parse_header(path):
                 ingrp = False
             continue
         if current is not None:
-            m = VEC_RE.match(line)
-            if m:
-                arrays[current].append(tuple(int(g, 16) for g in m.groups()))
-            elif line.startswith("};"):
+            if line.startswith("};"):
                 current = None
+            else:
+                arrays[current].extend(int(g, 16)
+                                       for g in HEX_RE.findall(line))
+
+    # Regroup each array's flat token list into six-tuples.
+    for name in list(arrays):
+        flat = arrays[name]
+        if len(flat) % 6:
+            raise SystemExit("run_tt01: %s holds %d halves, not a multiple "
+                             "of six" % (name, len(flat)))
+        arrays[name] = [tuple(flat[i:i + 6]) for i in range(0, len(flat), 6)]
 
     groups = []
     for name, count, arr in order:

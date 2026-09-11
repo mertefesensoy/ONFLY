@@ -101,7 +101,8 @@ int onfrun(const struct onfnet *net, struct onfsta *st,
                eq_th 'v > v_th'.  onfflt(uth, u) is exactly u > uth. */
             if (!was_rfr && (onfflt(net->uth, st->u[i]) || st->force[i])) {
                 st->u[i] = net->ureset;
-                /* D-67: g is reset on every spike (Shiu's eq_rst 'g = 0*mV'). */
+                /* D-67: g is reset on every spike (Shiu's
+                   eq_rst 'g = 0*mV'). */
                 st->g[i] = zero;
                 /* D-68: stimulus neurons never become refractory. */
                 st->rfr[i] = st->isstim[i] ? 0 : net->refract;

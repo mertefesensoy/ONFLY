@@ -34,7 +34,8 @@
  * Byte order.  SoftFloat needs exactly one of these defined.  The detection
  * mirrors engine/include/onfplat.h so the two cannot disagree.
  * ------------------------------------------------------------------------ */
-#if defined(__MVS__) || defined(__CMS__) || defined(__s390x__) || defined(__s390__)
+#if defined(__MVS__) || defined(__CMS__) \
+ || defined(__s390x__) || defined(__s390__)
 #define BIGENDIAN 1
 #else
 #define LITTLEENDIAN 1

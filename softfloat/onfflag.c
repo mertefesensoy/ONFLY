@@ -3,7 +3,8 @@
  *
  * D-34: the soft backend holds no writable static data, so that the engine is
  * reentrant for the future CICS path (NFR-MNT-02, Section 3.7).  SoftFloat's
- * own softfloat_raiseFlags accumulates into the global softfloat_exceptionFlags;
+ * own softfloat_raiseFlags accumulates into the global
+ * softfloat_exceptionFlags;
  * this replacement discards the notification instead, and the specialization's
  * softfloat_raiseFlags.c is not compiled.
  *

@@ -39,7 +39,8 @@ BANNER = """/*
  * All rights reserved.  Redistributed and modified under the three-clause BSD
  * licence in third_party/SoftFloat-3e/COPYING.txt (NFR-LIC-01).
  *
- * upstream sha256 %(sha)s
+ * upstream sha256
+ *   %(sha)s
  *
  * Modification applied (D-34, D-35):
 %(why)s *
@@ -63,8 +64,11 @@ DERIVATIONS = [
             " *   writable static datum in the binary64 path, disappears.\n"
         ),
         "subs": [
+            # The replacement comment is short because the line it lands on is
+            # already indented 20 columns; the full reasoning is in the banner
+            # above.  D-93 holds derived source to 80 columns.
             ("(softfloat_roundingMode == softfloat_round_min)",
-             "0 /* ONFLY: round-to-nearest-even fixed by NR-01/NR-10 */"),
+             "0 /* ONFLY: NR-01/NR-10 fix the mode */"),
         ],
     },
 ]

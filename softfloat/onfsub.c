@@ -7,7 +7,8 @@
  * All rights reserved.  Redistributed and modified under the three-clause BSD
  * licence in third_party/SoftFloat-3e/COPYING.txt (NFR-LIC-01).
  *
- * upstream sha256 ba49c86793182190e1325aef81f53d2bd9e8297478cd8ad1616dc83472ef9585
+ * upstream sha256
+ *   733f17b90486602ff6c67fa3d99166a841b03276c0fcc7da66751d1e8631f01f
  *
  * Modification applied (D-34, D-35):
  *   The `x - x` sign rule reads SoftFloat's global rounding mode:
@@ -102,7 +103,7 @@ float64_t
         if ( ! sigDiff ) {
             uiZ =
                 packToF64UI(
-                    0 /* ONFLY: round-to-nearest-even fixed by NR-01/NR-10 */, 0, 0 );
+                    0 /* ONFLY: NR-01/NR-10 fix the mode */, 0, 0 );
             goto uiZ;
         }
         if ( expA ) --expA;

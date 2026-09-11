@@ -117,7 +117,8 @@ int main(void)
     /* --- TU-05: stimulus draws ------------------------------------------- */
     emit_stim(1UL, 0, 100, 1000);        /* rate 0 must be silent */
     emit_stim(1UL, 200, 100, 1000);
-    emit_stim(7UL, 9999, 100, 1000);     /* 9999*100 = 999900, NR-12 upper bound */
+    /* 9999*100 = 999900, NR-12 upper bound */
+    emit_stim(7UL, 9999, 100, 1000);
     emit_stim(1UL, 120, 100, 200000);    /* long enough to hit rejection */
     emit_stim(0UL, 40, 100, 200000);     /* seed 0, long run */
 

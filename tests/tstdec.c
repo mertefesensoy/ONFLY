@@ -69,7 +69,8 @@ int main(int argc, char **argv)
     rc = onfdec(buf, len, limit, &net, &need);
     printf("RESULT rc=%d need=%ld len=%ld\n", rc, (long)need, (long)len);
     if (rc == ONFD_OK) {
-        printf("DECODED n=%ld e=%ld ns=%ld nr=%ld dtus=%ld delay=%ld refract=%ld\n",
+        printf("DECODED n=%ld e=%ld ns=%ld nr=%ld dtus=%ld"
+               " delay=%ld refract=%ld\n",
                (long)net.n, (long)net.e, (long)net.ns, (long)net.nr,
                (long)net.dtus, (long)net.delay, (long)net.refract);
         printf("CONSTS uth=%08lX:%08lX p11=%08lX:%08lX p22=%08lX:%08lX\n",

@@ -121,7 +121,8 @@ int main(int argc, char **argv)
         printf("DECODE rc=%d\n", rc);
         return 1;
     }
-    rowptr  = (onf_u32 *)xalloc(sizeof(onf_u32) * (size_t)(net.n + 1), "rowptr");
+    rowptr  = (onf_u32 *)xalloc(sizeof(onf_u32) * (size_t)(net.n + 1),
+                                "rowptr");
     target  = (onf_u32 *)xalloc(sizeof(onf_u32) * (size_t)net.e, "target");
     weight  = (onf_f64 *)xalloc(sizeof(onf_f64) * (size_t)net.e, "weight");
     stim    = (onf_u32 *)xalloc(sizeof(onf_u32) * (size_t)net.ns, "stim");
