@@ -476,7 +476,12 @@ sfs: $(BUILD)
 # translation unit through them, and the result must be bit-identical to
 # the ordinary build: a shim that changed one rounding decision would show
 # up here rather than as a one-platform fingerprint mismatch much later.
-shim: $(BUILD) softfloat/onfsub.c
+#
+# `fp` is a prerequisite because cmpback.py compares against
+# build/tstfp_soft.exe, which only `fp` builds; `test` names shim before
+# fp, so on a fresh build directory the comparison had nothing to compare
+# against (found on the first `make test` in a clean worktree, 2026-09-12).
+shim: $(BUILD) softfloat/onfsub.c fp
 	$(CC) $(SFFLAGS) -Isoftfloat/c89 $(INC) $(SFINC) \
 	  -o $(BUILD)/tstfp_shim.exe \
 	  tests/tstfp.c engine/src/onffpc.c engine/src/onffps.c \

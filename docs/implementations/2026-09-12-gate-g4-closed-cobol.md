@@ -36,6 +36,7 @@ equal the bytes Python packs".
 | `tests/run_cob.py` | New. The x86 half: GnuCOBOL syntax checks, a real run in both modes, byte comparison of ONFREQ against `generated/onfcom_py.py`. Skips with exit 0 when no `cobc` exists (D-156). |
 | `tools/mvscob.py` | New. The MVS half: one job — IEBUPDTE, IKFCBL00, IEWL, GO in REQ mode, IDCAMS `PRINT DUMP`, GO in RPT mode — and the byte comparison of the dump. `--copy68` reproduces the COBOL-68 COPY probe. |
 | `Makefile` | `make cob` target (outside `test`, D-156); `generated/ONFLYDRV.cbl` joins `GENERATED` with the template as a prerequisite; `cobol/` joins the 80-column lint. |
+| `Makefile` (shim) | Latent defect fixed in passing: `shim` compares against `build/tstfp_soft.exe`, which only `fp` builds, and `test` names shim first, so `make test` failed on a fresh build directory; `fp` is now a prerequisite of `shim`. |
 | `docs/ONFLY-SRS.md` | D-151 … D-161; VL-57 … VL-60; Gate G4 closed; Phase A row updated. |
 
 The host also gained GnuCOBOL 3.2.0 through MSYS2 (`pacman -S
