@@ -76,7 +76,8 @@ JOB = "ONFENG"
 # They are not interchangeable -- UNIT=0480 in JCL is not the tape.
 TAPE_DEV = "0480"
 JCL_UNIT = "480"
-DEFAULT_IMAGE = os.path.join(ROOT, "data", "transport", "onfnet.aws")
+DEFAULT_IMAGE = os.path.join(ROOT, "data", "transport",
+                             "onfnet-sl.aws")
 
 B32 = "third_party/SoftFloat-2c/softfloat/bits32/"
 INCLUDES = {
@@ -125,9 +126,13 @@ HEADERS = [
 #
 # Whether BLP belongs in the final Phase E JCL is NOT decided by this;
 # D-143 records it as a diagnostic only.
-# Back to NL: VL-48 measured BLP being silently downgraded to NL on
-# TK5's class A, so asking for it only misleads a reader of the JCL.
-LABEL_FORM = "NL"
+# D-145: SL, a standard-labelled volume written by tools/mkasl.py.
+# NL is what four measurements failed against and BLP is not granted to
+# TK5's class A (VL-48), so this is the remaining form -- and the one
+# any MVS reads without special JCL.  HDR2 declares the same RECFM,
+# block size and density the DCB below asks for; if they disagree MVS
+# rejects the volume, so the two are written from the same constants.
+LABEL_FORM = "SL"
 
 # D-144: name the density explicitly, to find out whether the 6250 BPI
 # in IEC501A is a real constraint or merely what MVS prints when the
