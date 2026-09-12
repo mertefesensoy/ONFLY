@@ -282,9 +282,44 @@ validation rates at the same W_syn. No recalibration was run for any variant;
 whether one would pass ACC-4 in full is not proven. Changing the stimulus set
 is a D-52 / D-73 decision and is left to the owner.
 
-### 6.8 Extraction and ACC-3 (D-178, D-179)
+### 6.8 Extraction and ACC-3 (D-178, D-179; VL-66)
 
-*(filled in below once `prep/extract.py` completes)*
+```
+python prep/extract.py --rank --jobs 14
+  240 runs done, 9678 s
+ranked 184099 neurons, 20789 active, cuts {'250': 20618, '500': 12195, '1000': 4846}
+python prep/extract.py --extract
+  n250   n=256     e=3699           47704 bytes
+  n500   n=501     e=10783         135648 bytes
+  n1000  n=1001    e=32929         407400 bytes
+python prep/extract.py --acc3 --jobs 14
+     N   rate    subcirc       full      tol  ACC-3
+   250     10       0.00       3.67     1.00   FAIL
+   250     40       0.00      14.35     1.44   FAIL
+   250     60       0.00      28.38     2.84   FAIL
+   250    120       0.00      68.38     6.84   FAIL
+   250    200       0.00      88.80     8.88   FAIL
+   500     10       0.00       3.67     1.00   FAIL
+   500     40       8.53      14.35     1.44   FAIL
+   500     60      18.07      28.38     2.84   FAIL
+   500    120      29.98      68.38     6.84   FAIL
+   500    200      37.20      88.80     8.88   FAIL
+  1000     10       0.43       3.67     1.00   FAIL
+  1000     40      32.40      14.35     1.44   FAIL
+  1000     60      50.97      28.38     2.84   FAIL
+  1000    120      81.82      68.38     6.84   FAIL
+  1000    200     101.15      88.80     8.88   FAIL
+N=1000: ACC-3 FAIL; need=575332 bytes vs 8388608 (NFR-MEM-01 PASS); NFR-PERF-01 by G3 PASS
+SR-EXT-03: no N in (250, 500, 1000) satisfies ACC-3, NFR-MEM-01 and NFR-PERF-01 -- escalate to the owner
+wrote .../data/calibration/acc3.json (159 s)
+```
+
+Diagnosis (from the signed-count cache): the left MN9 has 253 presynaptic
+partners with 2,956 excitatory and 2,966 inhibitory synapses; the top-1000
+set keeps 50 of them (1,177 excitatory, 693 inhibitory), the top 500 keep 20
+(604 / 108), the top 250 keep 5 (6 / 14). Ranking by global activity keeps
+the 191 neurons that fire above 100 Hz throughout and drops MN9's inhibitory
+context. This is SR-EXT-03's escalation case; the disposition is the owner's.
 
 ### 6.9 Regression
 
