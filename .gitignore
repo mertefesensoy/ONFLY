@@ -70,3 +70,4 @@ reference/shiu/results/data/
 # cache are regenerable by prep/calibrate.py; the search log is committed.
 data/calibration/*.bin
 data/calibration/*.npz
+data/calibration/tmp/

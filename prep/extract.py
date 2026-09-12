@@ -113,19 +113,34 @@ def parse_all(text):
 
 
 def run_pool(jobs_list, jobs, extra, on_done):
-    """Run runnet for every (path, rate, seed), ``jobs`` at a time."""
+    """Run runnet for every (path, rate, seed), ``jobs`` at a time.
+
+    Output goes to a file per run, not a pipe: a ``--all`` run prints one
+    line per neuron (about 7 MB on the full brain), and a pipe that is read
+    only after exit fills up and blocks the engine forever -- measured on
+    2026-09-12, fourteen runs stuck for twenty minutes after finishing.
+    """
+    tmp = os.path.join(cal.CAL_DIR, "tmp")
+    if not os.path.isdir(tmp):
+        os.makedirs(tmp)
     todo = list(jobs_list)
     procs = {}
     while todo or procs:
         while todo and len(procs) < jobs:
             path, r, s = todo.pop(0)
+            out = os.path.join(tmp, "%s-%d-%d.txt"
+                               % (os.path.basename(path), r, s))
+            fh = io.open(out, "w")
             p = subprocess.Popen([cal.RUNNET, path, str(r), str(cal.SIM_MS),
-                                  str(s)] + extra, stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT, text=True)
-            procs[(path, r, s)] = p
-        for k, p in list(procs.items()):
+                                  str(s)] + extra, stdout=fh,
+                                 stderr=subprocess.STDOUT)
+            procs[(path, r, s)] = (p, fh, out)
+        for k, (p, fh, out) in list(procs.items()):
             if p.poll() is not None:
-                text = p.stdout.read()
+                fh.close()
+                text = io.open(out, encoding="utf-8",
+                               errors="replace").read()
+                os.remove(out)
                 del procs[k]
                 on_done(k, text)
         time.sleep(2)
