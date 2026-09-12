@@ -406,6 +406,12 @@ def main(argv):
         if not os.path.isfile(CARDS):
             sys.stderr.write("mvseng: no card file at %s\n" % CARDS)
             return 2
+        # Release the device BEFORE staging.  Hercules holds the card
+        # file open for as long as it is loaded, and Windows refuses to
+        # overwrite an open file, so a second invocation dies with
+        # PermissionError inside stage() -- which reads as a filesystem
+        # problem and is really a device still holding its hopper.
+        console("devinit %s *" % READER_DEV)
         cardfile = stage(CARDS)
     else:
         if not os.path.isfile(image):

@@ -203,6 +203,12 @@ def run_reader(d, argv):
         sys.stderr.write("mvsxfr: no card file at %s -- build it with "
                          "--makecards\n" % CARDS)
         return 2
+    # Release before staging: Hercules keeps the card file open while
+    # it is loaded and Windows will not overwrite an open file, so a
+    # second invocation would fail inside stage() with a permission
+    # error that reads as a filesystem problem and is really a device
+    # still holding its hopper.
+    mvseng.console("devinit %s *" % READER_DEV)
     staged = mvseng.stage(CARDS)
 
     repeat = 1
