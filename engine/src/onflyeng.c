@@ -74,6 +74,20 @@
 #define ONFD_READ 108
 
 /*
+ * The largest payload onferead() will allocate for, in bytes.
+ *
+ * D-147: the declared length is read from a header FR-LOD-02 has not
+ * yet validated, so it cannot be handed to malloc unchecked.  64 MB is
+ * far above anything ONFLY produces -- the full-brain network is
+ * 299 MB but is never loaded whole on MVS, and the MVP path network is
+ * 885 KB (data/networks/MANIFEST.json) -- and far below a value that
+ * would exhaust a sensible region.  It is a sanity bound, not the
+ * memory limit: FR-LOD-04's check against the configured region runs
+ * afterwards and is what actually governs.
+ */
+#define ONF_MAXPAY 67108864L
+
+/*
  * Engine version.  Reported by the manifest so that a recorded result names
  * the engine that produced it (NFR-OBS-01).  Bumped by hand, deliberately:
  * it identifies a build of the engine, not of the network format.
@@ -233,29 +247,85 @@ static onf_i32 onferead(const char *path, onf_u8 **out)
     if (f == NULL) {
         return -1;
     }
-    if (fseek(f, 0L, SEEK_END) != 0) {
-        fclose(f);
-        return -1;
-    }
-    size = ftell(f);
-    if (size <= 0) {
-        fclose(f);
-        return -1;
-    }
-    rewind(f);
-    buf = (onf_u8 *)malloc((size_t)size);
+
+    /*
+     * D-147, FR-LOD-03: the header's declared length governs the read,
+     * not the dataset's size.  The previous version began with
+     * fseek(SEEK_END) and ftell, which is the dataset size and is
+     * exactly what the requirement forbids.  It also cannot work at
+     * all on a device that does not seek: VL-52 measured the card
+     * reader deliver all 11,068 cards of the network and ONFLYENG
+     * reject it with ONF108E before a single header check ran, because
+     * the very first statement failed.  A seekable dataset hides the
+     * difference, which is how it survived this long.
+     *
+     * So: read the fixed-size header, take the payload length from it,
+     * then read exactly that many more bytes.
+     */
+    buf = (onf_u8 *)malloc((size_t)ONF_NHDR_LEN);
     if (buf == NULL) {
         fclose(f);
         return -1;
     }
-    len = (onf_i32)fread(buf, 1, (size_t)size, f);
-    fclose(f);
-    if (len <= 0) {
+    len = (onf_i32)fread(buf, 1, (size_t)ONF_NHDR_LEN, f);
+    if (len != (onf_i32)ONF_NHDR_LEN) {
         free(buf);
+        fclose(f);
         return -1;
     }
+
+    /*
+     * This length comes from a header FR-LOD-02 has NOT yet checked, so
+     * it is not to be trusted with malloc.  Bounding it here keeps a
+     * corrupt or hostile header from asking for an absurd allocation
+     * before the integrity checks get their turn; a value that passes
+     * this bound but is still wrong is caught by the declared-length
+     * and payload-CRC checks, which is where it belongs.
+     */
+    size = (long)onfehdr(buf, ONF_N_PAYLEN);
+    if (size < 0 || size > ONF_MAXPAY) {
+        free(buf);
+        fclose(f);
+        return -1;
+    }
+
+    {
+        onf_u8 *whole = (onf_u8 *)realloc(buf,
+                                          (size_t)ONF_NHDR_LEN
+                                          + (size_t)size);
+        if (whole == NULL) {
+            free(buf);
+            fclose(f);
+            return -1;
+        }
+        buf = whole;
+    }
+
+    /*
+     * A SHORT READ IS NOT AN UNREADABLE DATASET, and treating it as one
+     * is a regression TE-06 caught.  If the header declares more
+     * payload than actually arrives, that is precisely the
+     * inconsistency FR-LOD-02's fifth check exists to report, as
+     * ONF106E.  Returning -1 here would report ONF108E instead and
+     * describe a truncated file as an I/O failure -- losing the
+     * distinction between "the dataset could not be read" and "the
+     * dataset disagrees with its own header", which are different
+     * findings with different causes.
+     *
+     * So whatever arrived is returned, and the decoder compares it
+     * against the declared length.
+     */
+    len = 0;
+    if (size > 0) {
+        len = (onf_i32)fread(buf + ONF_NHDR_LEN, 1, (size_t)size, f);
+        if (len < 0) {
+            len = 0;
+        }
+    }
+    fclose(f);
+
     *out = buf;
-    return len;
+    return (onf_i32)ONF_NHDR_LEN + len;
 }
 
 int main(int argc, char **argv)
