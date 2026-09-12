@@ -111,9 +111,25 @@ HEADERS = [
 # is what mkaws.py writes -- no VOL1/HDR1 records, just data blocks and
 # a tape mark.  The DCB must be stated here because an NL tape carries
 # no label for MVS to read it from.
+# D-143: BLP, not NL, as a DIAGNOSTIC.  VL-47 left MVS refusing the
+# volume -- IEC501A asks, the tape is loaded, IEC502E K dismounts it and
+# the request repeats.  The hypothesis under test is that NL makes MVS
+# read the first block to confirm it is not a label, and label
+# processing expects 80 bytes where mkaws.py writes a 32,720-byte block.
+# BLP bypasses label processing, so it tests that and nothing else.
+#
+# BLP is commonly restricted to authorised job classes and MVS may
+# quietly downgrade it to NL, in which case the failure will look
+# exactly like VL-47's -- which is itself the answer, and eliminates the
+# hypothesis rather than leaving it open.
+#
+# Whether BLP belongs in the final Phase E JCL is NOT decided by this;
+# D-143 records it as a diagnostic only.
+LABEL_FORM = "BLP"
+
 GO_DD = [
     "//ONFNET   DD DSN=ONFNET,DISP=(OLD,KEEP),UNIT=%s," % JCL_UNIT,
-    "//            VOL=SER=ONFNET,LABEL=(1,NL),",
+    "//            VOL=SER=ONFNET,LABEL=(1,%s)," % LABEL_FORM,
     "//            DCB=(RECFM=FB,LRECL=80,BLKSIZE=32720)",
 ]
 
@@ -250,20 +266,36 @@ def mount_when_asked(image, timeout=300):
     written to expect.  Returns True if the request was seen and
     answered.
     """
-    console("devinit %s *" % TAPE_DEV)
-    sys.stdout.write("mvseng: %s left empty; waiting for MVS to ask\n"
-                     % TAPE_DEV)
+    path = stage(image)
     want = "IEF233A M %s,ONFNET" % JCL_UNIT
+
+    # Only a request NEWER than this call counts.  The syslog is
+    # cumulative and every previous job left its own IEF233A in it, so
+    # a plain substring search matches a stale one on the first poll
+    # and mounts the tape BEFORE the job asks -- which is the one
+    # timing that cannot work, because MVS unloads the drive during
+    # allocation.  That produced a run whose log reads "format type
+    # ... / tape closed / IEF233A", in that order, and looked for all
+    # the world like the mount had simply been ignored.
+    stale = set(l for l in console("devlist TAPE").splitlines()
+                if want in l)
+    sys.stdout.write("mvseng: %s left empty; waiting for MVS to ask "
+                     "(ignoring %d earlier request(s))\n"
+                     % (TAPE_DEV, len(stale)))
+
     deadline = time.time() + timeout
     while time.time() < deadline:
-        body = console("devlist TAPE")
-        if want in body:
-            console("devinit %s %s"
-                    % (TAPE_DEV, os.path.abspath(image).replace("\\", "/")))
-            sys.stdout.write("mvseng: %s seen; mounted %s in reply\n"
-                             % (want, os.path.basename(image)))
-            return True
-        time.sleep(4)
+        fresh = [l for l in console("devlist TAPE").splitlines()
+                 if want in l and l not in stale]
+        if fresh:
+            body = console("devinit %s %s" % (TAPE_DEV, path))
+            ok = "format type" in body and "HHC00205E" not in body
+            sys.stdout.write("mvseng: %s\n" % fresh[-1].strip()[:90])
+            sys.stdout.write("mvseng: answered; %s %s\n"
+                             % ("loaded" if ok else "FAILED to load",
+                                path))
+            return ok
+        time.sleep(3)
     sys.stdout.write("mvseng: no mount request within %d s\n" % timeout)
     return False
 
