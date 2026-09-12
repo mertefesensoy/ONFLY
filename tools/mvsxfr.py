@@ -95,12 +95,45 @@ def main(argv):
     except (AttributeError, ValueError):
         pass
 
+    # IR-TRN-02's third transport: IND$FILE has already written a
+    # catalogued dataset, so there is no device to load -- the job just
+    # reads it.  Checking it with the SAME program that judged tape and
+    # the card reader is what makes the three results comparable.
+    via_dsn = None
+    for i, a in enumerate(argv):
+        if a == "--dataset" and i + 1 < len(argv):
+            via_dsn = argv[i + 1]
+
     via_reader = "--reader" in argv
-    d = deck(READER_DD if via_reader else None)
+    if via_dsn:
+        dd = ["//ONFTST   DD DSN=%s,DISP=SHR" % via_dsn]
+    elif via_reader:
+        dd = READER_DD
+    else:
+        dd = None
+    d = deck(dd)
     mvsub.check_cards(d)
     if "--print" in argv:
         sys.stdout.write("\n".join(d) + "\n")
         return 0
+
+    if via_dsn:
+        t0 = time.time()
+        before = mvsub.submit(d)
+        out = mvsub.collect(JOB, before, timeout=900, poll=5)
+        if out is None:
+            sys.stderr.write("mvsxfr: %s did not finish\n" % JOB)
+            return 1
+        sys.stdout.write("mvsxfr: %s read in %.1f s\n"
+                         % (via_dsn, time.time() - t0))
+        sys.stdout.write("=== step results ===\n")
+        for line in mvsub.summarise(out):
+            sys.stdout.write("  %s\n" % line[:116])
+        sys.stdout.write("=== tstxfr output ===\n")
+        for line in [l.rstrip().strip() for l in out.splitlines()
+                     if RESULT.match(l.rstrip())][:20]:
+            sys.stdout.write("  %s\n" % line[:116])
+        return 0 if "XFR000I" in out else 1
 
     if via_reader:
         return run_reader(d, argv)

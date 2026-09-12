@@ -276,6 +276,81 @@ def logon(user=USER, password=PASSWORD, keep=False):
             s.close()
 
 
+def send(local, dsname, user=USER, password=PASSWORD):
+    """Log on, send one file with IND$FILE, log off (D-148).
+
+    `Transfer()` is ws3270's IND$FILE client: it issues the host
+    command and runs the protocol itself, so the session must be at a
+    TSO READY prompt when it is called.
+
+    Mode=binary is the whole point for IR-TRN-01 -- the ASCII mode
+    would translate the code page, which is the first thing the
+    requirement forbids.  The host dataset is allocated fixed 80-byte
+    records to match IR-NET-08 and what tests/tstxfr.c expects to read
+    back.
+    """
+    s = Session()
+    try:
+        if not _reach_ready(s, user, password):
+            return False
+        dsn = "'%s.%s'" % (user, dsname)
+        action = ("Transfer(Direction=send,HostFile=%s,LocalFile=%s,"
+                  "Host=tso,Mode=binary,Exist=replace,Recfm=fixed,"
+                  "Lrecl=80,BlockSize=80,AllocationUnit=tracks,"
+                  "PrimarySpace=10,SecondarySpace=5)"
+                  % (dsn, local.replace("\\", "/")))
+        print("  sending %s -> %s" % (local, dsn))
+        status, lines = s.do(action, timeout=300)
+        for l in lines[:8]:
+            print("      %s" % l[:94])
+        scr = s.screen()
+        show("after the transfer", scr, keep=8)
+        ok = status == "ok"
+        print()
+        print("tso3270: IND$FILE transfer %s"
+              % ("reported success" if ok else "FAILED (%s)" % status))
+        return ok
+    finally:
+        s.close()
+
+
+def _reach_ready(s, user, password):
+    """The logon sequence, factored out so send() can reuse it."""
+    s.do("Connect(%s:%d)" % (HOST, PORT))
+    s.do("Wait(10,3270Mode)")
+    scr = s.screen()
+    if "Logon ===>" not in scr:
+        s.do("Enter()")
+        scr = s.until("Logon ===>")
+    if scr is None:
+        print("tso3270: never reached VTAM's Logon prompt")
+        return False
+    s.do("String(%s)" % TSOAPPL)
+    s.do("Enter()")
+    if s.until("ENTER USERID") is None:
+        print("tso3270: TSO did not ask for a user id")
+        return False
+    s.do("String(%s)" % user)
+    s.do("Enter()")
+    s.until("PASSWORD", tries=15)
+    s.do("String(%s)" % password)
+    s.do("Enter()")
+    for _ in range(10):
+        if s.until("READY", tries=4) is not None:
+            return True
+        cur = s.screen()
+        if "***" in cur:
+            s.do("Enter()")
+        elif "Option  ===>" in cur or "OPTION  ===>" in cur:
+            s.do("String(X)")
+            s.do("Enter()")
+        else:
+            time.sleep(0.6)
+    show("final", s.screen())
+    print("tso3270: did NOT reach READY")
+    return False
+
+
 def main(argv):
     try:
         sys.stdout.reconfigure(errors="replace")
@@ -283,13 +358,20 @@ def main(argv):
         pass
 
     user, password = USER, PASSWORD
+    local, dsname = None, "ONFTST"
     for i, a in enumerate(argv):
         if a == "--user" and i + 1 < len(argv):
             user = argv[i + 1]
         if a == "--pass" and i + 1 < len(argv):
             password = argv[i + 1]
+        if a == "--send" and i + 1 < len(argv):
+            local = argv[i + 1]
+        if a == "--as" and i + 1 < len(argv):
+            dsname = argv[i + 1]
 
     try:
+        if local is not None:
+            return 0 if send(local, dsname, user, password) else 1
         return 0 if logon(user, password, "--keep" in argv) else 1
     except RuntimeError as exc:
         sys.stderr.write("tso3270: %s\n" % exc)
