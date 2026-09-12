@@ -146,6 +146,20 @@ GO_DD = [
     "//            DCB=(RECFM=FB,LRECL=80,BLKSIZE=32720,DEN=%s)" % DEN,
 ]
 
+# IR-TRN-02's second transport, for the network file this time.  The
+# reader is read as a DEVICE, which never involves JES2 -- see the note
+# in tools/mvsxfr.py.  A 2540 delivers fixed 80-byte cards, so the
+# network arrives as 11,068 of them and FR-LOD-03's reassembly from
+# fixed-length records is doing real work rather than reading one
+# block.
+READER_UNIT = "10C"
+READER_DEV = "010C"
+READER_DD = [
+    "//ONFNET   DD UNIT=%s," % READER_UNIT,
+    "//            DCB=(RECFM=F,LRECL=80,BLKSIZE=80)",
+]
+CARDS = os.path.join(ROOT, "data", "transport", "onfnet-cards.bin")
+
 # DSN is not optional, and leaving it out is what a first attempt does.
 # A DD with DISP=OLD and no DSN names an unnamed TEMPORARY dataset,
 # which cannot be OLD because it cannot already exist, so MVS rejects
@@ -313,7 +327,7 @@ def mount_when_asked(image, timeout=300):
     return False
 
 
-def deck(opt=mvsbld.OPT):
+def deck(opt=mvsbld.OPT, go_dd=None):
     prologue = mvsbld.cards_of("generated/onf2cnm.h")
     library = prologue + mvsbld.amalgamate(UNIT, INCLUDES)
     backend = mvsbld.with_defines("engine/src/onffp2.c",
@@ -344,7 +358,8 @@ def deck(opt=mvsbld.OPT):
         (onfly("engine/src/onflyeng.c"), "ONFLYENG"),
     ]
     return mvsbld.build(JOB, "ONFLY G2 TAPE VERIFY", sources,
-                        headers=HEADERS, go_parm="VERIFY", go_dd=GO_DD,
+                        headers=HEADERS, go_parm="VERIFY",
+                        go_dd=GO_DD if go_dd is None else go_dd,
                         opt=opt)
 
 
@@ -367,7 +382,8 @@ def main(argv):
     for i, a in enumerate(argv):
         if a.startswith("--opt="):
             opt = a[len("--opt="):]
-    d = deck(opt)
+    via_reader = "--reader" in argv
+    d = deck(opt, READER_DD if via_reader else None)
     mvsub.check_cards(d)
     if "--print" in argv:
         sys.stdout.write("\n".join(d) + "\n")
@@ -385,10 +401,17 @@ def main(argv):
     # "HHC00201I ... tape closed" between the job starting and
     # IEF233A -- so a pre-mounted volume is gone by the time it is
     # wanted, which is what left four earlier jobs waiting forever.
-    if not os.path.isfile(image):
-        sys.stderr.write("mvseng: no image at %s\n" % image)
-        return 2
-    console("devinit %s *" % TAPE_DEV)
+    cardfile = None
+    if via_reader:
+        if not os.path.isfile(CARDS):
+            sys.stderr.write("mvseng: no card file at %s\n" % CARDS)
+            return 2
+        cardfile = stage(CARDS)
+    else:
+        if not os.path.isfile(image):
+            sys.stderr.write("mvseng: no image at %s\n" % image)
+            return 2
+        console("devinit %s *" % TAPE_DEV)
 
     # IR-TRN-02 asks for at least ten transfers per method, and
     # IR-TRN-04 selects on integrity first and elapsed time last, so
@@ -405,9 +428,18 @@ def main(argv):
         if repeat > 1:
             sys.stdout.write("--- transfer %d of %d ---\n"
                              % (n + 1, repeat))
+        if via_reader:
+            # Reloaded before every pass: a reader is consumed, and a
+            # second job would find an empty hopper.  devinit is the
+            # card-reader equivalent of rewinding a tape.  No `ascii`
+            # and no `trunc` is the whole experiment -- those are the
+            # code-page translation and the trailing-blank truncation
+            # IR-TRN-01 forbids by name.
+            console("devinit %s %s eof"
+                    % (READER_DEV, cardfile.replace("\\", "/")))
         t0 = time.time()
         before = mvsub.submit(d)
-        if not mount_when_asked(image):
+        if not via_reader and not mount_when_asked(image):
             sys.stderr.write("mvseng: the tape was never loaded\n")
         out = mvsub.collect(JOB, before, timeout=1800, poll=5)
         took = time.time() - t0
