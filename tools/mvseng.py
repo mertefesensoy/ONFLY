@@ -390,14 +390,49 @@ def main(argv):
         return 2
     console("devinit %s *" % TAPE_DEV)
 
-    t0 = time.time()
-    before = mvsub.submit(d)
-    if not mount_when_asked(image):
-        sys.stderr.write("mvseng: the tape was never loaded\n")
-    out = mvsub.collect(JOB, before, timeout=1800, poll=5)
-    wall = time.time() - t0
+    # IR-TRN-02 asks for at least ten transfers per method, and
+    # IR-TRN-04 selects on integrity first and elapsed time last, so
+    # every pass is judged and timed rather than only the last one.
+    repeat = 1
+    for i, a in enumerate(argv):
+        if a == "--repeat" and i + 1 < len(argv):
+            repeat = int(argv[i + 1])
+
+    passes = []
+    out = None
+    wall = 0.0
+    for n in range(repeat):
+        if repeat > 1:
+            sys.stdout.write("--- transfer %d of %d ---\n"
+                             % (n + 1, repeat))
+        t0 = time.time()
+        before = mvsub.submit(d)
+        if not mount_when_asked(image):
+            sys.stderr.write("mvseng: the tape was never loaded\n")
+        out = mvsub.collect(JOB, before, timeout=1800, poll=5)
+        took = time.time() - t0
+        wall += took
+        # ONF003I is the verify-only success of IR-TRN-03.  Judging on
+        # the message rather than on the return code is deliberate: a
+        # step can end RC 0000 for reasons that are not this one.
+        ok = out is not None and "ONF003I" in out
+        passes.append((ok, took))
+        if repeat > 1:
+            sys.stdout.write("    %s in %.1f s\n"
+                             % ("VERIFIED" if ok else "FAILED", took))
+
+    if repeat > 1:
+        good = sum(1 for ok, _ in passes if ok)
+        times = [t for _, t in passes]
+        sys.stdout.write("\n=== IR-TRN-02: %d of %d transfers verified"
+                         " ===\n" % (good, repeat))
+        sys.stdout.write("    elapsed per transfer: min %.1f s, "
+                         "max %.1f s, mean %.1f s\n"
+                         % (min(times), max(times),
+                            sum(times) / len(times)))
+
     if out is None:
-        sys.stderr.write("mvseng: %s did not finish in 3600 s\n" % JOB)
+        sys.stderr.write("mvseng: %s did not finish\n" % JOB)
         return 1
 
     sys.stdout.write("mvseng: round trip %.1f s\n" % wall)
