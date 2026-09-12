@@ -5,7 +5,7 @@
 | Date | 2026-09-12 |
 | Author | ONFLY engineering session (third session of the day) |
 | Phase / gate | Phase C — Science (x86); scope set by D-162 |
-| Owner decisions relied on | D-162 … D-172 |
+| Owner decisions relied on | D-162 … D-172 (D-173 onward for the disposition) |
 | Requirements touched | SR-CAL-01, SR-CAL-02, SR-CAL-03, SR-CAL-04, SR-CAL-05, SR-MOD-05, FR-PRP-05, FR-PRP-06, IR-NET-03, IR-MSG-02, ACC-3, ACC-4 |
 | Open items closed | TBC-06, TBD-07, TBD-08, TBD-09, TBD-10 |
 
@@ -205,9 +205,26 @@ READOUT k=1 n=6394 spikes=7 first=43400
 
 identical to the 0.275 mV candidate's `160/1` entry in the search log.
 
-### 6.5 ACC-4 at the chosen W_syn
+### 6.5 ACC-4 at the chosen W_syn (VL-64)
 
-*(filled in below once `prep/acc4.py` completes)*
+```
+python prep/acc4.py --jobs 14
+  rate      onfly       sd       se  reference      tol    mag
+    10       3.67     4.22     0.77       0.00     2.00   FAIL
+    40      14.35     8.45     1.54       4.73     2.00   FAIL
+    60      28.38     7.85     1.43      32.07     8.02   PASS
+   120      68.38     8.19     1.50      64.43    16.11   PASS
+   200      88.80     5.07     0.93      77.57    19.39   PASS
+ACC-4 shape PASS (onset onfly 10 Hz, reference 40 Hz: PASS); magnitude FAIL; ACC-4 FAIL
+ACC-2 x86 NATIVE rate 0: readout spikes [0, 0] -> PASS
+ACC-1 preview (full brain, x86, not the subcircuit): PASS
+wrote .../data/calibration/acc4.json (5464 s)
+```
+
+This is the SR-CAL-05 outcome: the calibrated model matches the reference at
+60, 120 and 200 Hz and in shape, and fails magnitude at 10 and 40 Hz, where
+ONFLY's MN9 responds and Shiu's does not. Tolerances were not widened. The
+finding is recorded as VL-64 and its disposition is the owner's (risk R-03).
 
 ### 6.6 Regression
 
