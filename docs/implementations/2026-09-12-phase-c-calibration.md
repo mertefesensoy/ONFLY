@@ -5,7 +5,7 @@
 | Date | 2026-09-12 |
 | Author | ONFLY engineering session (third session of the day) |
 | Phase / gate | Phase C — Science (x86); scope set by D-162 |
-| Owner decisions relied on | D-162 … D-171 |
+| Owner decisions relied on | D-162 … D-172 |
 | Requirements touched | SR-CAL-01, SR-CAL-02, SR-CAL-03, SR-CAL-04, SR-CAL-05, SR-MOD-05, FR-PRP-05, FR-PRP-06, IR-NET-03, IR-MSG-02, ACC-3, ACC-4 |
 | Open items closed | TBC-06, TBD-07, TBD-08, TBD-09, TBD-10 |
 
@@ -73,13 +73,14 @@ candidate returns the cached entry rather than re-running.
 
 ## 4. Mathematical / numerical details
 
-**Objective (SR-CAL-03).** With calibration rates `R = {20, 80, 160}` Hz, ONFLY
-rate `o(r)` and Shiu reference `t(r)`:
+**Objective (SR-CAL-03, D-172).** With calibration rates `R = {20, 80, 160}`
+Hz, ONFLY rate `o(r)`, Shiu reference `t(r)`, and `R⁺ = {r ∈ R : t(r) > 0}`:
 
-    E(W_syn) = (1/|R|) · Σ_{r∈R} |o(r) − t(r)| / max(t(r), 2 Hz)
+    E(W_syn) = (1/|R⁺|) · Σ_{r∈R⁺} |o(r) − t(r)| / t(r)
 
-The 2 Hz divisor floor is ACC-4's D-166 floor and is proposal P-10; the log
-records the rates at which it was applied, if any.
+The re-run measured `t(20) = 0` (no MN9 spike in 30 trials), so `R⁺ = {80,
+160}` and 20 Hz is excluded from the objective and reported as a finding
+(D-172; the earlier proposal P-10 of a 2 Hz divisor floor was withdrawn).
 
 **ONFLY rate at one calibration rate (D-169, D-170).**
 
@@ -124,7 +125,9 @@ Mine within them:
 - **Not reusing D-63's runs.** Those were one seed at the uncalibrated value;
   the scan re-evaluates 0.275 mV under D-169's three seeds so every candidate
   is comparable.
-- **P-10** for the zero-reference divisor, flagged rather than decided.
+- **P-10** (a divisor floor) was proposed for the zero-reference case and
+  withdrawn once the reference at 20 Hz measured exactly zero; the owner chose
+  exclusion (D-172).
 
 ## 6. Verification
 

@@ -26,12 +26,13 @@ smallest error among everything evaluated, and every candidate is kept in
 ``data/calibration/search-log.json`` (SR-CAL-03: "the search log shall be
 kept").
 
-Relative error when the reference is (near) zero
+Calibration rates with a zero reference (D-172)
 ------------------------------------------------
-``|onfly - ref| / max(ref, FLOOR)`` with FLOOR = 2 Hz, ACC-4's D-166 floor.
-SR-CAL-03 does not say what to divide by when the reference is zero; this
-choice only bites at rates where Shiu's MN9 fires below 2 Hz, and the log
-records at which rates it did (proposal P-10 in the SRS).
+The D-164 re-run found Shiu's MN9 silent at 20 Hz in all 30 trials, so the
+relative error there is undefined.  Per D-172 such rates are excluded from the
+objective -- the mean is taken over the calibration rates whose reference is
+above zero -- and ONFLY's rate at the excluded rates is still recorded in the
+log and reported as a finding.
 
 Determinism
 -----------
@@ -76,7 +77,6 @@ SEEDS = (1, 2, 3)                    # D-169
 SIM_MS = 1000                        # D-73 standard duration
 SCAN = (0.10, 0.15, 0.20, 0.25, 0.275, 0.30, 0.35, 0.40)   # D-171
 RESOLUTION = 0.005                   # D-171, mV
-FLOOR_HZ = 2.0                       # D-166 ACC-4 floor, used as divisor floor
 GOLD = (math.sqrt(5.0) - 1.0) / 2.0
 
 
@@ -90,7 +90,8 @@ def load_log():
     return {"candidates": {}, "scan": [], "refine": [], "chosen": None,
             "decisions": ["D-164", "D-165", "D-166", "D-169", "D-170",
                           "D-171"],
-            "objective": "mean over CAL_RATES of |onfly-ref|/max(ref,2 Hz)",
+            "objective": "D-172: mean over CAL_RATES with ref > 0 of "
+                         "|onfly-ref|/ref",
             "cal_rates_hz": list(CAL_RATES), "seeds": list(SEEDS),
             "sim_ms": SIM_MS}
 
@@ -239,23 +240,30 @@ def load_reference():
 
 
 def error(entry, ref):
-    errs, floored = [], []
+    """D-172: mean relative error over the calibration rates whose reference
+    is above zero; the excluded rates are returned for the record."""
+    errs, excluded = [], []
     for r in CAL_RATES:
         o = entry["onfly_hz"][str(r)]
         t = ref[str(r)]
-        if t < FLOOR_HZ:
-            floored.append(r)
-        errs.append(abs(o - t) / max(t, FLOOR_HZ))
-    return sum(errs) / len(errs), floored
+        if t <= 0.0:
+            excluded.append(r)
+            continue
+        errs.append(abs(o - t) / t)
+    if not errs:
+        raise SystemExit("every calibration rate has a zero reference")
+    return sum(errs) / len(errs), excluded
 
 
 def score_all(log, ref):
     for k, entry in log["candidates"].items():
         if "onfly_hz" in entry:
-            e, floored = error(entry, ref)
+            e, excluded = error(entry, ref)
             entry["error"] = e
-            entry["floored_rates"] = floored
+            entry["excluded_rates"] = excluded
     log["reference"] = ref
+    if "D-172" not in log["decisions"]:
+        log["decisions"].append("D-172")
     save_log(log)
 
 
