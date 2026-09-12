@@ -1,0 +1,31 @@
+{
+  "files": {
+    "LICENSE": {
+      "bytes": 1085,
+      "sha256": "3621f6d6476189190e2960fa43f11b275ba4eca848fdac50a1ba2925de6223e8"
+    },
+    "data/2023_03_23_completeness_630_final.csv": {
+      "bytes": 3057611,
+      "sha256": "e6b71e17671a9bdb05f55e4bc6774640a1418cb7a05125e0fc994ad40f9bfdfb"
+    },
+    "data/2023_03_23_connectivity_630_final.parquet": {
+      "bytes": 86630944,
+      "sha256": "94db8c650533bc36ffa3223f2e62325d5648b8d6bd31c3a4e1c804628c7557b3"
+    },
+    "model.py": {
+      "bytes": 11900,
+      "sha256": "fc45837d7122c6ce2a7f3f2f23c515992e4b232aadb919efabb72337fac88e4e"
+    },
+    "utils.py": {
+      "bytes": 2176,
+      "sha256": "f378cf0b464f2ac5e1daf3609ba25fd51c7e34f294846281707ffe006c3e9ef1"
+    }
+  },
+  "not_committed": [
+    "data/ (FlyWire 630 inputs, 89.7 MB, regenerable from the source URL)",
+    "results/data/ (spike parquet outputs)"
+  ],
+  "purpose": "SR-CAL-04 reference curve by re-running the Figure 1D protocol (TBC-06 closed by D-164)",
+  "retrieved": "2026-09-12 (data files, D-164); model.py vendored 2026-09-11 (D-64)",
+  "source": "github.com/philshiu/Drosophila_brain_model (main), MIT; accompanies Shiu et al., Nature 634:210-219 (2024)"
+}
