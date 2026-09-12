@@ -137,13 +137,29 @@ def main(argv):
     if not os.path.isdir(STAGE):
         os.makedirs(STAGE)
 
-    session = tso3270.Session()
+    # Retry at the PROCESS level, not inside one ws3270.  Disconnect
+    # and Connect within a single process does not free the LU -- four
+    # such attempts failed in a row while tools/tn3270.py, which starts
+    # a fresh ws3270 every time, reached the prompt reliably seconds
+    # later.  Whatever holds the LU is bound to the process, so a new
+    # one is what releases it.
+    session = None
+    for attempt in range(5):
+        if attempt:
+            print("g2ind: retrying with a fresh ws3270 (attempt %d)"
+                  % (attempt + 1))
+            time.sleep(5.0)
+        cand = tso3270.Session()
+        if tso3270._reach_ready(cand, tso3270.USER, tso3270.PASSWORD):
+            session = cand
+            break
+        cand.close()
+    if session is None:
+        sys.stderr.write("g2ind: could not reach TSO READY\n")
+        return 1
+
     allok = True
     try:
-        if not tso3270._reach_ready(session, tso3270.USER,
-                                    tso3270.PASSWORD):
-            sys.stderr.write("g2ind: could not reach TSO READY\n")
-            return 1
         print("g2ind: logged on; one session carries every transfer")
 
         if do_test:
