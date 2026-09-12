@@ -40,7 +40,7 @@ RC_OK, RC_WARN, RC_ERR = 0, 4, 8      # Appendix E RC column, proposal P-08
 #: the artifact under test.
 NETWORK = os.path.join(ROOT, "data", "networks",
                        "onfnet-malecns-v1.0-path.bin")
-MAX_MS = 5000                          # read back from the file and asserted
+MAX_MS = 1300                          # D-138; read back from the file and asserted
 
 SUITE = [
     ("G-01", "SUGR", 1,    0, STD_MS,        1),

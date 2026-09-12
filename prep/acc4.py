@@ -27,9 +27,17 @@ but ACC-1 is defined on the MVS subcircuit, so its value here is a preview of
 the full-brain x86 model, not a pass.  ACC-2 on x86 NATIVE is one row of the
 platforms it must hold on.
 
+Stimulus-set variants (D-174, D-176)
+------------------------------------
+``--variant right`` restricts the D-52 stimulus set to neurons whose MaleCNS
+``rootSide`` is R (Shiu's single-hemisphere protocol); ``--variant phg9`` and
+``--variant tpgrn`` keep one population.  The network is re-emitted with that
+stimulus list (the weights are unchanged), and the result goes to
+``acc4-<variant>.json`` so the baseline ``acc4.json`` is never overwritten.
+
 Run (repository root, after calibrate.py --refine):
 
-    python prep/acc4.py [--jobs 9] [--w-syn 0.2345]
+    python prep/acc4.py [--jobs 9] [--w-syn 0.2345] [--variant right]
 """
 import argparse
 import io
@@ -52,6 +60,28 @@ REL_TOL = 0.25                               # ACC-4
 ABS_FLOOR = 2.0                              # D-166
 ONSET_HZ = 1.0                               # ACC-4 onset definition
 OUT = os.path.join(cal.CAL_DIR, "acc4.json")
+ANNOT = os.path.join(cal.ROOT, "data", "malecns",
+                     "body-annotations-male-cns-v1.0-minconf-0.5.feather")
+
+
+def select_variant(stim, name):
+    """Return the D-52 stimulus bodies kept by variant ``name`` (D-176)."""
+    import pandas as pd
+    a = pd.read_feather(ANNOT, columns=["bodyId", "type", "rootSide"])
+    a = a[a.bodyId.isin([int(b) for b in stim])]
+    if name == "right":
+        keep = a[a.rootSide == "R"]
+    elif name == "phg9":
+        keep = a[a.type == "PhG9"]
+    elif name == "tpgrn":
+        keep = a[a.type == "dorsal_tpGRN"]
+    else:
+        raise SystemExit("unknown variant %s" % name)
+    bodies = sorted(int(b) for b in keep.bodyId)
+    desc = {"variant": name, "neurons": len(bodies), "bodies": bodies,
+            "types": sorted(set(keep.type.astype(str))),
+            "sides": sorted(set(keep.rootSide.astype(str)))}
+    return bodies, desc
 
 
 def run_many(path, jobs, rates, seeds):
@@ -93,7 +123,12 @@ def main():
     ap.add_argument("--jobs", type=int, default=9)
     ap.add_argument("--w-syn", type=float, default=None,
                     help="override the calibrate.py choice")
+    ap.add_argument("--variant", default=None,
+                    help="stimulus-set variant: right, phg9 or tpgrn (D-176)")
     a = ap.parse_args()
+    out_path = OUT
+    if a.variant:
+        out_path = os.path.join(cal.CAL_DIR, "acc4-%s.json" % a.variant)
 
     log = cal.load_log()
     if a.w_syn is None:
@@ -107,6 +142,13 @@ def main():
         raise SystemExit("no reference: run reference/shiu/rerun.py")
 
     arrays, stim, read = cal.load_cache()
+    variant = None
+    if a.variant:
+        import numpy as np
+        bodies, variant = select_variant(stim, a.variant)
+        stim = np.array(bodies, dtype=stim.dtype)
+        print("variant %s: %d stimulus neurons %s sides %s"
+              % (a.variant, len(bodies), variant["types"], variant["sides"]))
     print("emitting the full network at W_syn = %s mV" % cal.key(w_syn))
     path, n, e, sha, crc = cal.emit_candidate(w_syn, arrays, stim, read)
     del arrays
@@ -186,8 +228,9 @@ def main():
                                            for v in per_rate.values()),
         "platform": "x86 mingw32 gcc 6.3.0, NATIVE backend (D-30), "
                     "full MaleCNS brain; not the MVS subcircuit",
+        "stimulus_variant": variant or "D-52 set, both hemispheres (D-73)",
     }
-    io.open(OUT, "w", encoding="utf-8", newline="\n").write(
+    io.open(out_path, "w", encoding="utf-8", newline="\n").write(
         json.dumps(out, indent=2, sort_keys=True) + "\n")
 
     print("%6s %10s %8s %8s %10s %8s %6s"
@@ -207,7 +250,7 @@ def main():
           % ([x["spikes"] for x in ro0], "PASS" if acc2 else "FAIL"))
     print("ACC-1 preview (full brain, x86, not the subcircuit): %s"
           % ("PASS" if out["acc1_preview_full_brain_x86"] else "FAIL"))
-    print("wrote %s (%d s)" % (OUT.replace("\\", "/"), elapsed))
+    print("wrote %s (%d s)" % (out_path.replace("\\", "/"), elapsed))
     return 0
 
 

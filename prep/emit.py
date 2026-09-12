@@ -18,11 +18,12 @@ Every constant comes from the SRS rather than from this file's judgement:
 
   dt 0.1 ms, T_dly 1.8 ms, t_rfr 2.2 ms, V_th -45 mV, V_rest -52 mV,
   tau_mbr 20 ms, tau_syn 5 ms      SR-MOD-02, all still TBC-02
-  W_syn 0.275 mV                   SR-MOD-02, "verified for FlyWire",
-                                   to be recalibrated for MaleCNS (SR-CAL)
+  W_syn 0.2969 mV                  SR-MOD-02 as calibrated for MaleCNS by
+                                   SR-CAL on 2026-09-12 (VL-63, D-173);
+                                   the FlyWire origin was 0.275 mV
   G_EPS 2^-1022                    D-60
-  maximum duration 5000 ms         D-37, provisional, TBD-06 still open
-  magic 0x4F4E4631                 IR-NET-03, proposed, TBD-09 still open
+  maximum duration 1300 ms         D-138, measured on TK5 (TBD-06 closed)
+  magic 0x4F4E4631                 IR-NET-03, final (TBD-09 closed, D-167)
 
 The propagator coefficients are computed here on x86 in binary64 and shipped as
 bit patterns; no target platform converts decimal to binary floating point
@@ -61,7 +62,7 @@ T_RFR_MS = 2.2
 V_TH = -45.0
 V_REST = -52.0
 V_RESET = -52.0
-W_SYN = 0.275
+W_SYN = 0.2969               # calibrated, VL-63 / D-173
 
 # --- D-60 ------------------------------------------------------------------
 G_EPS = 2.0 ** -1022          # smallest normal binary64; clamps exactly the
@@ -273,16 +274,17 @@ def main():
     man = {
         "dataset": sources.DATASET,
         "dataset_uuid": sources.DATASET_UUID,
-        "decisions": ["D-37", "D-52", "D-54", "D-55", "D-56", "D-59", "D-60"],
+        "decisions": ["D-52", "D-54", "D-55", "D-56", "D-59", "D-60", "D-138",
+                      "D-167", "D-173", "D-175"],
         "parameters": {
             "dt_ms": DT_MS, "tau_mbr_ms": TAU_MBR_MS, "tau_syn_ms": TAU_SYN_MS,
             "t_dly_ms": T_DLY_MS, "t_rfr_ms": T_RFR_MS,
             "V_th": V_TH, "V_rest": V_REST, "V_reset": V_RESET,
             "W_syn": W_SYN, "G_EPS": G_EPS, "max_ms": MAX_MS,
             "p11": p11, "p12": p12, "p22": p22,
-            "status": "SR-MOD-02 values are TBC-02 (unconfirmed); W_syn is the "
-                      "FlyWire value pending SR-CAL recalibration; max_ms is "
-                      "provisional per D-37 with TBD-06 open",
+            "status": "SR-MOD-02 values confirmed (TBC-02 closed by D-66); "
+                      "W_syn calibrated for MaleCNS (SR-CAL, VL-63, D-173); "
+                      "max_ms 1300 per D-138; magic final per D-167",
         },
         "stimulus_types": mapping["stimulus_set"]["types"],
         "readout_type": mapping["readout"]["type"],

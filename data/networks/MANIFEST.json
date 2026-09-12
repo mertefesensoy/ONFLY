@@ -2,13 +2,16 @@
   "dataset": "male-cns:v1.0",
   "dataset_uuid": "4b2087c0fbe046bfaf0d60bc970e3e5d",
   "decisions": [
-    "D-37",
     "D-52",
     "D-54",
     "D-55",
     "D-56",
     "D-59",
-    "D-60"
+    "D-60",
+    "D-138",
+    "D-167",
+    "D-173",
+    "D-175"
   ],
   "limits": [
     "VL-12",
@@ -17,27 +20,27 @@
   "networks": {
     "full": {
       "bytes": 299515256,
-      "crc32": "0F866DC9",
+      "crc32": "7DEF7BD0",
       "edges": 24775486,
       "file": "onfnet-malecns-v1.0-full.bin",
       "neurons": 184099,
-      "sha256": "89f65626a48f38de7c0323434d66133beef2092ac3dac88ec7ecccdeaaca3891"
+      "sha256": "ea605b865c52dcdda663f674462443ee37f8a8f908403d4b0fd9276b280df2f5"
     },
     "hop2": {
       "bytes": 20615112,
-      "crc32": "FCEC6BBB",
+      "crc32": "9261D946",
       "edges": 1704385,
       "file": "onfnet-malecns-v1.0-hop2.bin",
       "neurons": 13521,
-      "sha256": "493075042d75edddc06ecad8e0a34b6b060606eb7c6e68a31b17e3d34f59c340"
+      "sha256": "a2854c281fde5116d261f8e4b7bead660d36686ad02a5ece4ddbe46c393a9946"
     },
     "path": {
       "bytes": 885416,
-      "crc32": "44D486F1",
+      "crc32": "EE9BE3F1",
       "edges": 72852,
       "file": "onfnet-malecns-v1.0-path.bin",
       "neurons": 913,
-      "sha256": "c108bfd8daf8f4f82ab31c20a87ca44ee99899ffec4b9df235c6c43765e28cf3"
+      "sha256": "93e4f375456e7de687c84483c1f196a388c9104d5758a3dc7f1ed136bce69af0"
     }
   },
   "not_the_srext_subcircuit": "SR-EXT-01 defines the MVP subcircuit by activity in a full-brain run, which needs W_syn calibrated first. Both files are provisional with respect to SR-EXT.",
@@ -46,13 +49,13 @@
     "V_reset": -52.0,
     "V_rest": -52.0,
     "V_th": -45.0,
-    "W_syn": 0.275,
+    "W_syn": 0.2969,
     "dt_ms": 0.1,
-    "max_ms": 5000,
+    "max_ms": 1300,
     "p11": 0.9950124791926823,
     "p12": 0.004937935295309022,
     "p22": 0.9801986733067553,
-    "status": "SR-MOD-02 values are TBC-02 (unconfirmed); W_syn is the FlyWire value pending SR-CAL recalibration; max_ms is provisional per D-37 with TBD-06 open",
+    "status": "SR-MOD-02 values confirmed (TBC-02 closed by D-66); W_syn calibrated for MaleCNS (SR-CAL, VL-63, D-173); max_ms 1300 per D-138; magic final per D-167",
     "t_dly_ms": 1.8,
     "t_rfr_ms": 2.2,
     "tau_mbr_ms": 20.0,
