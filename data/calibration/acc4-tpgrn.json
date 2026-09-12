@@ -1,0 +1,106 @@
+{
+  "acc1_preview_full_brain_x86": true,
+  "acc2_x86_native": {
+    "pass": true,
+    "readout_spikes_at_rate_0": [
+      0,
+      0
+    ]
+  },
+  "acc4": {
+    "decreases_beyond_se": [],
+    "interpretation": "P-11",
+    "magnitude_pass": false,
+    "onset_onfly_hz": 40,
+    "onset_pass": true,
+    "onset_reference_hz": 40,
+    "pass": false,
+    "shape_pass": true
+  },
+  "elapsed_s": 5827,
+  "network": {
+    "crc32": "75D72DD7",
+    "edges": 24775486,
+    "neurons": 184099,
+    "sha256": "90fcfc44fa10f643d5f07d888e26923b661cc2f093fe8101808252984a6662da"
+  },
+  "per_rate": {
+    "10": {
+      "acc1_preview_pass": true,
+      "magnitude_pass": true,
+      "onfly_mean_hz": 0.6666666666666666,
+      "onfly_sd_hz": 0.6342703292561561,
+      "onfly_se_hz": 0.1158013889632752,
+      "reference_hz": 0.0,
+      "seeds_with_mn9_spike": 23,
+      "tolerance_hz": 2.0
+    },
+    "120": {
+      "acc1_preview_pass": true,
+      "magnitude_pass": true,
+      "onfly_mean_hz": 49.1,
+      "onfly_sd_hz": 5.4920004520681935,
+      "onfly_se_hz": 1.0026975111421064,
+      "reference_hz": 64.433333,
+      "seeds_with_mn9_spike": 30,
+      "tolerance_hz": 16.10833325
+    },
+    "200": {
+      "acc1_preview_pass": true,
+      "magnitude_pass": true,
+      "onfly_mean_hz": 70.76666666666667,
+      "onfly_sd_hz": 4.793554101034037,
+      "onfly_se_hz": 0.87517923725258,
+      "reference_hz": 77.566667,
+      "seeds_with_mn9_spike": 30,
+      "tolerance_hz": 19.39166675
+    },
+    "40": {
+      "acc1_preview_pass": true,
+      "magnitude_pass": false,
+      "onfly_mean_hz": 7.783333333333333,
+      "onfly_sd_hz": 4.274389114113335,
+      "onfly_se_hz": 0.7803931124514657,
+      "reference_hz": 4.733333,
+      "seeds_with_mn9_spike": 30,
+      "tolerance_hz": 2.0
+    },
+    "60": {
+      "acc1_preview_pass": true,
+      "magnitude_pass": true,
+      "onfly_mean_hz": 24.55,
+      "onfly_sd_hz": 6.803079931304948,
+      "onfly_se_hz": 1.2420667796288054,
+      "reference_hz": 32.066667,
+      "seeds_with_mn9_spike": 30,
+      "tolerance_hz": 8.01666675
+    }
+  },
+  "platform": "x86 mingw32 gcc 6.3.0, NATIVE backend (D-30), full MaleCNS brain; not the MVS subcircuit",
+  "seeds": 30,
+  "sim_ms": 1000,
+  "stimulus_variant": {
+    "bodies": [
+      129802,
+      146047,
+      152432,
+      170947,
+      182830,
+      192172,
+      202063,
+      426555,
+      104018476,
+      274780241
+    ],
+    "neurons": 10,
+    "sides": [
+      "L",
+      "R"
+    ],
+    "types": [
+      "dorsal_tpGRN"
+    ],
+    "variant": "tpgrn"
+  },
+  "w_syn": 0.2969
+}

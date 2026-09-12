@@ -245,9 +245,40 @@ full  crc32 7DEF7BD0  sha256 ea605b86…   hop2  crc32 9261D946  sha256 a2854c28
 Every golden fingerprint changed with the fixture; `make test` below ran on
 the new `path` file with `tests/run_gld.py` asserting `max_ms` 1300.
 
-### 6.7 Low-rate investigation (D-174, D-176)
+### 6.7 Low-rate investigation (D-174, D-176; VL-65)
 
-*(filled in below once the three variant evaluations complete)*
+```
+for v in right phg9 tpgrn; do python prep/acc4.py --jobs 14 --variant $v; done
+variant right: 7 stimulus neurons ['PhG9', 'dorsal_tpGRN'] sides ['R']
+    10       0.92     1.41     0.26       0.00     2.00   PASS
+    40       4.58     1.57     0.29       4.73     2.00   PASS
+    60       5.85     4.37     0.80      32.07     8.02   FAIL
+   120      10.05     3.34     0.61      64.43    16.11   FAIL
+   200      14.95     5.69     1.04      77.57    19.39   FAIL
+ACC-4 shape PASS (onset onfly 40 Hz, reference 40 Hz: PASS); magnitude FAIL; ACC-4 FAIL
+variant phg9: 4 stimulus neurons ['PhG9'] sides ['L', 'R']
+    10       1.63     1.18     0.22       0.00     2.00   PASS
+    40       4.08    10.86     1.98       4.73     2.00   PASS
+    60       6.60    19.59     3.58      32.07     8.02   FAIL
+   120       3.53    14.30     2.61      64.43    16.11   FAIL
+   200       9.43    25.83     4.72      77.57    19.39   FAIL
+ACC-4 shape PASS (onset onfly 10 Hz, reference 40 Hz: PASS); magnitude FAIL; ACC-4 FAIL
+ACC-1 preview (full brain, x86, not the subcircuit): FAIL
+variant tpgrn: 10 stimulus neurons ['dorsal_tpGRN'] sides ['L', 'R']
+    10       0.67     0.63     0.12       0.00     2.00   PASS
+    40       7.78     4.27     0.78       4.73     2.00   FAIL
+    60      24.55     6.80     1.24      32.07     8.02   PASS
+   120      49.10     5.49     1.00      64.43    16.11   PASS
+   200      70.77     4.79     0.88      77.57    19.39   PASS
+ACC-4 shape PASS (onset onfly 40 Hz, reference 40 Hz: PASS); magnitude FAIL; ACC-4 FAIL
+```
+
+All three variants: ACC-2 PASS at rate 0. The bilateral drive and the PhG9
+pharyngeal pair are what put MN9 above the reference at 10 and 40 Hz; the
+taste-peg population alone on both sides is within tolerance at four of five
+validation rates at the same W_syn. No recalibration was run for any variant;
+whether one would pass ACC-4 in full is not proven. Changing the stimulus set
+is a D-52 / D-73 decision and is left to the owner.
 
 ### 6.8 Regression
 
