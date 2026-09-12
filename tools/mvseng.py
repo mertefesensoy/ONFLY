@@ -125,12 +125,20 @@ HEADERS = [
 #
 # Whether BLP belongs in the final Phase E JCL is NOT decided by this;
 # D-143 records it as a diagnostic only.
-LABEL_FORM = "BLP"
+# Back to NL: VL-48 measured BLP being silently downgraded to NL on
+# TK5's class A, so asking for it only misleads a reader of the JCL.
+LABEL_FORM = "NL"
+
+# D-144: name the density explicitly, to find out whether the 6250 BPI
+# in IEC501A is a real constraint or merely what MVS prints when the
+# DCB is silent.  DEN=3 is 1600 BPI.  If the message changes to 1600
+# and the refusal is unchanged, density is eliminated as a cause.
+DEN = "3"
 
 GO_DD = [
     "//ONFNET   DD DSN=ONFNET,DISP=(OLD,KEEP),UNIT=%s," % JCL_UNIT,
     "//            VOL=SER=ONFNET,LABEL=(1,%s)," % LABEL_FORM,
-    "//            DCB=(RECFM=FB,LRECL=80,BLKSIZE=32720)",
+    "//            DCB=(RECFM=FB,LRECL=80,BLKSIZE=32720,DEN=%s)" % DEN,
 ]
 
 # DSN is not optional, and leaving it out is what a first attempt does.
