@@ -4,9 +4,12 @@
  * This is the minimal engine level of decision D-78.  It does exactly three
  * things, and deliberately not a fourth:
  *
- *   NR-14, D-79   run the 64-bit integer self-test before anything else, and
+ *   NR-14, D-79   run the integer self-test before anything else, and
  *                 report ONF901S with return code 16 if the compiler's
- *                 synthesized arithmetic is wrong
+ *                 synthesized arithmetic is wrong.  D-142 selects the
+ *                 WIDTH by backend: 32-bit (TT-01/32) where NR-03's
+ *                 fallback to SoftFloat 2c is in force and the engine
+ *                 uses no 64-bit integer, 64-bit (TT-01) otherwise
  *   FR-LOD-01..05 read the network dataset and verify it, in the order
  *                 FR-LOD-02 fixes, reporting the first failing check
  *   NFR-OBS-01    print the run manifest to SYSPRINT before any work
@@ -52,7 +55,15 @@
 #include "onfker.h"
 #include "onffp.h"
 #include "onfnhd.h"
+/* D-142: only the width this platform's engine actually uses is
+   compiled in.  On a 2c platform the 64-bit header must not be
+   included at all -- VL-45 measured GCCMVS unable to compile its
+   implementation, so linking it is not an option there. */
+#ifdef ONF_FP_SOFT2C
+#include "onfi32.h"
+#else
 #include "onfint.h"
+#endif
 
 /* IR-JCL-04 return codes. */
 #define RC_OK       0
@@ -265,15 +276,33 @@ int main(int argc, char **argv)
 
     /*
      * NR-14 and Section 8.1: level L0 passes before anything above it runs.
-     * If the compiler's 64-bit arithmetic is wrong, every number this program
-     * could go on to produce would be wrong too, and quietly so.
+     * If the compiler's integer arithmetic is wrong, every number this
+     * program could go on to produce would be wrong too, and quietly so.
+     *
+     * D-142: NR-14, as D-118 amended it, requires the self-test "for each
+     * integer width that platform's engine actually uses".  Where NR-03's
+     * fallback to SoftFloat 2c is in force the engine uses no 64-bit
+     * integer anywhere, so the width that matters is 32 bits (TT-01/32)
+     * and the 64-bit suite is not merely redundant there -- VL-45 measured
+     * GCCMVS unable to compile it at any optimisation level, so it must not
+     * even be linked.  The two widths keep separate names so that a reader
+     * of a passing run can tell which one was actually proven.
      */
+#ifdef ONF_FP_SOFT2C
+    self = onf32ts();
+    if (self != 0) {
+        printf("ONF901S 32-BIT INTEGER SELF-TEST FAILED: %s VECTOR %d\n",
+               onf32nm(self / 1000), (self % 1000) - 1);
+        return RC_ENV;
+    }
+#else
     self = onfitst();
     if (self != 0) {
         printf("ONF901S 64-BIT INTEGER SELF-TEST FAILED: %s VECTOR %d\n",
                onfignm(self / 1000), (self % 1000) - 1);
         return RC_ENV;
     }
+#endif
 
     len = onferead(path, &buf);
     if (len < 0) {

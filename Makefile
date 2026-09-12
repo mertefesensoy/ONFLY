@@ -370,8 +370,13 @@ tt02: $(BUILD) softfloat/onfsub.c $(SF2CSRC) generated/onf2cnm.h
 # 64-bit integer, so 32 bits is the width that matters there; the 64-bit
 # TT-01 above still covers x86 and the s390x and z/OS paths.  The MVS half
 # is `python tools/mvs32.py`, and it is only meaningful against this.
+# TT-01/32's driver now links the suite from softfloat/onfi32.c (D-142),
+# which is the same code ONFLYENG runs at startup on a 2c platform.  One
+# implementation, two callers: the test and the program cannot prove
+# different things.
 tt0132: $(BUILD) generated/onf32v.h
-	$(CC) $(CFLAGS) -Igenerated -o $(BUILD)/tst32.exe tests/tst32.c
+	$(CC) $(CFLAGS) -Igenerated -Isoftfloat -o $(BUILD)/tst32.exe \
+	  tests/tst32.c softfloat/onfi32.c
 	$(BUILD)/tst32.exe | tail -1
 
 generated/onf32v.h: tools/gen32v.py

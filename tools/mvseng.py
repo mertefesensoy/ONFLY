@@ -76,8 +76,12 @@ HEADERS = [
     ("engine/include/onfcrc.h", "ONFCRC"),
     ("engine/include/onffpr.h", "ONFFPR"),
     ("generated/onfnhd.h", "ONFNHD"),
-    ("generated/onfivec.h", "ONFIVEC"),
-    ("softfloat/onfint.h", "ONFINT"),
+    # D-142: the 32-bit self-test, because NR-03 puts SoftFloat 2c here
+    # and NR-14 as amended asks for the width the engine actually uses.
+    # onfivec.h and onfint.h are the 64-bit suite's and are deliberately
+    # absent -- VL-45 measured GCCMVS unable to compile that suite.
+    ("softfloat/onfi32.h", "ONFI32"),
+    ("generated/onf32v.h", "ONF32V"),
     ("softfloat/c2c/milieu.h", "MILIEU"),
     ("softfloat/c2c/softfloat.h", "SOFTFLOA"),
     ("softfloat/c2c/onfproc.h", "ONFPROC"),
@@ -88,9 +92,29 @@ HEADERS = [
 # a tape mark.  The DCB must be stated here because an NL tape carries
 # no label for MVS to read it from.
 GO_DD = [
-    "//ONFNET   DD UNIT=%s,DISP=OLD,LABEL=(1,NL)," % JCL_UNIT,
+    "//ONFNET   DD DSN=ONFNET,DISP=(OLD,KEEP),UNIT=%s," % JCL_UNIT,
+    "//            VOL=SER=ONFNET,LABEL=(1,NL),",
     "//            DCB=(RECFM=FB,LRECL=80,BLKSIZE=32720)",
 ]
+
+# DSN is not optional, and leaving it out is what a first attempt does.
+# A DD with DISP=OLD and no DSN names an unnamed TEMPORARY dataset,
+# which cannot be OLD because it cannot already exist, so MVS rejects
+# the step before allocating anything -- "IEF453I JOB FAILED - JCL
+# ERROR", with no message naming the DD and no ALLOC line to show how
+# far it got.  The device was never the problem: D U,,,480,4 reports
+# 480 as an online 3400 throughout.
+#
+# VOL=SER is not optional either, and omitting it was the SECOND
+# attempt's error.  The reasoning that produced it was that an
+# unlabelled tape has no label to match a serial against, so naming one
+# only invites a mount request.  True, and beside the point: DSN with
+# DISP=OLD and no volume sends MVS to the catalog to find out where the
+# dataset lives, and nothing called ONFNET is catalogued.  A dataset
+# that is not catalogued must carry its own volume.  The failure looks
+# identical to the first -- IEF453I, no annotation against the card, no
+# ALLOC line -- which is why each attempt here is recorded rather than
+# quietly replaced.
 
 # ONFLYENG's own output, and the messages Appendix E defines.  Anything
 # else in the listing belongs to JES2 or the compiler.
@@ -156,13 +180,14 @@ def deck(opt=mvsbld.OPT):
         (onfly("engine/src/onffpr.c"), "ONFFPRC"),
         (onfly("engine/src/onfcrc.c"), "ONFCRCC"),
         (onfly("engine/src/onfdec.c"), "ONFDECC"),
-        # NOT onfly(): plain cards, no backend define.  The integer
-        # self-test is integer-only by construction -- it is what NR-14
-        # exists to check -- so the float backend is nothing to it, and
-        # tools/mvstt01.py has compiled it this way successfully since
-        # VL-30.  Prepending the define made GCCMVS die with an
-        # internal compiler error in onfirun; see the note below.
-        (mvsbld.cards_of("softfloat/onfint.c"), "ONFINTC"),
+        # D-142: the 32-bit suite.  Plain cards, no backend define --
+        # the self-test is integer-only by construction, which is the
+        # property NR-14 exists to check, so the float backend is
+        # nothing to it.  The 64-bit onfint.c is NOT built here: VL-45
+        # measured GCCMVS failing to compile it at -O0, -O1, -O2 and
+        # with no flag, and NR-14 as D-118 amended it never asked for
+        # it on a 2c platform anyway.
+        (mvsbld.cards_of("softfloat/onfi32.c"), "ONFI32C"),
         (onfly("engine/src/onflyeng.c"), "ONFLYENG"),
     ]
     return mvsbld.build(JOB, "ONFLY G2 TAPE VERIFY", sources,

@@ -32,71 +32,34 @@
  * to be -- an unmasked test would quietly pass on a 64-bit host while
  * testing something else.
  *
+ * WHERE THE LOOP LIVES NOW
+ * ------------------------
+ * D-142 moved the suite itself into softfloat/onfi32.c so that
+ * ONFLYENG can run the same check at startup.  This file is the
+ * standalone driver: it reports every disagreement and a total, which
+ * a startup check has no room for, while onf32ts() returns only the
+ * first.  Both call onf32rn(), so the program and the test cannot
+ * prove different things.
+ *
+ * The printed shapes are unchanged.  tools/mvs32.py greps for
+ * "# tst32 N of M vectors wrong" and VL-30 quotes it, so altering it
+ * would invalidate a recorded result for no gain.
+ *
  * Dialect: C89 (NR-04).  No 64-bit integer type appears, which is the
  * property under test.  No float or double (NR-05).
  */
 #include <stdio.h>
 
+#include "onfi32.h"
 #include "onf32v.h"
 
 #define M32 0xFFFFFFFFUL
-
-/* Comparison result bits; the same encoding softfloat/onfint.c uses, so
-   the two self-tests report failures in one vocabulary. */
-#define C_LT 1UL
-#define C_LE 2UL
-#define C_EQ 4UL
-#define C_GT 8UL
-#define C_GE 16UL
-#define C_NE 32UL
-
-static long onf32sg(unsigned long v)
-{
-    /* C89 leaves the unsigned-to-signed conversion of a value above the
-       signed maximum implementation-defined, so the sign is reconstructed
-       by arithmetic instead of by casting.  Every ONFLY target is two's
-       complement; this does not depend on that either. */
-    if (v & 0x80000000UL) {
-        return -(long)((~v & M32) + 1UL);
-    }
-    return (long)v;
-}
-
-static unsigned long onf32cu(unsigned long a, unsigned long b)
-{
-    unsigned long m;
-
-    m = 0UL;
-    if (a < b) { m |= C_LT; }
-    if (a <= b) { m |= C_LE; }
-    if (a == b) { m |= C_EQ; }
-    if (a > b) { m |= C_GT; }
-    if (a >= b) { m |= C_GE; }
-    if (a != b) { m |= C_NE; }
-    return m;
-}
-
-static unsigned long onf32cs(long a, long b)
-{
-    unsigned long m;
-
-    m = 0UL;
-    if (a < b) { m |= C_LT; }
-    if (a <= b) { m |= C_LE; }
-    if (a == b) { m |= C_EQ; }
-    if (a > b) { m |= C_GT; }
-    if (a >= b) { m |= C_GE; }
-    if (a != b) { m |= C_NE; }
-    return m;
-}
 
 int main(void)
 {
     int i;
     int bad;
     int extra;
-    unsigned long a;
-    unsigned long b;
     unsigned long r;
     const struct onf32v *v;
 
@@ -104,50 +67,17 @@ int main(void)
     printf("# tst32 TT-01/32, the 32-bit integer self-test (NR-14)\n");
 
     for (i = 0; i < ONF32_NVEC; i++) {
-        v = &onf32vec[i];
-        a = v->a & M32;
-        b = v->b & M32;
-        extra = 0;
-
-        switch (v->op) {
-        case ONF32_MUL:
-            r = (a * b) & M32;
-            break;
-        case ONF32_DIV:
-            r = (a / b) & M32;
-            break;
-        case ONF32_MOD:
-            r = (a % b) & M32;
-            break;
-        case ONF32_SHL:
-            /* NR-11: the count is masked, never left undefined, and the
-               value is unsigned so no shift here is on a negative. */
-            r = (a << (b & 31UL)) & M32;
-            break;
-        case ONF32_SHR:
-            r = (a >> (b & 31UL)) & M32;
-            break;
-        case ONF32_ADDC:
-            r = (a + b) & M32;
-            extra = (r < a) ? 1 : 0;
-            break;
-        case ONF32_SUBB:
-            r = (a - b) & M32;
-            extra = (a < b) ? 1 : 0;
-            break;
-        case ONF32_CMPU:
-            r = onf32cu(a, b);
-            break;
-        default:
-            r = onf32cs(onf32sg(a), onf32sg(b));
-            break;
+        if (onf32rn(i, &r, &extra) != ONF32_OK) {
+            printf("T32 BAD i=%d rejected by onf32rn\n", i);
+            bad++;
+            continue;
         }
-
+        v = &onf32vec[i];
         if (r != (v->r & M32) || extra != v->extra) {
             bad++;
             if (bad <= 8) {
                 printf("T32 BAD i=%d op=%d a=%08lX b=%08lX\n",
-                       i, v->op, a, b);
+                       i, v->op, v->a & M32, v->b & M32);
                 printf("T32     got=%08lX/%d want=%08lX/%d\n",
                        r, extra, v->r & M32, v->extra);
             }
