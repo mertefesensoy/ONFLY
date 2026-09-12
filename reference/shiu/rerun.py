@@ -90,9 +90,15 @@ def seeded_trial(trial, exc, params, target):
 
 
 def rate_value(df, fly_id, col):
-    """Rate of one neuron from a get_rate table; 0 if it never spiked."""
+    """Rate of one neuron from a get_rate table; 0 if it never spiked.
+
+    ``get_rate`` pivots to NaN for an experiment in which the neuron never
+    spiked; figures.ipynb applies ``fillna(0)`` before saving, and so does
+    this.
+    """
     if fly_id in df.index:
-        return float(df.loc[fly_id, col])
+        v = float(df.loc[fly_id, col])
+        return 0.0 if v != v else v
     return 0.0
 
 

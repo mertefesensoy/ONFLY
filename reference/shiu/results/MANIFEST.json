@@ -1,0 +1,52 @@
+{
+  "digests": {
+    "completeness": "e6b71e17671a9bdb05f55e4bc6774640a1418cb7a05125e0fc994ad40f9bfdfb",
+    "connectivity": "94db8c650533bc36ffa3223f2e62325d5648b8d6bd31c3a4e1c804628c7557b3",
+    "mn9-reference.csv": "23b59510cae5cfa39a1e40478d07cb7673c6b403bec128786d6db624e60d79d4",
+    "model.py": "fc45837d7122c6ce2a7f3f2f23c515992e4b232aadb919efabb72337fac88e4e",
+    "utils.py": "f378cf0b464f2ac5e1daf3609ba25fd51c7e34f294846281707ffe006c3e9ef1"
+  },
+  "elapsed_s": {
+    "10": 0.0,
+    "120": 0.0,
+    "160": 0.0,
+    "20": 0.0,
+    "200": 0.0,
+    "40": 0.0,
+    "60": 0.0,
+    "80": 0.0
+  },
+  "environment": {
+    "brian2": "2.10.1",
+    "codegen_target": "numpy",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.13.14",
+    "shiu_pinned": "python 3.10, brian2 2.5.1, numpy 1.24 (environment.yml)"
+  },
+  "protocol": {
+    "metric": "D-170: mean of left and right MN9 rates",
+    "mn9": {
+      "left": 720575940660219265,
+      "right": 720575940645521262
+    },
+    "n_run": 30,
+    "rates_hz": [
+      10,
+      20,
+      40,
+      60,
+      80,
+      120,
+      160,
+      200
+    ],
+    "seeding": "brian2.seed(trial+1) per trial; Shiu's run_exp seeds nothing",
+    "stimulus": "21 right-hemisphere labellar sugar GRNs (figures.ipynb cell 4)",
+    "t_run_s": 1.0
+  },
+  "source_code": "github.com/philshiu/Drosophila_brain_model, model.py and utils.py vendored verbatim",
+  "total_elapsed_s": 2.1,
+  "what": "Shiu et al. 2024 Figure 1D protocol re-run (D-164, SR-CAL-04)"
+}
