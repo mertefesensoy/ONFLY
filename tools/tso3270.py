@@ -316,14 +316,29 @@ def send(local, dsname, user=USER, password=PASSWORD):
 
 def _reach_ready(s, user, password):
     """The logon sequence, factored out so send() can reuse it."""
-    s.do("Connect(%s:%d)" % (HOST, PORT))
-    s.do("Wait(10,3270Mode)")
-    scr = s.screen()
-    if "Logon ===>" not in scr:
-        s.do("Enter()")
-        scr = s.until("Logon ===>")
+    # Reaching VTAM is retried rather than attempted once.  Connections
+    # interfere with each other: a session that has just closed can
+    # leave the LU busy long enough that the next Connect lands on a
+    # screen that never becomes the logon prompt, and the failure is
+    # indistinguishable from VTAM being down.  tools/tn3270.py reaching
+    # the prompt seconds before g2ind failed to is what showed this is
+    # contention and not a broken path.
+    scr = None
+    for attempt in range(4):
+        if attempt:
+            s.do("Disconnect()", timeout=5)
+            time.sleep(3.0)
+        s.do("Connect(%s:%d)" % (HOST, PORT))
+        s.do("Wait(10,3270Mode)")
+        scr = s.screen()
+        if "Logon ===>" not in scr:
+            s.do("Enter()")
+            scr = s.until("Logon ===>", tries=10)
+        if scr is not None:
+            break
     if scr is None:
-        print("tso3270: never reached VTAM's Logon prompt")
+        print("tso3270: never reached VTAM's Logon prompt "
+              "(4 attempts)")
         return False
     s.do("String(%s)" % TSOAPPL)
     s.do("Enter()")
