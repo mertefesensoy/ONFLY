@@ -1,0 +1,193 @@
+{
+  "cal_rates_hz": [
+    20,
+    80,
+    160
+  ],
+  "candidates": {
+    "0.1000": {
+      "emit_s": 116.9,
+      "network": {
+        "crc32": "83BD8219",
+        "edges": 24775486,
+        "file": "net-0.1000.bin",
+        "max_ms": 1300,
+        "neurons": 184099,
+        "sha256": "6987c1141c99e546310be9e172d9fc3b532f3db55e6fc297c3157eaf1411978f"
+      },
+      "onfly_hz": {
+        "160": 0.0,
+        "20": 0.0,
+        "80": 0.0
+      },
+      "run_s": 1212.0,
+      "runs": {
+        "160/1": {
+          "rc": 0,
+          "readouts": [
+            {
+              "first": -1,
+              "n": 306,
+              "spikes": 0
+            },
+            {
+              "first": -1,
+              "n": 6394,
+              "spikes": 0
+            }
+          ],
+          "steps": 10000
+        },
+        "160/2": {
+          "rc": 0,
+          "readouts": [
+            {
+              "first": -1,
+              "n": 306,
+              "spikes": 0
+            },
+            {
+              "first": -1,
+              "n": 6394,
+              "spikes": 0
+            }
+          ],
+          "steps": 10000
+        },
+        "160/3": {
+          "rc": 0,
+          "readouts": [
+            {
+              "first": -1,
+              "n": 306,
+              "spikes": 0
+            },
+            {
+              "first": -1,
+              "n": 6394,
+              "spikes": 0
+            }
+          ],
+          "steps": 10000
+        },
+        "20/1": {
+          "rc": 0,
+          "readouts": [
+            {
+              "first": -1,
+              "n": 306,
+              "spikes": 0
+            },
+            {
+              "first": -1,
+              "n": 6394,
+              "spikes": 0
+            }
+          ],
+          "steps": 10000
+        },
+        "20/2": {
+          "rc": 0,
+          "readouts": [
+            {
+              "first": -1,
+              "n": 306,
+              "spikes": 0
+            },
+            {
+              "first": -1,
+              "n": 6394,
+              "spikes": 0
+            }
+          ],
+          "steps": 10000
+        },
+        "20/3": {
+          "rc": 0,
+          "readouts": [
+            {
+              "first": -1,
+              "n": 306,
+              "spikes": 0
+            },
+            {
+              "first": -1,
+              "n": 6394,
+              "spikes": 0
+            }
+          ],
+          "steps": 10000
+        },
+        "80/1": {
+          "rc": 0,
+          "readouts": [
+            {
+              "first": -1,
+              "n": 306,
+              "spikes": 0
+            },
+            {
+              "first": -1,
+              "n": 6394,
+              "spikes": 0
+            }
+          ],
+          "steps": 10000
+        },
+        "80/2": {
+          "rc": 0,
+          "readouts": [
+            {
+              "first": -1,
+              "n": 306,
+              "spikes": 0
+            },
+            {
+              "first": -1,
+              "n": 6394,
+              "spikes": 0
+            }
+          ],
+          "steps": 10000
+        },
+        "80/3": {
+          "rc": 0,
+          "readouts": [
+            {
+              "first": -1,
+              "n": 306,
+              "spikes": 0
+            },
+            {
+              "first": -1,
+              "n": 6394,
+              "spikes": 0
+            }
+          ],
+          "steps": 10000
+        }
+      },
+      "w_syn": 0.1
+    }
+  },
+  "chosen": null,
+  "decisions": [
+    "D-164",
+    "D-165",
+    "D-166",
+    "D-169",
+    "D-170",
+    "D-171"
+  ],
+  "objective": "mean over CAL_RATES of |onfly-ref|/max(ref,2 Hz)",
+  "refine": [],
+  "scan": [
+    "0.1000"
+  ],
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "sim_ms": 1000
+}

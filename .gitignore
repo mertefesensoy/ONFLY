@@ -65,3 +65,8 @@ data/transport/
 # regenerable; digests live in reference/shiu/MANIFEST.json and results/MANIFEST.json
 reference/shiu/data/
 reference/shiu/results/data/
+
+# SR-CAL-03 calibration: candidate networks (300 MB each) and the signed-count
+# cache are regenerable by prep/calibrate.py; the search log is committed.
+data/calibration/*.bin
+data/calibration/*.npz

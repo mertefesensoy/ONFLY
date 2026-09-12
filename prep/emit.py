@@ -67,8 +67,9 @@ W_SYN = 0.275
 G_EPS = 2.0 ** -1022          # smallest normal binary64; clamps exactly the
                               # subnormals and no normal value (NR-08)
 
-# --- D-37, provisional; TBD-06 still open ---------------------------------
-MAX_MS = 5000
+# --- D-138: maximum simulated duration 1300 ms, measured on TK5 (TBD-06
+# closed on this item; D-37's provisional 5000 ms superseded) --------------
+MAX_MS = 1300
 
 #: Integration method code for the header: 1 = exact propagator (IR-NET 4.1).
 METHOD_EXACT = 1
@@ -144,8 +145,14 @@ def path_restricted(pre, post, stim, read):
     return np.unique(np.concatenate([stim, hop1, into_read, read]))
 
 
-def build_network(arrays, nodes, stim_bodies, read_bodies, label):
-    """Assemble one network file from a node subset."""
+def build_network(arrays, nodes, stim_bodies, read_bodies, label,
+                  w_syn=W_SYN, max_ms=MAX_MS):
+    """Assemble one network file from a node subset.
+
+    ``w_syn`` defaults to the module constant; prep/calibrate.py passes each
+    SR-CAL-03 candidate through here so that a calibration network is built
+    by exactly the code that builds the shipped one.
+    """
     pre, post = arrays["body_pre"], arrays["body_post"]
     sw = arrays["signed_weight"]
 
@@ -170,7 +177,7 @@ def build_network(arrays, nodes, stim_bodies, read_bodies, label):
 
     # SR-MOD-05: weight = synapse count x sign x W_syn.  The count already
     # carries its sign from prep/signs.py; W_syn is applied here and only here.
-    weight = s.astype(np.float64) * W_SYN
+    weight = s.astype(np.float64) * w_syn
 
     p11, p12, p22 = coefficients()
     blob = netwrite.build(
@@ -183,11 +190,11 @@ def build_network(arrays, nodes, stim_bodies, read_bodies, label):
         dt_us=int(round(DT_MS * 1000)),
         delay=int(round(T_DLY_MS / DT_MS)),
         refract=int(round(T_RFR_MS / DT_MS)),
-        max_ms=MAX_MS,
+        max_ms=max_ms,
         u_th=V_TH - V_REST,
         u_reset=V_RESET - V_REST,
         p11=p11, p12=p12, p22=p22,
-        g_eps=G_EPS, w_syn=W_SYN, v_rest=V_REST,
+        g_eps=G_EPS, w_syn=w_syn, v_rest=V_REST,
         method=METHOD_EXACT)
     print("  %-6s n=%-7d e=%-9d %10d bytes" % (label, n, len(idx_post), len(blob)))
     return blob, n, len(idx_post)
