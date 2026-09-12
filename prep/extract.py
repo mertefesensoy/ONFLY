@@ -32,11 +32,17 @@ evaluation and the SR-EXT-03 choice).  Subcircuit networks go to
 data/networks/onfnet-malecns-v1.0-n<N>.bin with data/networks/SUBCIRCUIT.json
 recording digests and the selected body ids.
 
+  --diag     D-180 diagnostic, not an SR-EXT-01 rule: each top-N set plus
+             every presynaptic partner of both MN9 neurons, emitted under
+             data/calibration/ and put through the same ACC-3 comparison;
+             results in acc3-partners.json.
+
 Run (repository root):
 
     python prep/extract.py --rank    [--jobs 14]
     python prep/extract.py --extract
     python prep/extract.py --acc3    [--jobs 14]
+    python prep/extract.py --diag    [--jobs 14]
 """
 import argparse
 import hashlib
@@ -319,11 +325,90 @@ def acc3(jobs):
     print("wrote %s (%d s)" % (ACC3.replace("\\", "/"), out["elapsed_s"]))
 
 
+# --- D-180 diagnostic: top-N plus the readouts' presynaptic partners -------
+def diag(jobs):
+    ranking = load_json(RANKING, None)
+    full = load_json(ACC4, None)
+    if ranking is None or full is None:
+        raise SystemExit("need activity-ranking.json (--rank) and acc4.json")
+    arrays, stim, read = cal.load_cache()
+    pre, post = arrays["body_pre"], arrays["body_post"]
+    partners = np.unique(pre[np.isin(post, read)])
+    print("MN9 presynaptic partners (both readouts): %d" % len(partners))
+    subs = {}
+    for n in N_SEQ:
+        top = np.array([t["body"] for t in ranking["top1000"][:n]],
+                       dtype=np.int64)
+        nodes = np.union1d(np.union1d(np.union1d(top, partners), stim), read)
+        blob, nn, e = emit.build_network(arrays, nodes, stim, read,
+                                         "n%d+partners" % n)
+        path = os.path.join(cal.CAL_DIR, "diag-n%d-partners.bin" % n)
+        io.open(path, "wb").write(blob)
+        subs[n] = {"file": path, "neurons": int(nn), "edges": int(e),
+                   "added_partners": int(len(np.setdiff1d(partners, top))),
+                   "sha256": hashlib.sha256(blob).hexdigest()}
+    del arrays
+
+    results = {}
+
+    def on_done(k, text):
+        res = cal.parse_run(text)
+        need = None
+        for line in text.splitlines():
+            if line.startswith("NET "):
+                need = int(dict(t.split("=", 1) for t in line.split()[1:]
+                                if "=" in t)["need"])
+        if res["rc"] != 0 or len(res["readouts"]) != 2:
+            raise SystemExit("run %s failed:\n%s" % (k, text))
+        results[k] = (res, need)
+
+    jobs_list = [(subs[n]["file"], r, s) for n in N_SEQ
+                 for r in VAL_RATES for s in SEEDS]
+    t0 = time.time()
+    run_pool(jobs_list, jobs, [], on_done)
+
+    out = {"decision": "D-180", "rule": "top-N by activity + every "
+           "presynaptic partner of both MN9 + stimulus + readout; "
+           "DIAGNOSTIC, not SR-EXT-01", "subcircuits": {}}
+    print("%6s %6s %10s %10s %8s %6s" % ("N", "rate", "subcirc", "full",
+                                        "tol", "ACC-3"))
+    for n in N_SEQ:
+        per_rate, ok_all, need = {}, True, None
+        for r in VAL_RATES:
+            means = []
+            for sd in SEEDS:
+                res, need = results[(subs[n]["file"], r, sd)]
+                sp = [x["spikes"] for x in res["readouts"]]
+                means.append(sum(sp) * 1000.0 / cal.SIM_MS / len(sp))
+            mean = sum(means) / len(means)
+            fb = full["per_rate"][str(r)]["onfly_mean_hz"]
+            tol = max(REL_TOL * fb, ABS_FLOOR)
+            ok = abs(mean - fb) <= tol
+            ok_all = ok_all and ok
+            per_rate[str(r)] = {"sub_mean_hz": mean, "full_mean_hz": fb,
+                                "tolerance_hz": tol, "pass": ok}
+            print("%6d %6d %10.2f %10.2f %8.2f %6s"
+                  % (n, r, mean, fb, tol, "PASS" if ok else "FAIL"))
+        out["subcircuits"][str(n)] = {
+            "neurons": subs[n]["neurons"], "edges": subs[n]["edges"],
+            "added_partners": subs[n]["added_partners"],
+            "sha256": subs[n]["sha256"], "need_bytes": need,
+            "per_rate": per_rate, "acc3_pass": ok_all,
+            "nfr_mem_01_pass": need is not None and need <= REGION_BYTES}
+        print("N=%d+partners: %d neurons, %d edges, ACC-3 %s, need=%s"
+              % (n, subs[n]["neurons"], subs[n]["edges"],
+                 "PASS" if ok_all else "FAIL", need))
+    out["elapsed_s"] = round(time.time() - t0)
+    save_json(os.path.join(cal.CAL_DIR, "acc3-partners.json"), out)
+    print("wrote acc3-partners.json (%d s)" % out["elapsed_s"])
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rank", action="store_true")
     ap.add_argument("--extract", action="store_true")
     ap.add_argument("--acc3", action="store_true")
+    ap.add_argument("--diag", action="store_true")
     ap.add_argument("--jobs", type=int, default=14)
     a = ap.parse_args()
     if not os.path.isfile(cal.RUNNET):
@@ -334,6 +419,8 @@ def main():
         extract()
     if a.acc3:
         acc3(a.jobs)
+    if a.diag:
+        diag(a.jobs)
     return 0
 
 
