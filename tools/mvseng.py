@@ -25,13 +25,33 @@ THE TAPE
 --------
 `0:0480 3420 *` is an empty drive nothing else uses, so mounting an
 image there is the least disruptive change available to a lab the
-parallel session shares, and `devinit 0480 *` puts it back.  Mounting
-also rewinds, which is how a repeated transfer starts from the load
-point rather than from wherever the last read left the tape.
+parallel session shares, and `devinit 0480 *` puts it back.
 
 The image is written by tools/mkaws.py to IR-NET-08's shape: RECFM=FB,
 LRECL=80, blocks of 32720 which is 409 whole records, payload
 zero-padded to a record boundary.
+
+THE MOUNT, WHICH IS NOT YET SOLVED (VL-47)
+------------------------------------------
+Two things here were paid for and are worth not rediscovering.
+
+The image is STAGED to the lab's tape directory first.  Hercules
+cannot open a path containing non-ASCII characters -- this repository
+lives under one -- and it says so with an HHC00205E buried between a
+success message and "device initialized", leaving the drive empty.
+See stage().
+
+The tape is loaded in ANSWER to the mount request, never before.  The
+syslog shows `HHC00201I ... tape closed` between the job starting and
+IEF233A: MVS unloads the drive during allocation, so a pre-mounted
+volume is gone by the time it is wanted.
+
+With both fixed, MVS advances to the OPEN-time mount, `IEC501A M
+480,ONFNET,NL,6250 BPI`, and then REFUSES the volume -- `IEC502E K`,
+dismount and keep -- and asks again.  Why it refuses is not known.
+Density, the block size against the 3420's characteristics, and what
+MVS reads in the first block of an unlabelled tape are all untested.
+No transfer has yet been performed.
 
 usage:
     python tools/mvseng.py [--print] [--mount] [--unmount]
@@ -121,8 +141,15 @@ GO_DD = [
 RESULT = re.compile(r"^\s*(?:#\s|ONF\d{3}[IEWS]\b|MANIFEST\b|ONFLYENG\b)")
 
 
-def console(command):
-    """Send one command to the Hercules console and return the log."""
+def console(command, lines=60):
+    """Send one command to the Hercules console and return the log.
+
+    `lines` matters more than it looks.  The page returns only the last
+    22 messages by default, and a compile produces far more than that,
+    so a watcher polling for one message can miss it entirely between
+    polls -- which is how the mount request went unnoticed while the
+    job sat waiting for it.
+    """
     try:
         from urllib.request import urlopen
         from urllib.parse import quote
@@ -130,34 +157,115 @@ def console(command):
         from urllib2 import urlopen                       # noqa: F401
         from urllib import quote                          # noqa: F401
     host, port = mvsub.console_addr()
-    url = ("http://%s:%d/cgi-bin/tasks/syslog?command=%s"
-           % (host, port, quote(command)))
-    return urlopen(url, timeout=20).read().decode("latin-1")
+    url = ("http://%s:%d/cgi-bin/tasks/syslog?command=%s&msgcount=%d"
+           % (host, port, quote(command), lines))
+    return urlopen(url, timeout=30).read().decode("latin-1")
+
+
+def stage(image):
+    """Copy the image somewhere Hercules can actually open it.
+
+    THE ROOT CAUSE OF EVERY EARLIER MOUNT FAILURE.  This repository
+    lives under a path containing a u-umlaut, and `devinit` given that
+    path answers
+
+        HHC00221I 0:0480 Tape file <path>, type AWS
+        HHC00205E 0:0480 Tape file <path>, type aws
+        HHC02245I 0:0480 device initialized
+
+    -- an error in the middle, "device initialized" after it, and the
+    drive left EMPTY.  MVS then asked for the volume forever, which
+    looked like an unlabelled-tape mount handshake problem and was
+    nothing of the kind.  The lab's own tape directory is plain ASCII
+    and short, which also matters: the console is driven over HTTP and
+    a long path came back as 400 Bad Request.
+    """
+    lab = os.path.join(mvsub.tk5_dir(), "tape")
+    if not os.path.isdir(lab):
+        os.makedirs(lab)
+    dst = os.path.join(lab, os.path.basename(image))
+    with open(image, "rb") as src:
+        data = src.read()
+    with open(dst, "wb") as out:
+        out.write(data)
+    return dst.replace("\\", "/")
 
 
 def mount(image):
-    """Mount the AWS image, which also rewinds to the load point.
+    """Mount the AWS image, and VERIFY it, which is a separate thing.
 
-    Reversible by design: `devinit 0480 *` restores the empty drive,
-    and nothing else in the lab uses this address.
+    The first version of this checked whether the image's basename
+    appeared in the console output and reported success when it did.
+    The console echoes the command it was given, so that check passed
+    on every failed mount as well -- it reported "mounted onfnet.aws"
+    while the drive stayed empty and HHC00205E sat two lines above.  A
+    verification that cannot fail is worse than none, because it is
+    believed.
+
+    So success is now the presence of HHC00221I's "format type" and the
+    ABSENCE of HHC00205E, both taken from the reply to the devinit
+    itself rather than from a later query.
     """
     if not os.path.isfile(image):
         sys.stderr.write("mvseng: no image at %s -- build it with\n"
                          "        python tools/mkaws.py --wrap "
                          "data/networks/<net>.bin %s\n" % (image, image))
         return False
-    console("devinit %s %s" % (TAPE_DEV, image.replace("\\", "/")))
-    body = console("devlist TAPE")
-    ok = os.path.basename(image) in body
+    path = stage(image)
+    body = console("devinit %s %s" % (TAPE_DEV, path))
+    failed = "HHC00205E" in body
+    loaded = "format type" in body
+    ok = loaded and not failed
     sys.stdout.write("mvseng: %s %s on %s\n"
                      % ("mounted" if ok else "FAILED to mount",
-                        os.path.basename(image), TAPE_DEV))
+                        path, TAPE_DEV))
+    if failed:
+        sys.stdout.write("mvseng: HHC00205E -- Hercules could not open "
+                         "the file; check the path for non-ASCII\n")
     return ok
 
 
 def unmount():
     console("devinit %s *" % TAPE_DEV)
     sys.stdout.write("mvseng: %s returned to an empty drive\n" % TAPE_DEV)
+
+
+def mount_when_asked(image, timeout=300):
+    """Mount only after MVS asks, which is what an operator does.
+
+    VL-46 recorded three JCL forms failing before the fourth reached
+    allocation, and then the job sat on
+
+        *IEF233A M 480,ONFNET,,ONFENG,GO
+
+    with the tape ALREADY mounted and the drive reported ready.  That
+    is the clue: mounting before submitting means the device never
+    makes a not-ready-to-ready TRANSITION while MVS is watching for
+    one, and an unlabelled tape gives MVS no label to verify instead.
+    Re-issuing devinit mid-allocation only moved it to INTERVENTION
+    REQUIRED.
+
+    So the drive starts empty and is loaded in response to the message,
+    which is the sequence a human operator performs and the one MVS is
+    written to expect.  Returns True if the request was seen and
+    answered.
+    """
+    console("devinit %s *" % TAPE_DEV)
+    sys.stdout.write("mvseng: %s left empty; waiting for MVS to ask\n"
+                     % TAPE_DEV)
+    want = "IEF233A M %s,ONFNET" % JCL_UNIT
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        body = console("devlist TAPE")
+        if want in body:
+            console("devinit %s %s"
+                    % (TAPE_DEV, os.path.abspath(image).replace("\\", "/")))
+            sys.stdout.write("mvseng: %s seen; mounted %s in reply\n"
+                             % (want, os.path.basename(image)))
+            return True
+        time.sleep(4)
+    sys.stdout.write("mvseng: no mount request within %d s\n" % timeout)
+    return False
 
 
 def deck(opt=mvsbld.OPT):
@@ -224,14 +332,24 @@ def main(argv):
                      % (len(d), max(len(c) for c in d),
                         opt if opt else "(none)"))
 
-    if not mount(image):
-        return 2
     if "--mount" in argv:
-        return 0
+        return 0 if mount(image) else 2
+
+    # The tape is loaded in ANSWER to the mount request, never before.
+    # MVS unloads the drive during allocation -- the syslog shows
+    # "HHC00201I ... tape closed" between the job starting and
+    # IEF233A -- so a pre-mounted volume is gone by the time it is
+    # wanted, which is what left four earlier jobs waiting forever.
+    if not os.path.isfile(image):
+        sys.stderr.write("mvseng: no image at %s\n" % image)
+        return 2
+    console("devinit %s *" % TAPE_DEV)
 
     t0 = time.time()
     before = mvsub.submit(d)
-    out = mvsub.collect(JOB, before, timeout=3600, poll=5)
+    if not mount_when_asked(image):
+        sys.stderr.write("mvseng: the tape was never loaded\n")
+    out = mvsub.collect(JOB, before, timeout=1800, poll=5)
     wall = time.time() - t0
     if out is None:
         sys.stderr.write("mvseng: %s did not finish in 3600 s\n" % JOB)
