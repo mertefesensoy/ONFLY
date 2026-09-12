@@ -131,40 +131,113 @@ Mine within them:
 
 ## 6. Verification
 
-*(Filled from this session's output; see the GOAL REPORT in the transcript for
-the same excerpts.)*
+All results below: x86-64 Windows 11 host (Intel i7-13650HX, 20 logical
+cores, 15.6 GB RAM), 2026-09-12. Engine runs use the 32-bit mingw32 gcc 6.3.0
+build with the NATIVE backend and D-30's SSE2 flags. The Shiu re-run uses
+Python 3.13.14, brian2 2.10.1, numpy 2.5.3, pandas 3.0.5, numpy codegen target.
 
 ### 6.1 Environment probe
 
 ```
 .venv/Scripts/python reference/shiu/rerun.py --probe --target numpy
+PROBE 200 Hz 1 trial: 35.1 s, 404 spiking neurons, 17078 spikes, MN9 {'left': 97, 'right': 71}
 ```
 
-### 6.2 Reference curve
+### 6.2 Reference curve (VL-61)
 
 ```
-.venv/Scripts/python reference/shiu/rerun.py --n-proc 3 --target numpy
+.venv/Scripts/python reference/shiu/rerun.py --n-proc 3 --target numpy   # died at 120 Hz, WinError 1450
+.venv/Scripts/python reference/shiu/rerun.py --n-proc 2 --target numpy   # resumed from the five saved rates
+ rate_hz  mn9_left_hz  mn9_left_sd  mn9_right_hz  mn9_right_sd  mn9_mean_hz
+      10     0.000000     0.000000      0.000000      0.000000     0.000000
+      20     0.000000     0.000000      0.000000      0.000000     0.000000
+      40     5.266667     4.304520      4.200000      3.409790     4.733333
+      60    36.566667     4.208589     27.566667      3.921593    32.066667
+      80    56.400000     4.834598     41.500000      4.349329    48.950000
+     120    75.033333     4.430826     53.833333      5.329686    64.433333
+     160    84.800000     4.230051     58.233333      4.730633    71.516667
+     200    92.900000     5.539856     62.233333      4.287061    77.566667
 ```
 
-### 6.3 Calibration
+Per-rate wall time: 550 to 725 s with three workers (10 to 80 Hz), 767 to
+868 s with two (120 to 200 Hz).
+
+### 6.3 Calibration (VL-63)
 
 ```
 mingw32-make runner
-python prep/calibrate.py --cache
-python prep/calibrate.py --scan
-python prep/calibrate.py --refine
+python prep/calibrate.py --cache            # 24775486 pairs, 121581733 synapses, 242 s
+python prep/calibrate.py --scan --jobs 9    # eight candidates, about 10 min each
+python prep/calibrate.py --refine --jobs 9  # scan minimum at 0.3000 mV (error 0.1397); bracket [0.2750, 0.3500]
 python prep/calibrate.py --status
+W_syn        20Hz     80Hz    160Hz    error
+0.1000       0.00     0.00     0.00   1.0000
+0.1500       0.00     1.00     6.67   0.9432
+0.2000       0.00    11.17    42.67   0.5876
+0.2500       3.83    24.67    48.17   0.4113
+0.2750       6.33    31.17    68.33   0.2039
+0.2927       6.17    33.83    78.33   0.2021
+0.2953       5.50    41.33    77.67   0.1208
+0.2969       3.83    46.17    77.33   0.0691
+0.2979       3.83    44.67    79.67   0.1007
+0.2995       3.00    46.33    83.67   0.1117
+0.3000       5.17    42.33    81.83   0.1397
+0.3036       5.33    40.33    78.67   0.1380
+0.3104       4.17    54.67    88.67   0.1783
+0.3214       4.83    44.00    97.67   0.2334
+0.3500      11.00    67.67   109.67   0.4579
+0.4000       4.50    79.00   135.00   0.7508
+ref          0.00    48.95    71.52   (Shiu reference, D-170 mean)
+chosen: W_syn = 0.2969 mV, error 0.0691
 ```
 
-### 6.4 Regression
+The first scan candidate ran with `--jobs 3` (1212 s of runs); the rest with
+nine parallel engine processes (420 to 514 s per candidate, 60 to 123 s per
+emission).
+
+### 6.4 Cross-check of the emission path (VL-62)
 
 ```
-mingw32-make test
+./build/runnet.exe data/networks/onfnet-malecns-v1.0-full.bin 160 1000 1
+READOUT k=0 n=306 spikes=102 first=28700
+READOUT k=1 n=6394 spikes=7 first=43400
+```
+
+identical to the 0.275 mV candidate's `160/1` entry in the search log.
+
+### 6.5 ACC-4 at the chosen W_syn
+
+*(filled in below once `prep/acc4.py` completes)*
+
+### 6.6 Regression
+
+```
+mingw32-make testfloat && mingw32-make test
+run_gld [SOFT2C backend]: 14 passed, 0 failed
+cmpgld: SOFT3E, NATIVE, SOFT2C agree on all 13 golden requests (33 output lines)
+Ran 15 tests in 0.660s
+OK
+ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, ... ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE
+make test exit=0
 ```
 
 ### What these results do not prove
 
-Stated per claim in Appendix D (VL-61 onward) and in the GOAL REPORT.
+- **x86 NATIVE only.** No calibration or acceptance run has executed on MVS
+  3.8j, Linux s390x, or either SOFT backend. ACC-5 (determinism) is untouched
+  by this work and still holds on x86 only.
+- **The reference is a re-run, not the paper's numbers** (VL-61): a newer
+  brian2, seeded trials, eight rates. Shiu's own `fig_1d_rate.csv` was not
+  fetched.
+- **The objective is noisy at the search's resolution** (VL-63): the chosen
+  0.2969 mV is the best evaluated point, its neighbours 0.004 mV away score
+  0.10 to 0.12, and the last digit reflects seed variance, not physics.
+- **20 Hz is excluded from the objective** (D-172) and ONFLY's MN9 fires there
+  where Shiu's does not.
+- **ACC-3 is unevaluated**: no SR-EXT subcircuit exists yet. ACC-1 is defined on
+  the MVS subcircuit; anything reported here for it is a full-brain x86 preview.
+- **VL-06, VL-12, VL-13** (female FlyWire reference versus male MaleCNS,
+  labellar versus pharyngeal stimulus sets, 40.2% of synapses) apply in full.
 
 ## 7. Related docs
 
