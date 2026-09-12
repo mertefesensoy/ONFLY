@@ -108,7 +108,7 @@ ONFSF = softfloat/onfrpk.c softfloat/onfflag.c softfloat/onfsub.c \
         softfloat/onfprim.c
 
 GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
-            generated/onfcom_py.py generated/onfnhd.h
+            generated/onfcom_py.py generated/onfnhd.h generated/ONFLYDRV.cbl
 
 # TT-01's known-answer table (D-79).  Separate from $(GENERATED) because that
 # list shares a single rule whose recipe is layout/generate.py; this one comes
@@ -126,7 +126,9 @@ generate:
 	$(PYTHON) softfloat/derive.py
 	$(PYTHON) tools/genint.py
 
-$(GENERATED): layout/master.py layout/generate.py
+# cobol/ONFLYDRV.cbl is the driver TEMPLATE: generate.py expands its COPY
+# into generated/ONFLYDRV.cbl, the source that is actually compiled (D-161).
+$(GENERATED): layout/master.py layout/generate.py cobol/ONFLYDRV.cbl
 	$(PYTHON) layout/generate.py
 
 softfloat/onfsub.c: softfloat/derive.py
@@ -147,7 +149,7 @@ $(IVEC): tools/genint.py
 # D-28 and D-35 commit it to byte-identity with upstream, so it needs a
 # transport that preserves long lines instead.
 col80: $(GENERATED) $(IVEC) softfloat/onfsub.c
-	$(PYTHON) tools/lint_col80.py engine generated softfloat tests tools
+	$(PYTHON) tools/lint_col80.py engine generated softfloat tests tools cobol
 
 lint: $(GENERATED)
 	$(PYTHON) tools/lint_nr05.py --exclude engine/src/onffpn.c \
@@ -517,6 +519,14 @@ eng: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c
 	  engine/src/onffpc.c engine/src/onffpn.c engine/src/onffpr.c \
 	  softfloat/onfint.c
 	$(PYTHON) tests/run_eng.py $(BUILD)/onflyeng_nat.exe
+
+# --- Gate G4: ONFLYDRV through the GnuCOBOL IBM-dialect proxy (VL-02) ------
+# D-152 installs GnuCOBOL on this host; D-156 keeps this target OUT of
+# `test`, because a bare checkout has no cobc and must stay runnable.
+# tests/run_cob.py prints a skip line and exits 0 when no cobc is found.
+# The MVT COBOL half of the gate is tools/mvscob.py, on TK5.
+cob: $(BUILD) $(GENERATED)
+	$(PYTHON) tests/run_cob.py
 
 # --- FR-PRP-04: the full-brain runner --------------------------------------
 # Built as part of the project rather than by hand, so it cannot drift from
