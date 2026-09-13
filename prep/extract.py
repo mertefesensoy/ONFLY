@@ -42,6 +42,16 @@ recording digests and the selected body ids.
              network file (the D-75 path fixture, the hop2 neighbourhood);
              results in acc3-<label>.json.
 
+  --fitbias  D-194, D-199: the compensating input FITTED rather than
+             measured.  F1 scales every median-bias row by a + b*R, two
+             parameters fitted on the CALIBRATION rates {20, 80, 160}, and
+             is then judged by ACC-3 on the VALIDATION rates it never saw.
+             F2 gives each validation row its own free multiplier, which is
+             five parameters against ACC-3's five constraints -- a pass
+             there is calibration, not truncation fidelity, and says only
+             whether the mechanism has the freedom.  Results in
+             data/calibration/acc3-fitbias.json.  Diagnostic only (D-189).
+
   --refixture
              D-192 step 7: re-emit data/networks/ at format version 1.1.
              A v1.0 file is unreadable to a v1.1 engine (ONF103E), so every
@@ -88,6 +98,7 @@ Run (repository root):
     python prep/extract.py --ratebias   [--jobs 8]
     python prep/extract.py --refixture
     python prep/extract.py --biasnet    [--jobs 14]
+    python prep/extract.py --fitbias    [--jobs 14]
 """
 import argparse
 import hashlib
@@ -1097,6 +1108,7 @@ def compensate(jobs):
 # That is a mean-field closure, the standard way to truncate a network, and
 # it is why D-190 amends Appendix C rather than SR-EXT-01 or SR-EXT-02.
 BIASNET = os.path.join(cal.CAL_DIR, "acc3-biasnet.json")
+FIT_N = (500, 1000)     # D-199 engineer's choice
 
 
 def bias_table(arrays, nodes, rate_act):
@@ -1347,6 +1359,315 @@ def refixture():
     print("wrote %s" % os.path.join(NET_DIR, "MANIFEST.json").replace("\\", "/"))
 
 
+# --- D-194, D-197..D-199: the FITTED compensating input --------------------
+# VL-72 left the measured bias with a signed error that changes direction:
+# C-n500 undershoots the full brain at 10 and 40 Hz and overshoots it at 60,
+# 120 and 200 Hz.  No single global multiplier can repair that, so the
+# correction has to be a function of rate.
+#
+# Two fits, and the difference between them is the whole point:
+#
+#   F1  OUT OF SAMPLE.  The multiplier is a + b*R, two parameters, fitted so
+#       the subcircuit's MN9 rate matches the full brain at the three
+#       CALIBRATION rates {20, 80, 160} (D-165).  ACC-3 is then evaluated on
+#       the five VALIDATION rates, which the fit never saw.  Two parameters
+#       fitted on three points and tested on five others: this one can carry
+#       evidence.
+#
+#   F2  IN SAMPLE.  One free multiplier per validation row, fitted straight
+#       at the ACC-3 targets.  Nearest-rate row selection (D-191) makes each
+#       row independent, so this is five parameters against ACC-3's five
+#       constraints.  **A pass here is calibration, not truncation fidelity,
+#       and is never reported as an ACC-3 pass on its own.**  Its only job is
+#       to say whether the mechanism has the freedom at all -- if even a free
+#       multiplier per rate cannot reach the targets, no estimator of the
+#       bias ever will, and that is a strong negative result.
+#
+# Everything here is diagnostic (D-189): the networks live under
+# data/calibration/ and nothing amends SR-EXT-01, SR-EXT-02 or ACC-3.
+FITBIAS = os.path.join(cal.CAL_DIR, "acc3-fitbias.json")
+FIT_SEEDS = tuple(range(1, 11))     # D-199 engineer's choice, binds nothing
+FIT_CAP = 20.0                      # multiplier clipped to [0, FIT_CAP]
+FIT_ITERS = 12                      # bisection steps per 1-D fit
+
+
+def full_brain_mn9(rate_act, arrays, read):
+    """Full-brain MN9 rate per sampled rate, from the 15-seed measurement.
+
+    Returns {rate_hz: Hz}, averaged over both readouts (D-170) and taken from
+    the MEAN over seeds, because ACC-3's statistic is a mean.  This is the
+    only place the calibration rates {20, 80, 160} are available at all:
+    acc4.json holds the five validation rates only.
+    """
+    pre, post = arrays["body_pre"], arrays["body_post"]
+    bodies = np.union1d(np.unique(pre), np.unique(post))
+    k = np.searchsorted(bodies, np.sort(read))
+    rates = [int(r) for r in rate_act["rates"]]
+    est = rate_act["mean_spikes"]
+    out = {}
+    for i, r in enumerate(rates):
+        # spike count over a SIM_MS run -> Hz
+        out[r] = float(est[i][k].mean()) * 1000.0 / cal.SIM_MS
+    return out
+
+
+def scaled_rows(rows, rates, scale_of):
+    """Apply a per-rate multiplier to every bias row.
+
+    ``scale_of`` maps a rate in Hz to its multiplier.  Rate 0's row is left
+    alone: it is zero already, and IR-NET-09 requires it to stay zero so that
+    ACC-2's silence holds by construction.
+    """
+    out = []
+    for r, row in zip(rates, rows):
+        if r == 0:
+            out.append(list(row))
+            continue
+        m = float(scale_of(r))
+        out.append([v * m for v in row])
+    return out
+
+
+def mn9_at(path, rate, seeds, jobs):
+    """Mean MN9 rate over ``seeds`` at one rate, for one network."""
+    got = {}
+
+    def on_done(k, text):
+        res = cal.parse_run(text)
+        if res["rc"] != 0 or len(res["readouts"]) != 2:
+            raise SystemExit("run %s failed:\n%s" % (k, text[-2000:]))
+        sp = [x["spikes"] for x in res["readouts"]]
+        got[k] = sum(sp) * 1000.0 / cal.SIM_MS / len(sp)
+
+    run_pool([(path, rate, s) for s in seeds], jobs, [], on_done)
+    return sum(got.values()) / len(got)
+
+
+#: Coarse grid for the multiplier search.  Dense where the interesting
+#: behaviour is and sparse above it, because the measurement below found the
+#: peak near 0.5 and flat silence from 5 upwards.
+FIT_GRID = (0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0, 1.25, 1.5,
+            2.0, 3.0, 5.0, 20.0)
+
+
+def fit_one_rate(arrays, nodes, stim, read, rates, rows, rate, target,
+                 label, jobs, log):
+    """Find the row multiplier whose MN9 rate is closest to ``target``.
+
+    A coarse scan followed by refinement inside the bracket, which is the
+    method D-171 chose for the W_syn calibration and for the same reason:
+    **the response is not monotone in the multiplier, so bisection misreads
+    it.**  Measured on N = 500 at 40 Hz, MN9 goes 8.50, 12.15, 15.80, 11.80,
+    9.30, 6.00, 2.15, 0.00 Hz at multipliers 0, 0.25, 0.5, 0.75, 1, 2, 3, 5
+    -- it rises to a peak near 0.5 and then collapses to silence.
+
+    Why it collapses.  The compensating input's sign onto the readout changes
+    with rate: at 40 Hz the left MN9's own bias is -0.45 while the sum over
+    all 501 kept neurons is +50.68, so a large multiplier suppresses the
+    readout directly even as it drives everything else harder.  At 120 Hz the
+    same readout's bias is +0.45 and the response rises monotonically to 20x.
+    A bisection that assumed monotonicity returned the cap, 20, which is the
+    worst multiplier available at that rate.
+
+    The whole scan is written to ``log``, so the curve is auditable and the
+    choice reproducible rather than merely asserted.  Returns the multiplier.
+    """
+    def rate_at(m):
+        rws = scaled_rows(rows, rates, lambda r: m if r == rate else 0.0)
+        path, _n, _e, _sha = emit_diag_bias(arrays, nodes, stim, read,
+                                            "%s-probe" % label, rates, rws)
+        v = mn9_at(path, rate, FIT_SEEDS, jobs)
+        log.append({"rate": rate, "multiplier": m, "mn9_hz": v})
+        return v
+
+    seen = [(m, rate_at(m)) for m in FIT_GRID]
+    best = min(range(len(seen)), key=lambda k: abs(seen[k][1] - target))
+
+    # Refine between the grid neighbours of the best point.  Inside one grid
+    # cell the curve has no room for a second turning point at this
+    # resolution, so bisection is sound HERE even though it is not globally.
+    lo = seen[best - 1][0] if best > 0 else seen[0][0]
+    hi = seen[best + 1][0] if best + 1 < len(seen) else seen[-1][0]
+    for _ in range(FIT_ITERS):
+        if hi - lo < 1e-4:
+            break
+        m1 = lo + (hi - lo) / 3.0
+        m2 = hi - (hi - lo) / 3.0
+        if abs(rate_at(m1) - target) <= abs(rate_at(m2) - target):
+            hi = m2
+        else:
+            lo = m1
+    mid = 0.5 * (lo + hi)
+    got = rate_at(mid)
+    # Never return something the scan already beat.
+    if abs(seen[best][1] - target) < abs(got - target):
+        return seen[best][0]
+    return mid
+
+
+def edges_within(arrays, nodes):
+    """The connectivity restricted to edges with both ends in ``nodes``.
+
+    A fit probes one multiplier at a time and emits a network per probe, and
+    emit.build_network's first act is to select exactly these edges out of
+    24.7 million.  Doing that selection once per node set instead of once per
+    probe is the difference between seconds and milliseconds, and it changes
+    nothing: build_network re-runs the same test, which is then a no-op, and
+    the surviving edges arrive in the same order, so the file is byte for
+    byte what the unfiltered call produces.
+    """
+    pre, post = arrays["body_pre"], arrays["body_post"]
+    keep = np.isin(pre, nodes) & np.isin(post, nodes)
+    return {"body_pre": pre[keep], "body_post": post[keep],
+            "signed_weight": arrays["signed_weight"][keep]}
+
+
+def emit_diag_bias(arrays, nodes, stim, read, label, rates, rows):
+    """Emit one diagnostic network carrying a compensating table."""
+    blob, nn, e = emit.build_network(arrays, nodes, stim, read, label,
+                                     bias_rates=rates, bias_rows=rows)
+    path = os.path.join(cal.CAL_DIR, "diag-%s.bin" % label)
+    io.open(path, "wb").write(blob)
+    return path, int(nn), int(e), hashlib.sha256(blob).hexdigest()
+
+
+def fitbias(jobs):
+    ranking = load_json(RANKING, None)
+    full = load_json(ACC4, None)
+    if ranking is None or full is None:
+        raise SystemExit("need activity-ranking.json (--rank) and acc4.json")
+    if not os.path.isfile(RATEACT):
+        raise SystemExit("need %s (--ratebias)" % RATEACT)
+    rate_act = np.load(RATEACT)
+    arrays, stim, read = cal.load_cache()
+    top1000 = np.array([t["body"] for t in ranking["top1000"]],
+                       dtype=np.int64)
+    fb = full_brain_mn9(rate_act, arrays, read)
+    print("full-brain MN9 targets (Hz, 15-seed mean): %s"
+          % "  ".join("%d:%.2f" % (r, fb[r]) for r in sorted(fb)))
+    sys.stdout.flush()
+
+    t0 = time.time()
+    cases, fits = {}, {}
+    for n in FIT_N:
+        nodes = np.union1d(np.union1d(top1000[:n], stim), read)
+        # The bias table needs the FULL connectivity -- its whole content is
+        # the drive from neurons OUTSIDE the kept set -- so it is built from
+        # `arrays`.  Only the emission can use the restricted copy.
+        rates, rows = bias_table(arrays, nodes, rate_act)
+        sub = edges_within(arrays, nodes)
+
+        # --- F2 first: one free multiplier per rate.  Its by-product is the
+        # multiplier the response actually needs at each rate, which is what
+        # F1's two parameters are then fitted to approximate.
+        log = []
+        per_rate_m = {}
+        print("N=%d  F2: fitting one multiplier per rate" % n)
+        sys.stdout.flush()
+        for r in sorted(set(VAL_RATES) | set(cal.CAL_RATES)):
+            m = fit_one_rate(sub, nodes, stim, read, rates, rows, r,
+                             fb[r], "F-n%d" % n, jobs, log)
+            per_rate_m[r] = m
+            print("    rate %3d: multiplier %.4f  (target %.2f Hz)"
+                  % (r, m, fb[r]))
+            sys.stdout.flush()
+
+        # --- F1: a + b*R fitted on the CALIBRATION rates only (D-165).
+        # Least squares on two points is a line through them; with three it
+        # is the closed-form fit below, and no optimiser is needed.
+        cr = list(cal.CAL_RATES)
+        xs = [float(r) for r in cr]
+        ys = [per_rate_m[r] for r in cr]
+        mx = sum(xs) / len(xs)
+        my = sum(ys) / len(ys)
+        sxx = 0.0
+        sxy = 0.0
+        for x, y in zip(xs, ys):
+            sxx += (x - mx) * (x - mx)
+            sxy += (x - mx) * (y - my)
+        b = sxy / sxx if sxx > 0 else 0.0
+        a = my - b * mx
+        print("N=%d  F1: multiplier = %.5f + %.7f * R, fitted on %s"
+              % (n, a, b, cr))
+        sys.stdout.flush()
+
+        def f1_scale(r, a=a, b=b):
+            return min(max(a + b * r, 0.0), FIT_CAP)
+
+        f1_rows = scaled_rows(rows, rates, f1_scale)
+        path, nn, e, sha = emit_diag_bias(sub, nodes, stim, read,
+                                          "F1-n%d" % n, rates, f1_rows)
+        cases["F1-n%d" % n] = {
+            "construction": "F1", "N": n, "file": path, "neurons": nn,
+            "edges": e, "sha256": sha, "in_sample": False,
+            "form": "a + b*R", "a": a, "b": b,
+            "fitted_on": cr,
+            "multiplier_at": dict((str(r), f1_scale(r)) for r in VAL_RATES),
+        }
+
+        def f2_scale(r, m=per_rate_m):
+            return min(max(m.get(r, 1.0), 0.0), FIT_CAP)
+
+        f2_rows = scaled_rows(rows, rates, f2_scale)
+        path, nn, e, sha = emit_diag_bias(sub, nodes, stim, read,
+                                          "F2-n%d" % n, rates, f2_rows)
+        cases["F2-n%d" % n] = {
+            "construction": "F2", "N": n, "file": path, "neurons": nn,
+            "edges": e, "sha256": sha, "in_sample": True,
+            "form": "one free multiplier per rate",
+            "multiplier_at": dict((str(r), f2_scale(r)) for r in VAL_RATES),
+            "caveat": ("five parameters against ACC-3's five constraints; a "
+                       "pass is calibration, not truncation fidelity"),
+        }
+        fits["n%d" % n] = {"per_rate_multiplier": per_rate_m,
+                           "f1_a": a, "f1_b": b, "probe_log": log}
+
+    cases = acc3_eval(cases, full, jobs)
+    out = {"decisions": ["D-165", "D-166", "D-191", "D-193", "D-194",
+                         "D-197", "D-198", "D-199"],
+           "full_brain_source": "data/calibration/acc4.json (30 seeds)",
+           "fit_targets": dict((str(r), fb[r]) for r in sorted(fb)),
+           "fit_target_source": ("data/calibration/rate-activity.npz, "
+                                 "15-seed mean, both readouts (D-170)"),
+           "diagnostic_only": True, "fit_seeds": list(FIT_SEEDS),
+           "cases": cases, "fits": fits,
+           "elapsed_s": round(time.time() - t0)}
+    save_json(FITBIAS, out)
+
+    print("")
+    print("%-8s %6s %8s %8s %8s %8s %8s  %-6s %s"
+          % ("case", "N", "10Hz", "40Hz", "60Hz", "120Hz", "200Hz", "ACC-3",
+             "evidence"))
+    print("%-8s %6s %8.2f %8.2f %8.2f %8.2f %8.2f  %-6s %s"
+          % ("full", "-",
+             *[full["per_rate"][str(r)]["onfly_mean_hz"] for r in VAL_RATES],
+             "ref", "30-seed reference"))
+    for label in sorted(cases):
+        c = cases[label]
+        print("%-8s %6d %8.2f %8.2f %8.2f %8.2f %8.2f  %-6s %s"
+              % (label, c["N"],
+                 *[c["per_rate"][str(r)]["sub_mean_hz"] for r in VAL_RATES],
+                 "PASS" if c["acc3_pass"] else "FAIL",
+                 "IN-SAMPLE, not fidelity" if c["in_sample"]
+                 else "out of sample"))
+    for label in sorted(cases):
+        c = cases[label]
+        worst = max(abs(c["per_rate"][str(r)]["sub_mean_hz"]
+                        - c["per_rate"][str(r)]["full_mean_hz"])
+                    / c["per_rate"][str(r)]["full_mean_hz"]
+                    for r in VAL_RATES)
+        above = max(abs(c["per_rate"][str(r)]["sub_mean_hz"]
+                        - c["per_rate"][str(r)]["full_mean_hz"])
+                    / c["per_rate"][str(r)]["full_mean_hz"]
+                    for r in VAL_RATES[1:])
+        print("%-8s worst %3.0f%%   above the 10 Hz floor %3.0f%%   "
+              "need=%s bytes (NFR-MEM-01 %s)"
+              % (label, 100 * worst, 100 * above, c["need_bytes"],
+                 "PASS" if c["nfr_mem_01_pass"] else "FAIL"))
+    print("")
+    print("wrote %s (%d s)" % (FITBIAS.replace("\\", "/"), out["elapsed_s"]))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rank", action="store_true")
@@ -1360,6 +1681,7 @@ def main():
     ap.add_argument("--ratebias", action="store_true")
     ap.add_argument("--biasnet", action="store_true")
     ap.add_argument("--refixture", action="store_true")
+    ap.add_argument("--fitbias", action="store_true")
     ap.add_argument("--jobs", type=int, default=14)
     a = ap.parse_args()
     if not os.path.isfile(cal.RUNNET):
@@ -1384,6 +1706,8 @@ def main():
         refixture()
     if a.biasnet:
         biasnet(a.jobs)
+    if a.fitbias:
+        fitbias(a.jobs)
     return 0
 
 

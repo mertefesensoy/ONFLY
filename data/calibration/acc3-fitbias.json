@@ -1,0 +1,3579 @@
+{
+  "cases": {
+    "F1-n1000": {
+      "N": 1000,
+      "a": 0.6506198496418482,
+      "acc3_pass": false,
+      "b": -0.0009287165283456491,
+      "construction": "F1",
+      "edges": 32929,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-F1-n1000.bin",
+      "fitted_on": [
+        20,
+        80,
+        160
+      ],
+      "form": "a + b*R",
+      "in_sample": false,
+      "multiplier_at": {
+        "10": 0.6413326843583916,
+        "120": 0.5391738662403702,
+        "200": 0.4648765439727183,
+        "40": 0.6134711885080222,
+        "60": 0.5948968579411092
+      },
+      "need_bytes": 647440,
+      "neurons": 1001,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": false,
+          "sub_mean_hz": 0.11666666666666667,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": false,
+          "sub_mean_hz": 98.2,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": false,
+          "sub_mean_hz": 116.63333333333334,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": false,
+          "sub_mean_hz": 30.25,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": false,
+          "sub_mean_hz": 51.9,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "sha256": "4643f9803939ab7f4a2a301fc42d5297c3621877767cda7477de10fd3b5db789"
+    },
+    "F1-n500": {
+      "N": 500,
+      "a": 0.2517690275755612,
+      "acc3_pass": false,
+      "b": 0.0026886402228067613,
+      "construction": "F1",
+      "edges": 10783,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-F1-n500.bin",
+      "fitted_on": [
+        20,
+        80,
+        160
+      ],
+      "form": "a + b*R",
+      "in_sample": false,
+      "multiplier_at": {
+        "10": 0.2786554298036288,
+        "120": 0.5744058543123726,
+        "200": 0.7894970721369134,
+        "40": 0.35931463648783163,
+        "60": 0.4130874409439669
+      },
+      "need_bytes": 255688,
+      "neurons": 501,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": true,
+          "sub_mean_hz": 68.03333333333333,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": false,
+          "sub_mean_hz": 101.38333333333334,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": true,
+          "sub_mean_hz": 14.0,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": false,
+          "sub_mean_hz": 24.566666666666666,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "sha256": "fc6fd3ffbc7eaca360da4f5146d9acc10d5f4272a1c9d8f37178dbb9d363a5b7"
+    },
+    "F2-n1000": {
+      "N": 1000,
+      "acc3_pass": false,
+      "caveat": "five parameters against ACC-3's five constraints; a pass is calibration, not truncation fidelity",
+      "construction": "F2",
+      "edges": 32929,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-F2-n1000.bin",
+      "form": "one free multiplier per rate",
+      "in_sample": true,
+      "multiplier_at": {
+        "10": 7.66763384834817,
+        "120": 0.0,
+        "200": 0.03472897273639031,
+        "40": 7.133297957816578,
+        "60": 4.153764952271278
+      },
+      "need_bytes": 647440,
+      "neurons": 1001,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": true,
+          "sub_mean_hz": 4.45,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": false,
+          "sub_mean_hz": 81.81666666666666,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": false,
+          "sub_mean_hz": 102.23333333333333,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": true,
+          "sub_mean_hz": 14.866666666666667,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": true,
+          "sub_mean_hz": 26.583333333333332,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "sha256": "e94634fdc47df1da001b2da8afd5defea99b2f3ec59ad0b89768f62c1f665133"
+    },
+    "F2-n500": {
+      "N": 500,
+      "acc3_pass": false,
+      "caveat": "five parameters against ACC-3's five constraints; a pass is calibration, not truncation fidelity",
+      "construction": "F2",
+      "edges": 10783,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-F2-n500.bin",
+      "form": "one free multiplier per rate",
+      "in_sample": true,
+      "multiplier_at": {
+        "10": 1.2491706511164926,
+        "120": 0.5781219363955735,
+        "200": 0.6235429709036375,
+        "40": 0.4,
+        "60": 0.6031994144222971
+      },
+      "need_bytes": 255688,
+      "neurons": 501,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": false,
+          "sub_mean_hz": 0.26666666666666666,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": true,
+          "sub_mean_hz": 67.93333333333334,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": true,
+          "sub_mean_hz": 89.35,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": true,
+          "sub_mean_hz": 14.466666666666667,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": true,
+          "sub_mean_hz": 28.033333333333335,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "sha256": "2762601740ceeaa1af959992f1a40377d0b6b77c7a883344c2b3232d230fef31"
+    }
+  },
+  "decisions": [
+    "D-165",
+    "D-166",
+    "D-191",
+    "D-193",
+    "D-194",
+    "D-197",
+    "D-198",
+    "D-199"
+  ],
+  "diagnostic_only": true,
+  "elapsed_s": 3700,
+  "fit_seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "fit_target_source": "data/calibration/rate-activity.npz, 15-seed mean, both readouts (D-170)",
+  "fit_targets": {
+    "0": 0.0,
+    "10": 4.566666666666666,
+    "120": 67.73333333333333,
+    "160": 76.56666666666666,
+    "20": 5.633333333333334,
+    "200": 89.63333333333333,
+    "40": 15.066666666666666,
+    "60": 27.633333333333333,
+    "80": 46.2
+  },
+  "fits": {
+    "n1000": {
+      "f1_a": 0.6506198496418482,
+      "f1_b": -0.0009287165283456491,
+      "per_rate_multiplier": {
+        "10": 7.66763384834817,
+        "20": 0.0,
+        "40": 7.133297957816578,
+        "60": 4.153764952271278,
+        "80": 1.682402185755333,
+        "120": 0.0,
+        "160": 0.02799106580034285,
+        "200": 0.03472897273639031
+      },
+      "probe_log": [
+        {
+          "mn9_hz": 0.2,
+          "multiplier": 0.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.2,
+          "multiplier": 0.1,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.15,
+          "multiplier": 0.2,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 0.3,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 0.4,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 0.5,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 0.6,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 0.7,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 0.8,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 1.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 1.25,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 1.5,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 2.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 3.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 8.3,
+          "multiplier": 5.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.5,
+          "multiplier": 20.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.5,
+          "multiplier": 8.666666666666668,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.5,
+          "multiplier": 14.333333333333332,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 8.45,
+          "multiplier": 6.777777777777777,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.5,
+          "multiplier": 10.555555555555555,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 11.35,
+          "multiplier": 5.518518518518519,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.55,
+          "multiplier": 8.037037037037036,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 8.25,
+          "multiplier": 7.197530864197531,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.5,
+          "multiplier": 8.876543209876543,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 8.0,
+          "multiplier": 6.637860082304527,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 2.55,
+          "multiplier": 7.757201646090535,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 6.1,
+          "multiplier": 7.384087791495198,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.5,
+          "multiplier": 8.130315500685871,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 8.9,
+          "multiplier": 7.135345221764974,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 5.0,
+          "multiplier": 7.632830361225423,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 5.55,
+          "multiplier": 7.467001981405273,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 1.75,
+          "multiplier": 7.798658741045572,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 6.4,
+          "multiplier": 7.356449728191841,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 5.7,
+          "multiplier": 7.577554234618706,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 5.55,
+          "multiplier": 7.5038527324764175,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 4.85,
+          "multiplier": 7.651255736760995,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 5.4,
+          "multiplier": 7.602121401999469,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 3.85,
+          "multiplier": 7.700390071522521,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 4.3,
+          "multiplier": 7.66763384834817,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 2.95,
+          "multiplier": 7.733146294696871,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 4.3,
+          "multiplier": 7.66763384834817,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 5.6,
+          "multiplier": 0.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 6.45,
+          "multiplier": 0.1,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.5,
+          "multiplier": 0.2,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.4,
+          "multiplier": 0.3,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 4.75,
+          "multiplier": 0.4,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 3.85,
+          "multiplier": 0.5,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 3.35,
+          "multiplier": 0.6,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 3.3,
+          "multiplier": 0.7,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.4,
+          "multiplier": 0.8,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 1.4,
+          "multiplier": 1.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.7,
+          "multiplier": 1.25,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.65,
+          "multiplier": 1.5,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 1.0,
+          "multiplier": 2.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 3.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 5.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 20.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.45,
+          "multiplier": 0.03333333333333333,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.75,
+          "multiplier": 0.06666666666666668,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 6.0,
+          "multiplier": 0.05555555555555556,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.9,
+          "multiplier": 0.07777777777777778,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.8,
+          "multiplier": 0.07037037037037037,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 6.05,
+          "multiplier": 0.0851851851851852,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.8,
+          "multiplier": 0.0654320987654321,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 6.0,
+          "multiplier": 0.07530864197530865,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.8,
+          "multiplier": 0.06213991769547326,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.9,
+          "multiplier": 0.06872427983539095,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.9,
+          "multiplier": 0.05994513031550069,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.8,
+          "multiplier": 0.06433470507544582,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.7,
+          "multiplier": 0.06287151348879744,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.8,
+          "multiplier": 0.0657978966620942,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.8,
+          "multiplier": 0.061896052431031856,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.75,
+          "multiplier": 0.06384697454656302,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.7,
+          "multiplier": 0.0631966671747193,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.85,
+          "multiplier": 0.06449728191840674,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.7,
+          "multiplier": 0.06276312892682348,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.7,
+          "multiplier": 0.06363020542261512,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.75,
+          "multiplier": 0.06247410342822628,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.7,
+          "multiplier": 0.0630521544254207,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.7,
+          "multiplier": 0.06285947075968923,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.7,
+          "multiplier": 0.06324483809115217,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 5.7,
+          "multiplier": 0.06285947075968923,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 35.35,
+          "multiplier": 0.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 31.6,
+          "multiplier": 0.1,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 30.6,
+          "multiplier": 0.2,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 33.05,
+          "multiplier": 0.3,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 32.25,
+          "multiplier": 0.4,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 30.5,
+          "multiplier": 0.5,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 29.1,
+          "multiplier": 0.6,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 29.4,
+          "multiplier": 0.7,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 31.05,
+          "multiplier": 0.8,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 27.75,
+          "multiplier": 1.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 28.35,
+          "multiplier": 1.25,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 34.15,
+          "multiplier": 1.5,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 2.65,
+          "multiplier": 2.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 1.45,
+          "multiplier": 3.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 4.55,
+          "multiplier": 5.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 76.1,
+          "multiplier": 20.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 20.4,
+          "multiplier": 8.666666666666668,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 53.65,
+          "multiplier": 14.333333333333332,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 11.65,
+          "multiplier": 6.777777777777777,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 31.05,
+          "multiplier": 10.555555555555555,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 6.25,
+          "multiplier": 5.518518518518519,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 18.8,
+          "multiplier": 8.037037037037036,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.95,
+          "multiplier": 7.197530864197531,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 22.75,
+          "multiplier": 8.876543209876543,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 11.6,
+          "multiplier": 6.637860082304527,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 17.45,
+          "multiplier": 7.757201646090535,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.45,
+          "multiplier": 7.384087791495198,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 19.35,
+          "multiplier": 8.130315500685871,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.3,
+          "multiplier": 7.135345221764974,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 16.85,
+          "multiplier": 7.632830361225423,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 13.6,
+          "multiplier": 6.9695168419448255,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.95,
+          "multiplier": 7.301173601585124,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.3,
+          "multiplier": 7.190621348371692,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 16.7,
+          "multiplier": 7.411725854798557,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.8,
+          "multiplier": 7.116919846229402,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.65,
+          "multiplier": 7.26432285051398,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.0,
+          "multiplier": 7.067785511467877,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.05,
+          "multiplier": 7.166054180990929,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.05,
+          "multiplier": 7.133297957816578,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.95,
+          "multiplier": 7.198810404165279,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.05,
+          "multiplier": 7.133297957816578,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 50.5,
+          "multiplier": 0.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 54.0,
+          "multiplier": 0.1,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 52.15,
+          "multiplier": 0.2,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 54.4,
+          "multiplier": 0.3,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 49.5,
+          "multiplier": 0.4,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 54.65,
+          "multiplier": 0.5,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 52.0,
+          "multiplier": 0.6,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 53.2,
+          "multiplier": 0.7,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 53.8,
+          "multiplier": 0.8,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 55.25,
+          "multiplier": 1.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 18.35,
+          "multiplier": 1.25,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 13.95,
+          "multiplier": 1.5,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 13.75,
+          "multiplier": 2.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 20.7,
+          "multiplier": 3.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 36.3,
+          "multiplier": 5.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 145.15,
+          "multiplier": 20.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 20.7,
+          "multiplier": 3.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 26.4,
+          "multiplier": 4.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 22.15,
+          "multiplier": 3.6666666666666665,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.7,
+          "multiplier": 4.333333333333333,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 25.8,
+          "multiplier": 4.111111111111111,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 31.45,
+          "multiplier": 4.555555555555555,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 26.1,
+          "multiplier": 3.962962962962963,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 29.9,
+          "multiplier": 4.2592592592592595,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 25.65,
+          "multiplier": 3.8641975308641974,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 26.85,
+          "multiplier": 4.061728395061729,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.1,
+          "multiplier": 3.9958847736625516,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 28.1,
+          "multiplier": 4.127572016460905,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 25.6,
+          "multiplier": 4.0836762688614545,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.25,
+          "multiplier": 4.171467764060357,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 26.25,
+          "multiplier": 4.14220393232739,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 26.7,
+          "multiplier": 4.200731595793324,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.65,
+          "multiplier": 4.181222374638013,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 26.85,
+          "multiplier": 4.220240816948636,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.7,
+          "multiplier": 4.168216227201139,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 28.05,
+          "multiplier": 4.194228522074887,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.05,
+          "multiplier": 4.159545462243222,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.05,
+          "multiplier": 4.176886992159055,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 26.75,
+          "multiplier": 4.1537649522712785,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 25.9,
+          "multiplier": 4.165325972215166,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 26.75,
+          "multiplier": 4.153764952271278,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 63.45,
+          "multiplier": 0.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 66.65,
+          "multiplier": 0.1,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 67.0,
+          "multiplier": 0.2,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 66.55,
+          "multiplier": 0.3,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 69.45,
+          "multiplier": 0.4,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 74.35,
+          "multiplier": 0.5,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 75.65,
+          "multiplier": 0.6,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 78.7,
+          "multiplier": 0.7,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 77.75,
+          "multiplier": 0.8,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 82.9,
+          "multiplier": 1.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 88.4,
+          "multiplier": 1.25,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 78.45,
+          "multiplier": 1.5,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 57.15,
+          "multiplier": 2.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 67.8,
+          "multiplier": 3.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 97.0,
+          "multiplier": 5.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 182.25,
+          "multiplier": 20.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 57.15,
+          "multiplier": 2.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 63.25,
+          "multiplier": 2.5,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 57.55,
+          "multiplier": 1.8333333333333333,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 60.15,
+          "multiplier": 2.1666666666666665,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 54.75,
+          "multiplier": 1.722222222222222,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 58.45,
+          "multiplier": 1.9444444444444444,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 55.7,
+          "multiplier": 1.6481481481481481,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 56.0,
+          "multiplier": 1.7962962962962963,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 57.8,
+          "multiplier": 1.5987654320987654,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 56.3,
+          "multiplier": 1.6975308641975309,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 55.75,
+          "multiplier": 1.6646090534979423,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 56.8,
+          "multiplier": 1.7304526748971194,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 55.55,
+          "multiplier": 1.6426611796982167,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 54.85,
+          "multiplier": 1.6865569272976682,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 55.15,
+          "multiplier": 1.6719250114311843,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 55.95,
+          "multiplier": 1.7011888431641518,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 56.45,
+          "multiplier": 1.6621704008535283,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 56.0,
+          "multiplier": 1.6816796220088401,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 55.5,
+          "multiplier": 1.6751765482904029,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 55.95,
+          "multiplier": 1.6881826957272772,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 56.1,
+          "multiplier": 1.6708411658114446,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 55.15,
+          "multiplier": 1.679511930769361,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 57.0,
+          "multiplier": 1.6766216757833887,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 56.55,
+          "multiplier": 1.682402185755333,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 56.55,
+          "multiplier": 1.682402185755333,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 83.2,
+          "multiplier": 0.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 87.2,
+          "multiplier": 0.1,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 88.85,
+          "multiplier": 0.2,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 90.3,
+          "multiplier": 0.3,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 95.15,
+          "multiplier": 0.4,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 96.55,
+          "multiplier": 0.5,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 99.6,
+          "multiplier": 0.6,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 103.3,
+          "multiplier": 0.7,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 107.8,
+          "multiplier": 0.8,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 111.95,
+          "multiplier": 1.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 114.55,
+          "multiplier": 1.25,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 121.6,
+          "multiplier": 1.5,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 95.2,
+          "multiplier": 2.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 115.6,
+          "multiplier": 3.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 145.65,
+          "multiplier": 5.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 209.5,
+          "multiplier": 20.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 80.85,
+          "multiplier": 0.03333333333333333,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 84.95,
+          "multiplier": 0.06666666666666668,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 84.0,
+          "multiplier": 0.022222222222222227,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 85.8,
+          "multiplier": 0.04444444444444445,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 83.75,
+          "multiplier": 0.014814814814814817,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 82.75,
+          "multiplier": 0.029629629629629638,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 82.25,
+          "multiplier": 0.024691358024691364,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 83.4,
+          "multiplier": 0.034567901234567905,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 85.1,
+          "multiplier": 0.021399176954732514,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 83.75,
+          "multiplier": 0.02798353909465021,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 84.35,
+          "multiplier": 0.025788751714677646,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 83.6,
+          "multiplier": 0.030178326474622773,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 82.15,
+          "multiplier": 0.0287151348879744,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 83.2,
+          "multiplier": 0.03164151806127115,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 85.05,
+          "multiplier": 0.027739673830208814,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 84.55,
+          "multiplier": 0.02969059594573998,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 85.35,
+          "multiplier": 0.029040288573896258,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 85.05,
+          "multiplier": 0.030340903317583705,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 82.4,
+          "multiplier": 0.02990736506968789,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 83.8,
+          "multiplier": 0.030774441565479517,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 81.8,
+          "multiplier": 0.02961833957109068,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 83.3,
+          "multiplier": 0.030196390568285096,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 84.65,
+          "multiplier": 0.029425655905359203,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 84.1,
+          "multiplier": 0.02981102323682215,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 84.1,
+          "multiplier": 0.02981102323682215,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 94.15,
+          "multiplier": 0.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 97.05,
+          "multiplier": 0.1,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 98.7,
+          "multiplier": 0.2,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 101.6,
+          "multiplier": 0.3,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 104.15,
+          "multiplier": 0.4,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 109.4,
+          "multiplier": 0.5,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 112.15,
+          "multiplier": 0.6,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 113.95,
+          "multiplier": 0.7,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 116.05,
+          "multiplier": 0.8,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 118.45,
+          "multiplier": 1.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 121.85,
+          "multiplier": 1.25,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 127.2,
+          "multiplier": 1.5,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 134.15,
+          "multiplier": 2.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 121.0,
+          "multiplier": 3.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 144.95,
+          "multiplier": 5.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 210.25,
+          "multiplier": 20.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 94.8,
+          "multiplier": 0.03333333333333333,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 97.7,
+          "multiplier": 0.06666666666666668,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 92.45,
+          "multiplier": 0.022222222222222227,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 94.3,
+          "multiplier": 0.04444444444444445,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 94.7,
+          "multiplier": 0.014814814814814817,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 94.35,
+          "multiplier": 0.029629629629629638,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 94.1,
+          "multiplier": 0.024691358024691364,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 92.55,
+          "multiplier": 0.034567901234567905,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 93.35,
+          "multiplier": 0.03127572016460906,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 93.75,
+          "multiplier": 0.037860082304526754,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 94.4,
+          "multiplier": 0.029080932784636495,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 94.8,
+          "multiplier": 0.033470507544581626,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 92.8,
+          "multiplier": 0.027617741197988117,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 94.95,
+          "multiplier": 0.030544124371284873,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 95.05,
+          "multiplier": 0.026642280140222532,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 94.05,
+          "multiplier": 0.028593202255753705,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 92.6,
+          "multiplier": 0.02794289488390998,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 93.95,
+          "multiplier": 0.029243509627597426,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 93.4,
+          "multiplier": 0.027509356636014164,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 94.55,
+          "multiplier": 0.028376433131805795,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 95.85,
+          "multiplier": 0.027220331137416953,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 93.65,
+          "multiplier": 0.027798382134611374,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 95.55,
+          "multiplier": 0.0276056984688799,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 92.65,
+          "multiplier": 0.027991065800342847,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 92.65,
+          "multiplier": 0.02799106580034285,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 101.5,
+          "multiplier": 0.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 105.65,
+          "multiplier": 0.1,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 109.9,
+          "multiplier": 0.2,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 114.05,
+          "multiplier": 0.3,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 115.6,
+          "multiplier": 0.4,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 115.5,
+          "multiplier": 0.5,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 117.85,
+          "multiplier": 0.6,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 121.45,
+          "multiplier": 0.7,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 122.75,
+          "multiplier": 0.8,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 126.15,
+          "multiplier": 1.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 128.75,
+          "multiplier": 1.25,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 132.95,
+          "multiplier": 1.5,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 140.8,
+          "multiplier": 2.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 152.5,
+          "multiplier": 3.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 157.5,
+          "multiplier": 5.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 214.05,
+          "multiplier": 20.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 104.05,
+          "multiplier": 0.03333333333333333,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 104.35,
+          "multiplier": 0.06666666666666668,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 101.85,
+          "multiplier": 0.022222222222222227,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 104.15,
+          "multiplier": 0.04444444444444445,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 104.0,
+          "multiplier": 0.014814814814814817,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 102.7,
+          "multiplier": 0.029629629629629638,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 104.8,
+          "multiplier": 0.024691358024691364,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 102.45,
+          "multiplier": 0.034567901234567905,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 101.95,
+          "multiplier": 0.03127572016460906,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 102.15,
+          "multiplier": 0.037860082304526754,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 102.7,
+          "multiplier": 0.029080932784636495,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 102.45,
+          "multiplier": 0.033470507544581626,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 100.8,
+          "multiplier": 0.03200731595793325,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 100.45,
+          "multiplier": 0.03493369913123,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 103.65,
+          "multiplier": 0.03395823807346442,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 103.15,
+          "multiplier": 0.035909160188995586,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 101.75,
+          "multiplier": 0.03525885281715186,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 104.95,
+          "multiplier": 0.03655946756083931,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 102.0,
+          "multiplier": 0.03482531456925605,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 102.7,
+          "multiplier": 0.03569239106504768,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 104.65,
+          "multiplier": 0.03453628907065884,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 104.85,
+          "multiplier": 0.03511434006785326,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 101.7,
+          "multiplier": 0.03434360540492736,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 101.15,
+          "multiplier": 0.034728972736390314,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 101.15,
+          "multiplier": 0.03472897273639031,
+          "rate": 200
+        }
+      ]
+    },
+    "n500": {
+      "f1_a": 0.2517690275755612,
+      "f1_b": 0.0026886402228067613,
+      "per_rate_multiplier": {
+        "10": 1.2491706511164926,
+        "20": 0.2569547701438165,
+        "40": 0.4,
+        "60": 0.6031994144222971,
+        "80": 0.5518876037038919,
+        "120": 0.5781219363955735,
+        "160": 0.6455111668087331,
+        "200": 0.6235429709036375
+      },
+      "probe_log": [
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 0.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 0.1,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 0.2,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 0.3,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 0.4,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 0.5,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 0.6,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 0.7,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 0.8,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 1.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.25,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 1.5,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 2.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 3.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 5.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 20.0,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 1.1666666666666667,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.3333333333333333,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.277777777777778,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.3888888888888888,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 1.2407407407407407,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.3148148148148149,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2901234567901234,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.3395061728395061,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2736625514403292,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.3065843621399176,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2626886145404663,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.284636488340192,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2553726566072245,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2700045724737081,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2504953513183965,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2602499618960523,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 1.247243814459178,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.253746888177615,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.251579196938136,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2559145794170943,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2501340694451502,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.253024324431122,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2491706511164926,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2510974877738075,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 1.2491706511164926,
+          "rate": 10
+        },
+        {
+          "mn9_hz": 0.25,
+          "multiplier": 0.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.4,
+          "multiplier": 0.1,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.7,
+          "multiplier": 0.2,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.65,
+          "multiplier": 0.3,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.35,
+          "multiplier": 0.4,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.25,
+          "multiplier": 0.5,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.2,
+          "multiplier": 0.6,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.2,
+          "multiplier": 0.7,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.1,
+          "multiplier": 0.8,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.05,
+          "multiplier": 1.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 1.25,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 1.5,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 2.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 3.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 5.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 20.0,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.55,
+          "multiplier": 0.16666666666666669,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 1.45,
+          "multiplier": 0.23333333333333334,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 0.85,
+          "multiplier": 0.2111111111111111,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.25,
+          "multiplier": 0.25555555555555554,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 1.85,
+          "multiplier": 0.24074074074074073,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 1.65,
+          "multiplier": 0.27037037037037037,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 1.4,
+          "multiplier": 0.2308641975308642,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.1,
+          "multiplier": 0.2506172839506173,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.1,
+          "multiplier": 0.2440329218106996,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.257201646090535,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.1,
+          "multiplier": 0.25281207133058986,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.26159122085048014,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.25866483767718335,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 1.75,
+          "multiplier": 0.2645176040237769,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.2567139155616522,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.26061575979271456,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.25,
+          "multiplier": 0.25541330081796476,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.25801453030533966,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.257147453809548,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.2588816068011313,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.25656940281235363,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.25772550480674244,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.3,
+          "multiplier": 0.25618403548089064,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.25695477014381657,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 2.35,
+          "multiplier": 0.2569547701438165,
+          "rate": 20
+        },
+        {
+          "mn9_hz": 8.5,
+          "multiplier": 0.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 9.75,
+          "multiplier": 0.1,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 11.65,
+          "multiplier": 0.2,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 13.15,
+          "multiplier": 0.3,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.9,
+          "multiplier": 0.4,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.8,
+          "multiplier": 0.5,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 13.9,
+          "multiplier": 0.6,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 12.7,
+          "multiplier": 0.7,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 11.5,
+          "multiplier": 0.8,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 9.3,
+          "multiplier": 1.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 8.0,
+          "multiplier": 1.25,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 6.75,
+          "multiplier": 1.5,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 6.0,
+          "multiplier": 2.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 2.15,
+          "multiplier": 3.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 5.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 0.0,
+          "multiplier": 20.0,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 13.95,
+          "multiplier": 0.36666666666666664,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.9,
+          "multiplier": 0.43333333333333335,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.9,
+          "multiplier": 0.4111111111111111,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.3,
+          "multiplier": 0.45555555555555555,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.35,
+          "multiplier": 0.39629629629629626,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.8,
+          "multiplier": 0.42592592592592593,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.8,
+          "multiplier": 0.41604938271604935,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.5,
+          "multiplier": 0.43580246913580245,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.85,
+          "multiplier": 0.40946502057613166,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.3,
+          "multiplier": 0.42263374485596705,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.0,
+          "multiplier": 0.40507544581618654,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.65,
+          "multiplier": 0.41385459533607677,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.5,
+          "multiplier": 0.40214906264288974,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.15,
+          "multiplier": 0.4080018289894833,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.55,
+          "multiplier": 0.40605090687395207,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.9,
+          "multiplier": 0.40995275110501445,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.1,
+          "multiplier": 0.40865213636132697,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.8,
+          "multiplier": 0.41125336584870187,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.45,
+          "multiplier": 0.4077850598655353,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.1,
+          "multiplier": 0.4095192128571186,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.1,
+          "multiplier": 0.4089411618599242,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.0,
+          "multiplier": 0.410097263854313,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 14.4,
+          "multiplier": 0.4085557945284612,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.25,
+          "multiplier": 0.4093265291913871,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 15.25,
+          "multiplier": 0.4093265291913871,
+          "rate": 40
+        },
+        {
+          "mn9_hz": 18.05,
+          "multiplier": 0.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 18.75,
+          "multiplier": 0.1,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 19.2,
+          "multiplier": 0.2,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 22.3,
+          "multiplier": 0.3,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 24.3,
+          "multiplier": 0.4,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 25.7,
+          "multiplier": 0.5,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 28.35,
+          "multiplier": 0.6,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 29.95,
+          "multiplier": 0.7,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 31.5,
+          "multiplier": 0.8,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 35.8,
+          "multiplier": 1.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 39.95,
+          "multiplier": 1.25,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 46.5,
+          "multiplier": 1.5,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 57.45,
+          "multiplier": 2.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 79.4,
+          "multiplier": 3.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 103.15,
+          "multiplier": 5.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 71.1,
+          "multiplier": 20.0,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.05,
+          "multiplier": 0.5666666666666667,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 28.6,
+          "multiplier": 0.6333333333333333,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.15,
+          "multiplier": 0.5444444444444444,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.45,
+          "multiplier": 0.5888888888888889,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.15,
+          "multiplier": 0.5740740740740741,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 28.0,
+          "multiplier": 0.6037037037037036,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.2,
+          "multiplier": 0.5938271604938271,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 28.15,
+          "multiplier": 0.6135802469135803,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.5,
+          "multiplier": 0.5872427983539095,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.65,
+          "multiplier": 0.6004115226337449,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 28.0,
+          "multiplier": 0.5960219478737997,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.95,
+          "multiplier": 0.60480109739369,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.75,
+          "multiplier": 0.6018747142203932,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.85,
+          "multiplier": 0.6077274805669868,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.8,
+          "multiplier": 0.599923792104862,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.7,
+          "multiplier": 0.6038256363359245,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.9,
+          "multiplier": 0.602525021592237,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 28.55,
+          "multiplier": 0.6051262510796118,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 28.0,
+          "multiplier": 0.6016579450964453,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.65,
+          "multiplier": 0.6033920980880285,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.55,
+          "multiplier": 0.6028140470908342,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 28.25,
+          "multiplier": 0.603970149085223,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 28.0,
+          "multiplier": 0.6024286797593712,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.95,
+          "multiplier": 0.6031994144222971,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 27.95,
+          "multiplier": 0.6031994144222971,
+          "rate": 60
+        },
+        {
+          "mn9_hz": 22.8,
+          "multiplier": 0.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 27.2,
+          "multiplier": 0.1,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 31.6,
+          "multiplier": 0.2,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 34.7,
+          "multiplier": 0.3,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 39.75,
+          "multiplier": 0.4,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 43.65,
+          "multiplier": 0.5,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 47.95,
+          "multiplier": 0.6,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 51.6,
+          "multiplier": 0.7,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 54.65,
+          "multiplier": 0.8,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 62.7,
+          "multiplier": 1.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 68.8,
+          "multiplier": 1.25,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 74.1,
+          "multiplier": 1.5,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 90.3,
+          "multiplier": 2.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 116.7,
+          "multiplier": 3.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 152.95,
+          "multiplier": 5.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 167.1,
+          "multiplier": 20.0,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.55,
+          "multiplier": 0.5666666666666667,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 48.35,
+          "multiplier": 0.6333333333333333,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.6,
+          "multiplier": 0.5444444444444444,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.7,
+          "multiplier": 0.5888888888888889,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 45.05,
+          "multiplier": 0.5296296296296297,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 45.8,
+          "multiplier": 0.5592592592592592,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 45.95,
+          "multiplier": 0.5493827160493827,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.4,
+          "multiplier": 0.5691358024691359,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.35,
+          "multiplier": 0.5625514403292181,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 47.9,
+          "multiplier": 0.5757201646090535,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.4,
+          "multiplier": 0.5581618655692729,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 47.05,
+          "multiplier": 0.5669410150891633,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.15,
+          "multiplier": 0.5552354823959762,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.7,
+          "multiplier": 0.5610882487425698,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 45.85,
+          "multiplier": 0.553284560280445,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 47.15,
+          "multiplier": 0.5571864045115075,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.2,
+          "multiplier": 0.5519839455367577,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.85,
+          "multiplier": 0.5545851750241325,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 45.75,
+          "multiplier": 0.551116869040966,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.4,
+          "multiplier": 0.5528510220325492,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 45.55,
+          "multiplier": 0.5522729710353549,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 45.55,
+          "multiplier": 0.5534290730297436,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 45.9,
+          "multiplier": 0.5518876037038919,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 46.95,
+          "multiplier": 0.5526583383668178,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 45.9,
+          "multiplier": 0.5518876037038919,
+          "rate": 80
+        },
+        {
+          "mn9_hz": 29.75,
+          "multiplier": 0.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 35.95,
+          "multiplier": 0.1,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 43.9,
+          "multiplier": 0.2,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 51.25,
+          "multiplier": 0.3,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 56.6,
+          "multiplier": 0.4,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 63.15,
+          "multiplier": 0.5,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 69.15,
+          "multiplier": 0.6,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 76.1,
+          "multiplier": 0.7,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 83.45,
+          "multiplier": 0.8,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 94.4,
+          "multiplier": 1.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 106.4,
+          "multiplier": 1.25,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 116.65,
+          "multiplier": 1.5,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 130.85,
+          "multiplier": 2.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 150.8,
+          "multiplier": 3.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 187.85,
+          "multiplier": 5.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 242.75,
+          "multiplier": 20.0,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 67.45,
+          "multiplier": 0.5666666666666667,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 71.65,
+          "multiplier": 0.6333333333333333,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 66.5,
+          "multiplier": 0.5444444444444444,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.75,
+          "multiplier": 0.5888888888888889,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.75,
+          "multiplier": 0.5740740740740741,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 69.2,
+          "multiplier": 0.6037037037037036,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 67.3,
+          "multiplier": 0.5641975308641974,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.85,
+          "multiplier": 0.5839506172839506,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 66.85,
+          "multiplier": 0.5576131687242798,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.45,
+          "multiplier": 0.5707818930041152,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 67.25,
+          "multiplier": 0.56639231824417,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 67.95,
+          "multiplier": 0.5751714677640604,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.35,
+          "multiplier": 0.5722450845907635,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 67.9,
+          "multiplier": 0.5780978509373571,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 67.65,
+          "multiplier": 0.5761469288218258,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.35,
+          "multiplier": 0.5800487730528883,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 67.95,
+          "multiplier": 0.5748463140781385,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 67.65,
+          "multiplier": 0.5774475435655133,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.9,
+          "multiplier": 0.5765804670697218,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.1,
+          "multiplier": 0.578314620061305,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 67.85,
+          "multiplier": 0.5777365690641106,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.8,
+          "multiplier": 0.5788926710584994,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.05,
+          "multiplier": 0.5773512017326476,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.0,
+          "multiplier": 0.5781219363955735,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 68.0,
+          "multiplier": 0.5781219363955735,
+          "rate": 120
+        },
+        {
+          "mn9_hz": 34.5,
+          "multiplier": 0.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 39.6,
+          "multiplier": 0.1,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 46.8,
+          "multiplier": 0.2,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 52.65,
+          "multiplier": 0.3,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 58.9,
+          "multiplier": 0.4,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 65.2,
+          "multiplier": 0.5,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 73.1,
+          "multiplier": 0.6,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 81.75,
+          "multiplier": 0.7,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 88.3,
+          "multiplier": 0.8,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 102.5,
+          "multiplier": 1.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 116.85,
+          "multiplier": 1.25,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 126.8,
+          "multiplier": 1.5,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 142.85,
+          "multiplier": 2.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 160.7,
+          "multiplier": 3.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 199.05,
+          "multiplier": 5.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 261.9,
+          "multiplier": 20.0,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 69.35,
+          "multiplier": 0.5666666666666667,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 75.15,
+          "multiplier": 0.6333333333333333,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 73.7,
+          "multiplier": 0.611111111111111,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 78.2,
+          "multiplier": 0.6555555555555556,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 75.8,
+          "multiplier": 0.6407407407407407,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 79.4,
+          "multiplier": 0.6703703703703703,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 76.05,
+          "multiplier": 0.6308641975308641,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 75.9,
+          "multiplier": 0.6506172839506172,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 74.4,
+          "multiplier": 0.6242798353909464,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 75.2,
+          "multiplier": 0.6374485596707818,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 74.55,
+          "multiplier": 0.6330589849108367,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 76.45,
+          "multiplier": 0.641838134430727,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 75.45,
+          "multiplier": 0.6389117512574302,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 76.4,
+          "multiplier": 0.6447645176040238,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 75.65,
+          "multiplier": 0.6428135954884925,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 77.45,
+          "multiplier": 0.6467154397195549,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 76.1,
+          "multiplier": 0.6454148249758674,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 77.25,
+          "multiplier": 0.6480160544632423,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 76.7,
+          "multiplier": 0.6445477484800758,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 76.25,
+          "multiplier": 0.646281901471659,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 76.05,
+          "multiplier": 0.6439696974828814,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 76.4,
+          "multiplier": 0.6451257994772701,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 75.2,
+          "multiplier": 0.6447404321458072,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 76.3,
+          "multiplier": 0.6455111668087331,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 76.3,
+          "multiplier": 0.6455111668087331,
+          "rate": 160
+        },
+        {
+          "mn9_hz": 37.5,
+          "multiplier": 0.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 44.25,
+          "multiplier": 0.1,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 51.5,
+          "multiplier": 0.2,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 58.4,
+          "multiplier": 0.3,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 65.7,
+          "multiplier": 0.4,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 74.9,
+          "multiplier": 0.5,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 88.2,
+          "multiplier": 0.6,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 95.55,
+          "multiplier": 0.7,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 103.55,
+          "multiplier": 0.8,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 115.8,
+          "multiplier": 1.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 128.7,
+          "multiplier": 1.25,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 138.55,
+          "multiplier": 1.5,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 152.35,
+          "multiplier": 2.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 175.05,
+          "multiplier": 3.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 214.4,
+          "multiplier": 5.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 277.15,
+          "multiplier": 20.0,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 82.85,
+          "multiplier": 0.5666666666666667,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 89.9,
+          "multiplier": 0.6333333333333333,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 88.6,
+          "multiplier": 0.611111111111111,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 92.3,
+          "multiplier": 0.6555555555555556,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 87.2,
+          "multiplier": 0.5962962962962963,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 89.55,
+          "multiplier": 0.6259259259259259,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 88.3,
+          "multiplier": 0.6160493827160494,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 91.0,
+          "multiplier": 0.6358024691358025,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 87.6,
+          "multiplier": 0.6094650205761317,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 88.95,
+          "multiplier": 0.6226337448559671,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 87.05,
+          "multiplier": 0.618244170096022,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 89.85,
+          "multiplier": 0.6270233196159123,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 89.9,
+          "multiplier": 0.6240969364426154,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 90.4,
+          "multiplier": 0.629949702789209,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 90.3,
+          "multiplier": 0.6221460143270843,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 88.65,
+          "multiplier": 0.6260478585581467,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 88.55,
+          "multiplier": 0.6208453995833969,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 88.9,
+          "multiplier": 0.6234466290707718,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 89.75,
+          "multiplier": 0.6225795525749802,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 89.25,
+          "multiplier": 0.6243137055665634,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 90.7,
+          "multiplier": 0.6220015015777858,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 88.8,
+          "multiplier": 0.6231576035721745,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 89.05,
+          "multiplier": 0.6227722362407117,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 89.65,
+          "multiplier": 0.6235429709036375,
+          "rate": 200
+        },
+        {
+          "mn9_hz": 89.65,
+          "multiplier": 0.6235429709036375,
+          "rate": 200
+        }
+      ]
+    }
+  },
+  "full_brain_source": "data/calibration/acc4.json (30 seeds)"
+}
