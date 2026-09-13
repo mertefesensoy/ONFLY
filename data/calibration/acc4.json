@@ -17,12 +17,12 @@
     "pass": false,
     "shape_pass": true
   },
-  "elapsed_s": 5464,
+  "elapsed_s": 7723,
   "network": {
-    "crc32": "7DEF7BD0",
+    "crc32": "44C8B933",
     "edges": 24775486,
     "neurons": 184099,
-    "sha256": "ea605b865c52dcdda663f674462443ee37f8a8f908403d4b0fd9276b280df2f5"
+    "sha256": "aaa825c2d025e96add0bd3c111977b34699a6d60d13880477a8bd502b46e8af1"
   },
   "per_rate": {
     "10": {
@@ -79,5 +79,6 @@
   "platform": "x86 mingw32 gcc 6.3.0, NATIVE backend (D-30), full MaleCNS brain; not the MVS subcircuit",
   "seeds": 30,
   "sim_ms": 1000,
+  "stimulus_variant": "D-52 set, both hemispheres (D-73)",
   "w_syn": 0.2969
 }

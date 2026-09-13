@@ -1,0 +1,41 @@
+{
+  "decisions": [
+    "D-169",
+    "D-173",
+    "D-207"
+  ],
+  "elapsed_s": 612,
+  "network": "onfnet-malecns-v1.0-full.bin",
+  "note": "Re-verifies the calibration RESULT, not the search. The full network carries nbias = 0, so v1.1 runs the same arithmetic as the v1.0 file VL-63 was measured on; agreement confirms that too.",
+  "pass": false,
+  "per_rate": {
+    "160": {
+      "measured_hz": 75.16666666666667,
+      "pass": false,
+      "vl63_hz": 77.33
+    },
+    "20": {
+      "measured_hz": 3.6666666666666665,
+      "pass": false,
+      "vl63_hz": 3.83
+    },
+    "80": {
+      "measured_hz": 48.833333333333336,
+      "pass": false,
+      "vl63_hz": 46.17
+    }
+  },
+  "rates": [
+    20,
+    80,
+    160
+  ],
+  "reference": "VL-63, the SR-CAL search's chosen candidate",
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "sha256": "aaa825c2d025e96add0bd3c111977b34699a6d60d13880477a8bd502b46e8af1",
+  "w_syn": 0.2969
+}

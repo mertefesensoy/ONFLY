@@ -81,6 +81,19 @@ GOLD = (math.sqrt(5.0) - 1.0) / 2.0
 
 
 def key(w):
+    """The 4-decimal label a candidate is filed under.
+
+    This is a NAME, not the value.  The network is emitted from the
+    unrounded ``w``, and the model turns out to be sensitive well below the
+    fourth decimal: measured 2026-09-14 on the full brain at 80 Hz seed 1,
+    W_syn 0.29685 / 0.29690 / 0.29695 give MN9 readouts [62, 2] / [80, 4] /
+    [61, 1] -- a 25% swing in the readout for a 0.017% change in W_syn,
+    while the whole-network total moves about 2% (VL-79).
+
+    So the exact float must be stored alongside the label, or the candidate
+    the search chose cannot be rebuilt.  It was not, before D-208, which is
+    why VL-63's per-run counts are not reproducible.
+    """
     return "%.4f" % w
 
 
@@ -206,7 +219,12 @@ def evaluate(w_syn, log, arrays, stim, read, jobs, keep):
     results = run_candidate(path, jobs)
     t2 = time.time()
     entry = {
-        "w_syn": float(k), "network": {"file": os.path.basename(path),
+        # The EXACT float the network was emitted from, not the rounded
+        # label: see key() and VL-79.  ``w_syn_label`` keeps the old
+        # 4-decimal form so existing references still resolve.
+        "w_syn": float(w_syn),
+        "w_syn_label": k,
+        "w_syn_hex": float.hex(float(w_syn)), "network": {"file": os.path.basename(path),
                                        "neurons": int(n), "edges": int(e),
                                        "sha256": sha, "crc32": crc,
                                        "max_ms": emit.MAX_MS},

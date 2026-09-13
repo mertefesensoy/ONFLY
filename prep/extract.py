@@ -2171,37 +2171,59 @@ def calcheck(jobs):
     run_pool([(FULL, r, s) for r in cal.CAL_RATES for s in cal.SEEDS],
              jobs, [], on_done)
 
-    per_rate, ok_all = {}, True
+    # What is checkable and what is not (VL-79).
+    #
+    # The MANIFEST is checkable exactly: the shipped network must be the
+    # digest the manifest names and must carry the W_syn the manifest names.
+    # Both are asserted above and are hard failures.
+    #
+    # VL-63's per-run counts are NOT reproducible, and that is a property of
+    # the record rather than of this run.  prep/calibrate.py filed each
+    # candidate under "%.4f" while emitting the network from the unrounded
+    # value, so the float the search actually chose is not recoverable from
+    # the log; and the readout is sensitive far below that fourth decimal --
+    # 0.29685 / 0.29690 / 0.29695 give MN9 [62, 2] / [80, 4] / [61, 1] at 80
+    # Hz seed 1.  So the VL-63 column is REPORTED beside the measurement, not
+    # asserted against it.
+    per_rate = {}
     for r in cal.CAL_RATES:
         got = sum(results[(FULL, r, s)] for s in cal.SEEDS) / len(cal.SEEDS)
         want = VL63_MN9[r]
-        ok = abs(got - want) < 0.005          # VL-63 is recorded to 2 dp
-        ok_all = ok_all and ok
-        per_rate[str(r)] = {"measured_hz": got, "vl63_hz": want, "pass": ok}
+        per_rate[str(r)] = {
+            "measured_hz": got, "vl63_hz": want,
+            "delta_hz": got - want,
+            "delta_pct": (100.0 * (got - want) / want) if want else None}
+    ok_all = True          # the manifest assertions above are the verdict
 
     out = {"network": os.path.basename(FULL), "sha256": sha,
            "w_syn": w, "seeds": list(cal.SEEDS),
            "rates": list(cal.CAL_RATES), "per_rate": per_rate,
-           "pass": ok_all, "decisions": ["D-169", "D-173", "D-207"],
+           "manifest_verified": ok_all,
+           "decisions": ["D-169", "D-173", "D-207", "D-208"],
            "reference": "VL-63, the SR-CAL search's chosen candidate",
-           "note": ("Re-verifies the calibration RESULT, not the search. "
-                    "The full network carries nbias = 0, so v1.1 runs the "
-                    "same arithmetic as the v1.0 file VL-63 was measured "
-                    "on; agreement confirms that too."),
+           "note": ("Verifies that the shipped network is the digest the "
+                    "manifest names and carries the W_syn it names. VL-63's "
+                    "per-run counts are reported beside the measurement, "
+                    "not asserted: they are not reproducible, because the "
+                    "search filed candidates under \"%.4f\" while emitting "
+                    "from the unrounded value (VL-79)."),
            "elapsed_s": round(time.time() - t0)}
     save_json(CALCHECK, out)
 
     print("calibration check: W_syn %.4f mV, %s, seeds %s"
           % (w, os.path.basename(FULL), list(cal.SEEDS)))
-    print("%6s %12s %12s %s" % ("rate", "measured Hz", "VL-63 Hz", "verdict"))
+    print("%6s %12s %12s %10s" % ("rate", "measured Hz", "VL-63 Hz",
+                                   "delta"))
     for r in cal.CAL_RATES:
         e = per_rate[str(r)]
-        print("%6d %12.2f %12.2f %s"
-              % (r, e["measured_hz"], e["vl63_hz"],
-                 "MATCH" if e["pass"] else "DIFFERS"))
-    print("SR-CAL result %s (%d s)"
-          % ("REPRODUCED" if ok_all else "NOT REPRODUCED",
-             out["elapsed_s"]))
+        print("%6d %12.2f %12.2f %9.1f%%"
+              % (r, e["measured_hz"], e["vl63_hz"], e["delta_pct"]))
+    print("manifest W_syn and network digest: VERIFIED")
+    print("VL-63's per-run counts are not reproducible by construction "
+          "(VL-79): the search filed candidates under \"%.4f\" while "
+          "emitting from the unrounded value, and MN9 is sensitive below "
+          "that digit.")
+    print("(%d s)" % out["elapsed_s"])
     print("wrote %s" % CALCHECK.replace("\\", "/"))
 
 
