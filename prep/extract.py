@@ -1789,15 +1789,26 @@ def constbias(jobs):
                            "probe_log": log}
 
     cases = acc3_eval(cases, full, jobs)
-    out = {"decisions": ["D-165", "D-166", "D-171", "D-191", "D-193",
-                         "D-199", "D-200"],
-           "full_brain_source": "data/calibration/acc4.json (30 seeds)",
-           "fit_targets": dict((str(r), fb[r]) for r in sorted(fb)),
-           "fit_target_source": ("data/calibration/rate-activity.npz, "
-                                 "15-seed mean, both readouts (D-170)"),
-           "diagnostic_only": True, "fit_seeds": list(FIT_SEEDS),
-           "cases": cases, "fits": fits,
-           "elapsed_s": round(time.time() - t0)}
+    # Merge rather than overwrite: D-201 runs further sizes in a second
+    # invocation, and a result file that silently forgot VL-74's N = 500 and
+    # N = 1000 would be worse than none, because it is cited.
+    out = load_json(CONSTBIAS, None) or {}
+    out.setdefault("cases", {}).update(cases)
+    out.setdefault("fits", {}).update(fits)
+    out.update({
+        "decisions": ["D-165", "D-166", "D-171", "D-191", "D-193",
+                      "D-199", "D-200", "D-201"],
+        "full_brain_source": "data/calibration/acc4.json (30 seeds)",
+        "fit_targets": dict((str(r), fb[r]) for r in sorted(fb)),
+        "fit_target_source": ("data/calibration/rate-activity.npz, "
+                              "15-seed mean, both readouts (D-170)"),
+        "diagnostic_only": True, "fit_seeds": list(FIT_SEEDS),
+        "srext03_candidates": list(N_SEQ),
+        "note": ("N values outside SR-EXT-03's {250, 500, 1000} are "
+                 "diagnostic (D-201); admitting one would be a separate "
+                 "owner decision."),
+        "elapsed_s": round(time.time() - t0)})
+    cases = out["cases"]
     save_json(CONSTBIAS, out)
 
     print("")
@@ -1849,8 +1860,17 @@ def main():
     ap.add_argument("--refixture", action="store_true")
     ap.add_argument("--fitbias", action="store_true")
     ap.add_argument("--constbias", action="store_true")
+    # D-201: the sizes F3 is fitted at.  SR-EXT-03 admits only
+    # {250, 500, 1000}; anything else here is diagnostic and
+    # admitting it would be a separate owner decision.
+    ap.add_argument("--fit-n", default=None,
+                    help="comma-separated N values for --fitbias "
+                         "and --constbias (default 500,1000)")
     ap.add_argument("--jobs", type=int, default=14)
     a = ap.parse_args()
+    if a.fit_n:
+        global FIT_N
+        FIT_N = tuple(int(x) for x in a.fit_n.split(",") if x.strip())
     if not os.path.isfile(cal.RUNNET):
         raise SystemExit("build the runner first: mingw32-make runner")
     if a.rank:
