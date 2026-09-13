@@ -237,7 +237,7 @@ int onfldp(const onf_u8 *buf, struct onfnet *net,
            onf_u32 *stim, onf_u32 *readout,
            onf_u32 *brate, onf_f64 *bias)
 {
-    onf_i32 i, j, orow, otgt, owgt, ostm, ordo, obia, orow0, nb;
+    onf_i32 i, j, orow, otgt, owgt, ostm, ordo, obia, orow0, nb, pend;
     onf_u32 prev;
 
     orow = (onf_i32)g32(buf, ONF_N_OFFROW);
@@ -319,6 +319,20 @@ int onfldp(const onf_u8 *buf, struct onfnet *net,
         if ((obia % ONF_NET_ALIGN) != 0) {
             return ONFD_PLEN;
         }
+        /* The table's extent is producer-controlled through nbias, so it is
+           bounds-checked against the DECLARED payload before a single byte
+           of it is read.  The payload CRC does not stand in for this: it
+           proves the bytes arrived as sent, not that the sender wrote an
+           offset inside its own file, and TE-10 reseals both CRCs precisely
+           to model a malformed producer.
+           Written as divisions rather than nb * n * 8 <= ... because NR-11
+           forbids relying on overflow, and n is known positive here: onfdec
+           refused a negative or zero-sized network long before this. */
+        pend = ONF_NHDR_LEN + (onf_i32)g32(buf, ONF_N_PAYLEN);
+        if (obia < ONF_NHDR_LEN || obia > pend
+            || nb > (pend - obia) / 4) {
+            return ONFD_PLEN;
+        }
         for (i = 0; i < nb; i++) {
             brate[i] = g32(buf, obia + i * 4);
             if (i > 0 && brate[i] <= brate[i - 1]) {
@@ -331,6 +345,10 @@ int onfldp(const onf_u8 *buf, struct onfnet *net,
         /* Rates occupy nb * 4 bytes, then padding up to ONF_NET_ALIGN. */
         orow0 = obia + ((nb * 4 + ONF_NET_ALIGN - 1) / ONF_NET_ALIGN)
                 * ONF_NET_ALIGN;
+        if (orow0 < obia || orow0 > pend
+            || net->n > (pend - orow0) / 8 / nb) {
+            return ONFD_PLEN;       /* the rows run past the payload */
+        }
         for (j = 0; j < net->n * 8; j++) {
             if (buf[orow0 + j] != (onf_u8)0) {
                 return ONFD_BIAS;   /* ACC-2: rate 0 row is not zero */

@@ -246,8 +246,19 @@ def main():
          repair_paycrc(patch(good, struct.unpack_from(
              ">I", good, L.NETHDR["offbias"][1])[0],
              struct.pack(">I", 1)))),
+        # The two below would have read outside the buffer entirely.  A
+        # correct payload CRC says the bytes arrived as sent; it says nothing
+        # about whether the sender wrote an offset inside its own file, and
+        # nbias multiplies the damage by the neuron count.
+        ("TE-10 offset past the payload",
+         repair_paycrc(patch(good, L.NETHDR["offbias"][1],
+                             struct.pack(">I", 0x7FFFFFF8))), PLEN),
+        ("TE-10 nbias past the payload",
+         repair_paycrc(patch(good, L.NETHDR["nbias"][1],
+                             struct.pack(">I", 100000))), PLEN),
     ]
-    for name, data in te10:
+    te10 = [(c[0], c[1], c[2] if len(c) > 2 else BIAS) for c in te10]
+    for name, data, want in te10:
         path = os.path.join(tmp, name.split()[0] + "_%d.net" % len(lines))
         with open(path, "wb") as fh:
             fh.write(data)
@@ -257,13 +268,13 @@ def main():
         for line in out.decode("ascii", "replace").splitlines():
             if line.startswith("LOAD"):
                 got = int(line.split("=")[1])
-        if got == BIAS:
+        if got == want:
             passed += 1
             lines.append("  ok   %-36s LOAD rc=%d" % (name, got))
         else:
             failed += 1
             lines.append("  FAIL %-36s LOAD rc=%s want=%d"
-                         % (name, got, BIAS))
+                         % (name, got, want))
 
     # --- end-to-end: file on disk -> decode -> load -> simulate ----------
     # This is the first path that goes all the way from a serialised network to
