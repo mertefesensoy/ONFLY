@@ -1,0 +1,96 @@
+{
+  "acc1_pass": true,
+  "acc2_pass": true,
+  "acc2_rate0_total_spikes": 0,
+  "criterion": "ACC-1: at every validation rate where the Shiu reference MN9 rate is above zero, at least one MN9 spike in at least 90% of seeds and a mean above zero",
+  "decisions": [
+    "D-135",
+    "D-164",
+    "D-190",
+    "D-200",
+    "D-203"
+  ],
+  "elapsed_s": 47,
+  "label": "F3-n500",
+  "network": "data/calibration/diag-F3-n500.bin",
+  "per_rate": {
+    "10": {
+      "applies": false,
+      "mean_hz": 0.016666666666666666,
+      "pass": null,
+      "reference_hz": 0.0,
+      "seed_fraction": 0.03333333333333333,
+      "seeds_with_mn9_spike": 1
+    },
+    "120": {
+      "applies": true,
+      "mean_hz": 72.06666666666666,
+      "pass": true,
+      "reference_hz": 64.433333,
+      "seed_fraction": 1.0,
+      "seeds_with_mn9_spike": 30
+    },
+    "200": {
+      "applies": true,
+      "mean_hz": 91.35,
+      "pass": true,
+      "reference_hz": 77.566667,
+      "seed_fraction": 1.0,
+      "seeds_with_mn9_spike": 30
+    },
+    "40": {
+      "applies": true,
+      "mean_hz": 13.766666666666667,
+      "pass": true,
+      "reference_hz": 4.733333,
+      "seed_fraction": 1.0,
+      "seeds_with_mn9_spike": 30
+    },
+    "60": {
+      "applies": true,
+      "mean_hz": 28.883333333333333,
+      "pass": true,
+      "reference_hz": 32.066667,
+      "seed_fraction": 1.0,
+      "seeds_with_mn9_spike": 30
+    }
+  },
+  "rates_tested": [
+    40,
+    60,
+    120,
+    200
+  ],
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30
+  ]
+}

@@ -52,6 +52,14 @@ recording digests and the selected body ids.
              whether the mechanism has the freedom.  Results in
              data/calibration/acc3-fitbias.json.  Diagnostic only (D-189).
 
+  --acc1 <network> [--label name]
+             D-203: ACC-1 on a candidate MVS subcircuit -- at every
+             validation rate where the SHIU reference is above zero, at
+             least one MN9 spike in at least 90%% of seeds and a mean above
+             zero.  ACC-2 is run on the same network in the same pass and
+             reported separately.  Results in
+             data/calibration/acc1-candidate.json.
+
   --constbias
              D-200: F3, one CONSTANT multiplier on the median-bias rows,
              fitted on the D-165 calibration rates {20, 80, 160} against
@@ -109,6 +117,7 @@ Run (repository root):
     python prep/extract.py --biasnet    [--jobs 14]
     python prep/extract.py --fitbias    [--jobs 14]
     python prep/extract.py --constbias  [--jobs 14]
+    python prep/extract.py --acc1 <network> --label n500
 """
 import argparse
 import hashlib
@@ -1882,6 +1891,110 @@ def constbias(jobs):
                                out["elapsed_s"]))
 
 
+# --- D-203: ACC-1 and ACC-2 on a candidate MVS subcircuit ------------------
+# ACC-1 is defined on the MVS subcircuit, and until now the register held
+# only VL-64's full-brain PREVIEW, marked as a preview because no subcircuit
+# existed.  This evaluates the criterion itself.
+#
+# ACC-1, verbatim: "At every validation rate where the Shiu reference MN9
+# rate is above zero, the MVS subcircuit produces at least one MN9 spike in
+# at least 90% of seeds, and a mean MN9 rate above zero."  So the rate set is
+# chosen by the SHIU reference -- not by the full brain and not by D-202's
+# exclusion, which belongs to ACC-3 alone.  On the D-164 reference that drops
+# 10 Hz, where Shiu's MN9 is silent, and keeps 40, 60, 120 and 200 Hz.
+#
+# ACC-2 rides along: "A request with rate 0 produces zero spikes in every
+# neuron, on every platform and backend."  It is one extra run, and it is the
+# criterion the D-190 compensating input most endangers, since a table whose
+# rate 0 row were non-zero would fire neurons with no stimulus at all.
+ACC1OUT = os.path.join(cal.CAL_DIR, "acc1-candidate.json")
+ACC1_SEED_FRACTION = 0.90          # ACC-1's "at least 90% of seeds"
+
+
+def acc1(path, label, jobs):
+    full = load_json(ACC4, None)
+    if full is None:
+        raise SystemExit("need acc4.json for the Shiu reference")
+    if not os.path.isfile(path):
+        raise SystemExit("no such network: %s" % path)
+
+    results = {}
+
+    def on_done(k, text):
+        res = cal.parse_run(text)
+        if res["rc"] != 0 or len(res["readouts"]) != 2:
+            raise SystemExit("run %s failed:\n%s" % (k, text[-2000:]))
+        results[k] = res
+
+    t0 = time.time()
+    run_pool([(path, r, s) for r in VAL_RATES for s in SEEDS], jobs, [],
+             on_done)
+
+    per_rate, ok_all, tested = {}, True, []
+    for r in VAL_RATES:
+        ref = full["per_rate"][str(r)]["reference_hz"]
+        rates, with_spike = [], 0
+        for s in SEEDS:
+            sp = [x["spikes"] for x in results[(path, r, s)]["readouts"]]
+            rates.append(sum(sp) * 1000.0 / cal.SIM_MS / len(sp))
+            if sum(sp) > 0:
+                with_spike += 1
+        mean = sum(rates) / len(rates)
+        frac = float(with_spike) / len(SEEDS)
+        # ACC-1 applies only where the SHIU reference is above zero.
+        applies = ref > 0.0
+        ok = (frac >= ACC1_SEED_FRACTION) and (mean > 0.0)
+        if applies:
+            tested.append(r)
+            ok_all = ok_all and ok
+        per_rate[str(r)] = {
+            "reference_hz": ref, "applies": applies,
+            "mean_hz": mean, "seeds_with_mn9_spike": with_spike,
+            "seed_fraction": frac, "pass": ok if applies else None}
+
+    # --- ACC-2 on the same network, reported separately -------------------
+    proc = subprocess.Popen([cal.RUNNET, path, "0", str(cal.SIM_MS), "1",
+                             "--all"], stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True)
+    text = proc.communicate()[0]
+    res = parse_all(text)
+    if res["rc"] != 0 or res["counts"] is None:
+        raise SystemExit("ACC-2 run failed:\n%s" % text[-2000:])
+    total = int(res["counts"].sum())
+    acc2 = total == 0
+
+    out = {"network": path, "label": label,
+           "decisions": ["D-135", "D-164", "D-190", "D-200", "D-203"],
+           "criterion": ("ACC-1: at every validation rate where the Shiu "
+                         "reference MN9 rate is above zero, at least one MN9 "
+                         "spike in at least 90% of seeds and a mean above "
+                         "zero"),
+           "seeds": list(SEEDS), "rates_tested": tested,
+           "per_rate": per_rate, "acc1_pass": ok_all,
+           "acc2_rate0_total_spikes": total, "acc2_pass": acc2,
+           "elapsed_s": round(time.time() - t0)}
+    save_json(ACC1OUT, out)
+
+    print("ACC-1 on %s (%s), seeds %d..%d"
+          % (label, os.path.basename(path), SEEDS[0], SEEDS[-1]))
+    print("%6s %10s %10s %14s %8s %s"
+          % ("rate", "Shiu ref", "mean Hz", "seeds w/ spike", "fraction",
+             "verdict"))
+    for r in VAL_RATES:
+        e = per_rate[str(r)]
+        print("%6d %10.2f %10.2f %10d/%-3d %8.0f%% %s"
+              % (r, e["reference_hz"], e["mean_hz"],
+                 e["seeds_with_mn9_spike"], len(SEEDS),
+                 100 * e["seed_fraction"],
+                 "not tested (Shiu reference is zero)" if not e["applies"]
+                 else ("PASS" if e["pass"] else "FAIL")))
+    print("ACC-1 %s over the rates it applies to: %s"
+          % ("PASS" if ok_all else "FAIL", tested))
+    print("ACC-2 %s: rate 0 produced %d spikes across all %d neurons"
+          % ("PASS" if acc2 else "FAIL", total, res["n"]))
+    print("wrote %s (%d s)" % (ACC1OUT.replace("\\", "/"), out["elapsed_s"]))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rank", action="store_true")
@@ -1897,6 +2010,9 @@ def main():
     ap.add_argument("--refixture", action="store_true")
     ap.add_argument("--fitbias", action="store_true")
     ap.add_argument("--constbias", action="store_true")
+    ap.add_argument("--acc1", default=None,
+                    help="network file to evaluate ACC-1 and "
+                         "ACC-2 on (D-203)")
     # D-201: the sizes F3 is fitted at.  SR-EXT-03 admits only
     # {250, 500, 1000}; anything else here is diagnostic and
     # admitting it would be a separate owner decision.
@@ -1934,6 +2050,8 @@ def main():
         fitbias(a.jobs)
     if a.constbias:
         constbias(a.jobs)
+    if a.acc1:
+        acc1(a.acc1, a.label or "candidate", a.jobs)
     return 0
 
 
