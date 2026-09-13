@@ -42,6 +42,19 @@ recording digests and the selected body ids.
              network file (the D-75 path fixture, the hop2 neighbourhood);
              results in acc3-<label>.json.
 
+  --compensate
+             D-186..D-189 diagnostic, three compared constructions for
+             N in {250, 500, 1000}: A, selection only with part of the
+             budget spent on the readouts' inhibitory partners so that
+             SR-EXT-02's unchanged weights hold; B1, the SR-EXT-01 top-N
+             sets with per-target gains restoring each kept neuron's
+             expected drive; B2, B1's gains refined by self-consistent
+             rate matching on interior neurons only.  Every one goes
+             through the VL-66 ACC-3 comparison into
+             data/calibration/acc3-compensated.json.  Diagnostic only:
+             the networks live under data/calibration/ and nothing here
+             amends SR-EXT-01 or SR-EXT-02 (D-189).
+
   --closure  D-182 diagnostic: from top-N (500, 1000) + stimulus + readouts,
              add every inhibitory presynaptic partner of every kept neuron,
              repeat to a fixed point or past 4,000 neurons, for a minimum
@@ -55,6 +68,7 @@ Run (repository root):
     python prep/extract.py --acc3    [--jobs 14]
     python prep/extract.py --diag    [--jobs 14]
     python prep/extract.py --acc3-file data/networks/<file>.bin --label path
+    python prep/extract.py --compensate [--jobs 14]
 """
 import argparse
 import hashlib
@@ -580,6 +594,392 @@ def closure(jobs):
     print("wrote acc3-closure.json (%d s)" % out["elapsed_s"])
 
 
+# --- D-186..D-189: the compared truncation constructions -------------------
+# Three constructions, all diagnostic (D-189): their networks live under
+# data/calibration/ and nothing here amends SR-EXT-01 or SR-EXT-02.
+#
+#   A   selection only, SR-EXT-02 intact.  The activity ranking with part of
+#       the budget spent on the readouts' inhibitory presynaptic partners,
+#       until inhibition onto each readout is retained at least as well as
+#       excitation.  No weight is touched.
+#   B1  one-shot mean-field compensation, SR-EXT-02 amended.  The exact
+#       SR-EXT-01 top-N sets, with the retained edges onto each kept neuron
+#       scaled so that neuron's EXPECTED drive matches the full brain's.
+#   B2  self-consistent rate matching, SR-EXT-02 amended.  B1's gains
+#       refined by measuring each kept neuron's own firing inside the
+#       subcircuit and damping its excitatory gain toward the rate it has in
+#       the full brain.
+#
+# Why B2 exists.  Measured this session: at N = 1000 the top-N set already
+# retains 91% of the left MN9's rate-weighted excitatory drive and 97% of
+# its inhibitory drive, so B1's gains there are 1.1 and 1.0 and cannot
+# explain a 126% overshoot.  The overshoot is the kept INTERIOR neurons
+# firing faster than they do in the full brain, because their own inputs are
+# truncated (VL-67's reading).  B1 corrects expected input; only B2 closes
+# the loop on realised output.
+#
+# The readouts and the stimulus neurons are deliberately excluded from B2's
+# update.  Tuning MN9's own gain toward MN9's full-brain rate would be
+# fitting the very quantity ACC-3 measures, which would make the ACC-3
+# result meaningless; leaving them out keeps ACC-3 an out-of-sample check
+# that matching interior rates reproduces the readout.  The stimulus neurons
+# are driven externally and have no synaptic input to scale.
+GAIN_CAP = 20.0        # D-188 engineer's choice; binds nothing
+DAMPING = 0.5          # exponent applied to the rate ratio each iteration
+ITERATIONS = 4         # D-188 engineer's choice
+B2_N = (500, 1000)     # D-188: B2 runs on these only
+MATCH_SEEDS = (1, 2, 3)   # seeds for the cheap rate-matching runs
+MATCH_EPS = 0.5           # half a spike, so a zero count is not a division
+COMP = os.path.join(cal.CAL_DIR, "acc3-compensated.json")
+
+
+def drive_model(arrays, totals):
+    """Rate-weighted synaptic drive onto every neuron of the full brain.
+
+    A presynaptic neuron's 'rate' here is its total spike count over the
+    240-run SR-EXT-01 ranking (all eight TBD-07 rates, seeds 1..30).  Only
+    ratios of these numbers ever matter, so no conversion to Hz is needed.
+    One number per neuron rather than one per rate is what D-188 fixes: a
+    per-rate gain would mean a different network file per rate, and MVS
+    ships one file.
+    """
+    pre, post = arrays["body_pre"], arrays["body_post"]
+    sw = arrays["signed_weight"]
+    bodies = np.union1d(np.unique(pre), np.unique(post))
+    if len(bodies) != len(totals):
+        raise SystemExit("activity-totals.npy has %d entries but the network "
+                         "has %d neurons" % (len(totals), len(bodies)))
+    ipre = np.searchsorted(bodies, pre)
+    ipost = np.searchsorted(bodies, post)
+    rate = totals.astype(np.float64)
+    mass = np.abs(sw).astype(np.float64) * rate[ipre]
+    exc, inh = sw > 0, sw < 0
+    nb = len(bodies)
+    return {"bodies": bodies, "ipre": ipre, "ipost": ipost, "mass": mass,
+            "exc": exc, "inh": inh, "rate": rate,
+            "E_full": np.bincount(ipost[exc], weights=mass[exc], minlength=nb),
+            "I_full": np.bincount(ipost[inh], weights=mass[inh], minlength=nb)}
+
+
+def retained_drive(dm, arrays, nodes):
+    """Drive onto every neuron counting only edges inside ``nodes``."""
+    keep = (np.isin(arrays["body_pre"], nodes)
+            & np.isin(arrays["body_post"], nodes))
+    nb = len(dm["bodies"])
+    ke, ki = keep & dm["exc"], keep & dm["inh"]
+    return (np.bincount(dm["ipost"][ke], weights=dm["mass"][ke], minlength=nb),
+            np.bincount(dm["ipost"][ki], weights=dm["mass"][ki], minlength=nb))
+
+
+def meanfield_gains(dm, arrays, nodes):
+    """B1's gains: restore each kept neuron's expected drive.
+
+    A neuron whose excitatory (or inhibitory) input is entirely gone keeps a
+    gain of 1: there is no edge left to scale, and inventing one would be a
+    different construction.
+    """
+    e_sub, i_sub = retained_drive(dm, arrays, nodes)
+    k = np.searchsorted(dm["bodies"], np.sort(nodes))
+    ge = np.where(e_sub[k] > 0, dm["E_full"][k] / np.where(e_sub[k] > 0,
+                                                           e_sub[k], 1.0), 1.0)
+    gi = np.where(i_sub[k] > 0, dm["I_full"][k] / np.where(i_sub[k] > 0,
+                                                           i_sub[k], 1.0), 1.0)
+    return (np.clip(ge, 1.0 / GAIN_CAP, GAIN_CAP),
+            np.clip(gi, 1.0 / GAIN_CAP, GAIN_CAP))
+
+
+def readout_inputs(dm, arrays, read):
+    """Per readout: its presynaptic partners, their mass and their sign.
+
+    Construction A only ever needs the readouts' own incoming edges -- a few
+    hundred of the 24.7 million -- so the budget scan below is cheap.
+    """
+    pre, post = arrays["body_pre"], arrays["body_post"]
+    out = {}
+    for r in np.sort(read):
+        m = post == int(r)
+        out[int(r)] = {"pre": pre[m], "mass": dm["mass"][m],
+                       "exc": dm["exc"][m], "inh": dm["inh"][m]}
+    return out
+
+
+def balanced_nodes(dm, arrays, ranking, stim, read, n, rin):
+    """Construction A's node set for budget ``n``.
+
+    Spend the smallest k of the N slots on the readouts' inhibitory partners
+    -- heaviest rate-weighted mass first, ties by ascending body id -- that
+    makes inhibition onto every readout retained at least as well as
+    excitation, and give the remaining N-k slots to the activity ranking.
+    Returns (nodes, k, fractions).
+    """
+    top = np.array([t["body"] for t in ranking["top1000"]], dtype=np.int64)
+    cand = []
+    for r in sorted(rin):
+        d = rin[r]
+        for p, w in zip(d["pre"][d["inh"]], d["mass"][d["inh"]]):
+            cand.append((-float(w), int(p)))
+    cand.sort()
+    seen, order = set(), []
+    for _w, p in cand:
+        if p not in seen:
+            seen.add(p)
+            order.append(p)
+
+    def one_fraction(d, mask, members):
+        tot = float(d["mass"][mask].sum())
+        if tot <= 0:
+            return 1.0
+        got = float(sum(w for p, w in zip(d["pre"][mask], d["mass"][mask])
+                        if int(p) in members))
+        return got / tot
+
+    def fractions(members):
+        """(min excitatory fraction, min inhibitory fraction) over readouts."""
+        fe, fi = 1.0, 1.0
+        for r in sorted(rin):
+            d = rin[r]
+            fe = min(fe, one_fraction(d, d["exc"], members))
+            fi = min(fi, one_fraction(d, d["inh"], members))
+        return fe, fi
+
+    base = set(int(x) for x in np.union1d(stim, read))
+    chosen_k, frac = None, None
+    for k in range(0, min(len(order), n) + 1):
+        members = set(base)
+        members.update(order[:k])
+        members.update(int(x) for x in top[:max(n - k, 0)])
+        fe, fi = fractions(members)
+        if fi >= fe:
+            chosen_k, frac = k, (fe, fi)
+            break
+    if chosen_k is None:                       # never balanced: spend it all
+        k = min(len(order), n)
+        members = set(base)
+        members.update(order[:k])
+        members.update(int(x) for x in top[:max(n - k, 0)])
+        chosen_k, frac = k, fractions(members)
+    nodes = np.array(sorted(members), dtype=np.int64)
+    return nodes, chosen_k, {"exc_fraction": frac[0], "inh_fraction": frac[1]}
+
+
+def emit_diag(arrays, nodes, stim, read, label, ge=None, gi=None):
+    """Emit one diagnostic network under data/calibration/ (D-189)."""
+    blob, nn, e = emit.build_network(arrays, nodes, stim, read, label,
+                                     gain_exc=ge, gain_inh=gi)
+    path = os.path.join(cal.CAL_DIR, "diag-%s.bin" % label)
+    io.open(path, "wb").write(blob)
+    return path, int(nn), int(e), hashlib.sha256(blob).hexdigest()
+
+
+def match_once(path, jobs):
+    """Sum per-neuron spike counts over ALL_RATES x MATCH_SEEDS."""
+    acc = {"totals": None, "need": None}
+
+    def on_done(_k, text):
+        res = parse_all(text)
+        if res["rc"] != 0 or res["counts"] is None:
+            raise SystemExit("rate-matching run failed:\n%s" % text[-2000:])
+        if acc["totals"] is None:
+            acc["totals"] = np.zeros(res["n"], dtype=np.int64)
+        acc["totals"] += res["counts"]
+        acc["need"] = res["need"]
+
+    run_pool([(path, r, s) for r in ALL_RATES for s in MATCH_SEEDS],
+             jobs, ["--all"], on_done)
+    return acc["totals"], acc["need"]
+
+
+def rate_match(arrays, dm, nodes, ge, gi, stim, read, totals, label, jobs):
+    """Construction B2: damp each interior neuron's excitatory gain toward
+    the firing rate that neuron has in the full brain.
+
+    Returns (ge, gi, history).  The readouts and the stimulus neurons are
+    never updated -- see the note at the head of this section.
+    """
+    srt = np.sort(nodes)
+    k = np.searchsorted(dm["bodies"], srt)
+    full_mean = totals[k].astype(np.float64) / float(len(ALL_RATES)
+                                                     * len(SEEDS))
+    frozen = np.isin(srt, np.union1d(stim, read))
+    history = []
+    for it in range(ITERATIONS):
+        path, nn, e, _sha = emit_diag(arrays, nodes, stim, read,
+                                      "%s-it%d" % (label, it), ge, gi)
+        sub, _need = match_once(path, jobs)
+        sub_mean = sub.astype(np.float64) / float(len(ALL_RATES)
+                                                  * len(MATCH_SEEDS))
+        ratio = np.clip((full_mean + MATCH_EPS) / (sub_mean + MATCH_EPS),
+                        0.1, 10.0)
+        # log how far the interior is from the full brain before updating
+        live = (~frozen) & ((full_mean > 0) | (sub_mean > 0))
+        med = None
+        if live.any():
+            err = (np.abs(sub_mean[live] - full_mean[live])
+                   / np.maximum(full_mean[live], MATCH_EPS))
+            med = float(np.median(err))
+        history.append({"iteration": it, "neurons": nn, "edges": e,
+                        "interior_compared": int(live.sum()),
+                        "median_rel_err": med})
+        print("  %s it%d: %d interior neurons, median relative rate error %s"
+              % (label, it, int(live.sum()),
+                 "n/a" if med is None else "%.3f" % med))
+        upd = np.where(frozen, 1.0, ratio ** DAMPING)
+        ge = np.clip(ge * upd, 1.0 / GAIN_CAP, GAIN_CAP)
+    return ge, gi, history
+
+
+def acc3_eval(cases, full, jobs):
+    """The VL-66 ACC-3 comparison, run over several networks at once."""
+    results = {}
+
+    def on_done(k, text):
+        res = cal.parse_run(text)
+        need = None
+        for line in text.splitlines():
+            if line.startswith("NET "):
+                need = int(dict(t.split("=", 1) for t in line.split()[1:]
+                                if "=" in t)["need"])
+        if res["rc"] != 0 or len(res["readouts"]) != 2:
+            raise SystemExit("run %s failed:\n%s" % (k, text[-2000:]))
+        results[k] = (res, need)
+
+    jobs_list = [(c["file"], r, s) for c in cases.values()
+                 for r in VAL_RATES for s in SEEDS]
+    run_pool(jobs_list, jobs, [], on_done)
+    for label, c in cases.items():
+        per_rate, ok_all, need = {}, True, None
+        for r in VAL_RATES:
+            means = []
+            for s in SEEDS:
+                res, need = results[(c["file"], r, s)]
+                sp = [x["spikes"] for x in res["readouts"]]
+                means.append(sum(sp) * 1000.0 / cal.SIM_MS / len(sp))
+            mean = sum(means) / len(means)
+            fb = full["per_rate"][str(r)]["onfly_mean_hz"]
+            tol = max(REL_TOL * fb, ABS_FLOOR)
+            ok = abs(mean - fb) <= tol
+            ok_all = ok_all and ok
+            per_rate[str(r)] = {"sub_mean_hz": mean, "full_mean_hz": fb,
+                                "tolerance_hz": tol, "pass": ok}
+        c["per_rate"] = per_rate
+        c["acc3_pass"] = ok_all
+        c["need_bytes"] = need
+        c["nfr_mem_01_pass"] = need is not None and need <= REGION_BYTES
+    return cases
+
+
+def compensate(jobs):
+    ranking = load_json(RANKING, None)
+    full = load_json(ACC4, None)
+    if ranking is None or full is None:
+        raise SystemExit("need activity-ranking.json (--rank) and acc4.json")
+    if not os.path.isfile(TOTALS):
+        raise SystemExit("need %s (--rank)" % TOTALS)
+    totals = np.load(TOTALS)
+    arrays, stim, read = cal.load_cache()
+    dm = drive_model(arrays, totals)
+    rin = readout_inputs(dm, arrays, read)
+    top1000 = np.array([t["body"] for t in ranking["top1000"]],
+                       dtype=np.int64)
+
+    t0 = time.time()
+    cases, notes = {}, {}
+
+    # --- A: selection only, weights unchanged ---------------------------
+    for n in N_SEQ:
+        nodes, k, frac = balanced_nodes(dm, arrays, ranking, stim, read, n,
+                                        rin)
+        label = "A-n%d" % n
+        path, nn, e, sha = emit_diag(arrays, nodes, stim, read, label)
+        cases[label] = {"construction": "A", "N": n, "file": path,
+                        "neurons": nn, "edges": e, "sha256": sha,
+                        "weights_changed": False,
+                        "inhibitory_partners_added": k,
+                        "readout_drive_fraction": frac}
+        print("A  N=%d: %d neurons, %d edges, k=%d inhibitory partners, "
+              "readout fractions exc %.3f inh %.3f"
+              % (n, nn, e, k, frac["exc_fraction"], frac["inh_fraction"]))
+
+    # --- B1: one-shot mean-field compensation ---------------------------
+    b1_gains = {}
+    for n in N_SEQ:
+        nodes = np.union1d(np.union1d(top1000[:n], stim), read)
+        ge, gi = meanfield_gains(dm, arrays, nodes)
+        b1_gains[n] = (nodes, ge, gi)
+        label = "B1-n%d" % n
+        path, nn, e, sha = emit_diag(arrays, nodes, stim, read, label, ge, gi)
+        cases[label] = {"construction": "B1", "N": n, "file": path,
+                        "neurons": nn, "edges": e, "sha256": sha,
+                        "weights_changed": True,
+                        "gain_exc": {"median": float(np.median(ge)),
+                                     "max": float(ge.max()),
+                                     "min": float(ge.min())},
+                        "gain_inh": {"median": float(np.median(gi)),
+                                     "max": float(gi.max()),
+                                     "min": float(gi.min())}}
+        print("B1 N=%d: %d neurons, %d edges, alpha median %.2f max %.2f, "
+              "beta median %.2f max %.2f"
+              % (n, nn, e, np.median(ge), ge.max(), np.median(gi), gi.max()))
+
+    # --- B2: self-consistent rate matching ------------------------------
+    for n in B2_N:
+        nodes, ge, gi = b1_gains[n]
+        ge, gi, hist = rate_match(arrays, dm, nodes, ge.copy(), gi.copy(),
+                                  stim, read, totals, "B2-n%d" % n, jobs)
+        label = "B2-n%d" % n
+        path, nn, e, sha = emit_diag(arrays, nodes, stim, read, label, ge, gi)
+        cases[label] = {"construction": "B2", "N": n, "file": path,
+                        "neurons": nn, "edges": e, "sha256": sha,
+                        "weights_changed": True, "iterations": ITERATIONS,
+                        "damping": DAMPING, "gain_cap": GAIN_CAP,
+                        "history": hist,
+                        "gain_exc": {"median": float(np.median(ge)),
+                                     "max": float(ge.max()),
+                                     "min": float(ge.min())}}
+
+    notes["construction_A"] = ("selection only; SR-EXT-02's unchanged "
+                               "weights intact")
+    notes["construction_B1"] = ("SR-EXT-01 top-N with per-target gains so "
+                                "each kept neuron's expected drive matches "
+                                "the full brain; SR-EXT-02 deviated from")
+    notes["construction_B2"] = ("B1's gains refined by rate matching on "
+                                "interior neurons only; readouts and "
+                                "stimulus neurons are never tuned, so ACC-3 "
+                                "stays an out-of-sample check")
+    cases = acc3_eval(cases, full, jobs)
+
+    out = {"decisions": ["D-135", "D-165", "D-166", "D-186", "D-187",
+                         "D-188", "D-189"],
+           "full_brain_source": "data/calibration/acc4.json (same seeds)",
+           "diagnostic_only": True, "notes": notes,
+           "parameters": {"gain_cap": GAIN_CAP, "damping": DAMPING,
+                          "iterations": ITERATIONS,
+                          "match_seeds": list(MATCH_SEEDS),
+                          "b2_N": list(B2_N)},
+           "cases": cases, "elapsed_s": round(time.time() - t0)}
+    save_json(COMP, out)
+
+    print("")
+    print("%-10s %6s %7s %8s %8s %8s %8s %8s  %s"
+          % ("case", "N", "neurons", "10Hz", "40Hz", "60Hz", "120Hz",
+             "200Hz", "ACC-3"))
+    print("%-10s %6s %7s %8.2f %8.2f %8.2f %8.2f %8.2f  %s"
+          % ("full brain", "-", 184099,
+             *[full["per_rate"][str(r)]["onfly_mean_hz"] for r in VAL_RATES],
+             "reference"))
+    for label in sorted(cases):
+        c = cases[label]
+        print("%-10s %6d %7d %8.2f %8.2f %8.2f %8.2f %8.2f  %s"
+              % (label, c["N"], c["neurons"],
+                 *[c["per_rate"][str(r)]["sub_mean_hz"] for r in VAL_RATES],
+                 "PASS" if c["acc3_pass"] else "FAIL"))
+    passing = [l for l in sorted(cases) if cases[l]["acc3_pass"]]
+    print("")
+    print("ACC-3 passing constructions: %s"
+          % (", ".join(passing) if passing else "none"))
+    print("wrote %s (%d s)" % (COMP.replace("\\", "/"), out["elapsed_s"]))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rank", action="store_true")
@@ -589,6 +989,7 @@ def main():
     ap.add_argument("--extract", action="store_true")
     ap.add_argument("--acc3", action="store_true")
     ap.add_argument("--diag", action="store_true")
+    ap.add_argument("--compensate", action="store_true")
     ap.add_argument("--jobs", type=int, default=14)
     a = ap.parse_args()
     if not os.path.isfile(cal.RUNNET):
@@ -605,6 +1006,8 @@ def main():
         acc3_file(a.acc3_file, a.label or "file", a.jobs)
     if a.closure:
         closure(a.jobs)
+    if a.compensate:
+        compensate(a.jobs)
     return 0
 
 

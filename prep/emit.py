@@ -147,12 +147,28 @@ def path_restricted(pre, post, stim, read):
 
 
 def build_network(arrays, nodes, stim_bodies, read_bodies, label,
-                  w_syn=W_SYN, max_ms=MAX_MS):
+                  w_syn=W_SYN, max_ms=MAX_MS,
+                  gain_exc=None, gain_inh=None):
     """Assemble one network file from a node subset.
 
     ``w_syn`` defaults to the module constant; prep/calibrate.py passes each
     SR-CAL-03 candidate through here so that a calibration network is built
     by exactly the code that builds the shipped one.
+
+    ``gain_exc`` and ``gain_inh`` (D-186, D-187, D-188) are the weight
+    compensation hook.  Each is either None or an array of one multiplier
+    per kept neuron, in ascending body-id order -- the same order as
+    ``np.sort(nodes)`` -- applied to the retained excitatory and inhibitory
+    edges whose TARGET is that neuron.  They exist so that a truncated
+    network can restore the expected synaptic drive that the dropped
+    presynaptic neurons used to supply.
+
+    A gain other than 1.0 is a deviation from SR-EXT-02, which requires the
+    subcircuit to keep its connections "with unchanged weights".  D-187
+    authorises it for the compared constructions; nothing calls this with a
+    gain unless the caller is building one of them, and those networks live
+    under data/calibration/, not data/networks/ (D-189).  No file-format
+    change is involved: IR-NET-01's weight section is already f64.
     """
     pre, post = arrays["body_pre"], arrays["body_post"]
     sw = arrays["signed_weight"]
@@ -179,6 +195,21 @@ def build_network(arrays, nodes, stim_bodies, read_bodies, label,
     # SR-MOD-05: weight = synapse count x sign x W_syn.  The count already
     # carries its sign from prep/signs.py; W_syn is applied here and only here.
     weight = s.astype(np.float64) * w_syn
+
+    # D-187 compensation, if the caller asked for it.  The multiplier is
+    # chosen by the TARGET neuron and the SIGN of the edge, so it is indexed
+    # by idx_post -- which is already the position of that neuron in the
+    # sorted node list, the order gain_exc and gain_inh are given in.
+    if gain_exc is not None or gain_inh is not None:
+        ge = np.ones(n) if gain_exc is None else np.asarray(gain_exc,
+                                                            dtype=np.float64)
+        gi = np.ones(n) if gain_inh is None else np.asarray(gain_inh,
+                                                            dtype=np.float64)
+        if len(ge) != n or len(gi) != n:
+            raise ValueError("gain arrays must have one entry per kept "
+                             "neuron (%d), got %d and %d"
+                             % (n, len(ge), len(gi)))
+        weight = weight * np.where(s > 0, ge[idx_post], gi[idx_post])
 
     p11, p12, p22 = coefficients()
     blob = netwrite.build(

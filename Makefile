@@ -494,8 +494,16 @@ shim: $(BUILD) softfloat/onfsub.c fp
 # Unit tests run on a small fixture so a failure points at one rule; two
 # further tests check the mapping's vocabulary against the real MaleCNS
 # data and skip cleanly when that data has not been retrieved.
+#
+# TP-07 joins it (D-187): emit.build_network grew an optional weight-gain
+# hook for the compared truncation constructions, and the one thing that
+# must never happen is for that hook to act when no caller asked for it --
+# every network file and every ACC-5 fingerprint would move silently.  Its
+# fixture is hand-built, so like the first half of TP-01 it needs no
+# MaleCNS data and runs on a bare checkout.
 prep:
 	$(PYTHON) tests/test_signs.py
+	$(PYTHON) tests/test_gain.py
 
 # --- TE-09: ONFLYENG, verify-only mode and the run manifest ---------------
 # The minimal engine level of D-78: the self-test, the FR-LOD-02 load checks,
