@@ -559,6 +559,21 @@ runner: $(BUILD) $(GENERATED)
 	  engine/src/onffpc.c engine/src/onffpn.c engine/src/onfker.c \
 	  engine/src/onfrnd.c engine/src/onfstm.c
 
+# D-204: the same runner on the two soft backends, so a candidate MVS
+# subcircuit can be run on every float backend this host has rather than on
+# the native one alone.  ACC-2 claims "every platform and backend" and the
+# v1.1 compensating table had only ever been decoded by the native build;
+# these two are what let that claim be tested instead of assumed.
+runners: $(BUILD) $(GENERATED) runner
+	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/runnet_soft.exe \
+	  tools/runnet.c engine/src/onfdec.c engine/src/onfcrc.c \
+	  engine/src/onffpc.c engine/src/onffps.c engine/src/onfker.c \
+	  engine/src/onfrnd.c engine/src/onfstm.c $(SFSRCS) $(ONFSF)
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/runnet_2c.exe \
+	  tools/runnet.c engine/src/onfdec.c engine/src/onfcrc.c \
+	  engine/src/onffpc.c engine/src/onffp2.c engine/src/onfker.c \
+	  engine/src/onfrnd.c engine/src/onfstm.c $(SF2CSRC)
+
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.

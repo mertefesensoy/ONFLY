@@ -1,0 +1,68 @@
+{
+  "acc2_pass_all_backends": true,
+  "acc2_per_backend": {
+    "NATIVE": {
+      "rc": 0,
+      "total_spikes": 0
+    },
+    "SOFT2C": {
+      "rc": 0,
+      "total_spikes": 0
+    },
+    "SOFT3E": {
+      "rc": 0,
+      "total_spikes": 0
+    }
+  },
+  "agree": true,
+  "backends": [
+    "NATIVE",
+    "SOFT3E",
+    "SOFT2C"
+  ],
+  "comparisons": 300,
+  "elapsed_s": 46,
+  "mismatches": [],
+  "network": "diag-F3-n500.bin",
+  "not_proven": "All three backends are x86-64. Nothing here is proven for s390x, MVS 3.8j or z/OS.",
+  "platform": "x86-64 Windows 11, mingw32 gcc 6.3.0",
+  "rates": [
+    10,
+    40,
+    60,
+    120,
+    200
+  ],
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30
+  ]
+}
