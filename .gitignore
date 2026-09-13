@@ -71,3 +71,4 @@ reference/shiu/results/data/
 data/calibration/*.bin
 data/calibration/*.npz
 data/calibration/tmp/
+data/calibration/*.npy
