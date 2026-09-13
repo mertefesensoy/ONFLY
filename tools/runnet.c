@@ -57,8 +57,8 @@ int main(int argc, char **argv)
     struct onfnet net;
     struct onfsta st;
     onf_u8 *buf;
-    onf_u32 *rowptr, *target, *stim, *readout;
-    onf_f64 *weight, *su, *sg, *sring;
+    onf_u32 *rowptr, *target, *stim, *readout, *brate;
+    onf_f64 *weight, *su, *sg, *sring, *bias;
     onf_i32 *srfr, *sspk, *sfst, *sfrc, *sstm;
     struct rank *order;
     onf_i32 len, need, rate, simms, steps, i, topn;
@@ -122,13 +122,28 @@ int main(int argc, char **argv)
     weight  = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net.e);
     stim    = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net.ns);
     readout = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net.nr);
+    /* v1.1 compensating-input table (D-190).  nbias is 0 for a network that
+       drops nothing, and then no storage is needed and none is asked for. */
+    brate = NULL;
+    bias = NULL;
+    if (net.nbias > 0) {
+        brate = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net.nbias);
+        bias = (onf_f64 *)malloc(sizeof(onf_f64)
+                                 * (size_t)net.nbias * (size_t)net.n);
+        if (brate == NULL || bias == NULL) {
+            printf("ALLOC failed for the compensating-input table "
+                   "(nbias=%ld n=%ld)\n", (long)net.nbias, (long)net.n);
+            return 2;
+        }
+    }
     if (rowptr == NULL || target == NULL || weight == NULL
         || stim == NULL || readout == NULL) {
         printf("ALLOC failed for the decoded network (n=%ld e=%ld)\n",
                (long)net.n, (long)net.e);
         return 2;
     }
-    rc = onfldp(buf, &net, rowptr, target, weight, stim, readout);
+    rc = onfldp(buf, &net, rowptr, target, weight, stim, readout,
+                brate, bias);
     if (rc != ONFD_OK) {
         printf("LOAD rc=%d\n", rc);
         return 1;

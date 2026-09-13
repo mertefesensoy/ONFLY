@@ -148,7 +148,8 @@ def path_restricted(pre, post, stim, read):
 
 def build_network(arrays, nodes, stim_bodies, read_bodies, label,
                   w_syn=W_SYN, max_ms=MAX_MS,
-                  gain_exc=None, gain_inh=None):
+                  gain_exc=None, gain_inh=None,
+                  bias_rates=None, bias_rows=None):
     """Assemble one network file from a node subset.
 
     ``w_syn`` defaults to the module constant; prep/calibrate.py passes each
@@ -169,6 +170,11 @@ def build_network(arrays, nodes, stim_bodies, read_bodies, label,
     gain unless the caller is building one of them, and those networks live
     under data/calibration/, not data/networks/ (D-189).  No file-format
     change is involved: IR-NET-01's weight section is already f64.
+
+    ``bias_rates`` and ``bias_rows`` carry the format v1.1 compensating-input
+    table (D-190, D-191, IR-NET-09) straight through to netwrite.build, which
+    checks its invariants.  Both None emits ``nbias`` = 0, which is what a
+    network that drops nothing -- the full brain -- must carry.
     """
     pre, post = arrays["body_pre"], arrays["body_post"]
     sw = arrays["signed_weight"]
@@ -227,7 +233,8 @@ def build_network(arrays, nodes, stim_bodies, read_bodies, label,
         u_reset=V_RESET - V_REST,
         p11=p11, p12=p12, p22=p22,
         g_eps=G_EPS, w_syn=w_syn, v_rest=V_REST,
-        method=METHOD_EXACT)
+        method=METHOD_EXACT,
+        bias_rates=bias_rates, bias_rows=bias_rows)
     print("  %-6s n=%-7d e=%-9d %10d bytes" % (label, n, len(idx_post), len(blob)))
     return blob, n, len(idx_post)
 

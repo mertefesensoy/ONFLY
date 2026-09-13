@@ -61,10 +61,15 @@ class Network(object):
       u_reset     reset potential, relative to V_rest
       p11, p12, p22   propagator coefficients
       g_eps       subnormal clamp threshold (NR-08)
+      bias_rates  sampled stimulus rates of the v1.1 compensating-input
+                  table, strictly ascending and starting at 0; empty when the
+                  network carries no table (D-190, D-191)
+      bias_rows   one list of n binary64 values per entry of bias_rates
     """
 
     def __init__(self, n, rowptr, target, weight, stim, readout,
-                 dt_us, delay, refract, u_th, u_reset, p11, p12, p22, g_eps):
+                 dt_us, delay, refract, u_th, u_reset, p11, p12, p22, g_eps,
+                 bias_rates=(), bias_rows=()):
         assert len(rowptr) == n + 1
         assert delay >= 1, "Appendix C requires D >= 1"
         self.n = n
@@ -82,6 +87,41 @@ class Network(object):
         self.p12 = p12
         self.p22 = p22
         self.g_eps = g_eps
+        self.bias_rates = list(bias_rates)
+        self.bias_rows = [list(r) for r in bias_rows]
+        assert len(self.bias_rates) == len(self.bias_rows), \
+            "one bias row per sampled rate"
+        if self.bias_rates:
+            assert self.bias_rates == sorted(set(self.bias_rates)), \
+                "bias rates must be strictly ascending"
+            assert self.bias_rates[0] == 0, "the table must start at rate 0"
+            assert all(w == 0.0 for w in self.bias_rows[0]), \
+                "ACC-2: the rate 0 row must be exactly zero everywhere"
+            assert all(len(r) == n for r in self.bias_rows), \
+                "each bias row needs one value per neuron"
+
+    def bias_row(self, rate_hz):
+        """Appendix C step 0: the compensating-input row for this request.
+
+        D-191 selects by NEAREST sampled rate, with ties going to the lower
+        rate, and a rate beyond either end clamping to that end.  Selection is
+        by integer comparison only: interpolating instead would need an
+        integer-to-binary64 conversion, which the onf_fp API does not have and
+        NR-07 does not list.
+
+        Returns None when the network carries no table, which is what the full
+        brain and every uncompensated network carry.
+        """
+        if not self.bias_rates:
+            return None
+        best, bestd = 0, None
+        for k, r in enumerate(self.bias_rates):
+            d = r - rate_hz if r >= rate_hz else rate_hz - r
+            # strict >: the first (lowest) rate at the minimum distance wins,
+            # which is the tie rule.
+            if bestd is None or d < bestd:
+                best, bestd = k, d
+        return self.bias_rows[best]
 
 
 def run(net, seed, rate_hz, steps):
@@ -122,13 +162,25 @@ def run(net, seed, rate_hz, steps):
     # of step t + D, because slot (t + D) mod D is the slot consumed at step t.
     ring = [[0.0] * n for _ in range(net.delay)]
 
+    # --- 0. COMPENSATING INPUT (D-190, D-191) --------------------------
+    # Selected once, before the first step, from the request's rate.  It is
+    # added to g in ARRIVALS below, after the delayed arrivals and before
+    # anything reads g, which is the order Appendix C fixes.
+    bias = net.bias_row(rate_hz)
+
     for t in range(steps):
         # --- 1. ARRIVALS ------------------------------------------------
         slot = t % net.delay
         row = ring[slot]
-        for i in range(n):
-            g[i] = g[i] + row[i]
-            row[i] = 0.0
+        if bias is None:
+            for i in range(n):
+                g[i] = g[i] + row[i]
+                row[i] = 0.0
+        else:
+            for i in range(n):
+                g[i] = g[i] + row[i]
+                row[i] = 0.0
+                g[i] = g[i] + bias[i]
 
         # --- 2. STIMULUS DRAWS ------------------------------------------
         # Exactly one accepted draw per stimulus neuron per step, whether or

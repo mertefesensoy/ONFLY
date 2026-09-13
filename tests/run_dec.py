@@ -26,6 +26,7 @@ from onfly_oracle.crc32 import crc32  # noqa: E402
 from onfly_oracle import kernel as okernel  # noqa: E402
 
 OK, MAGIC, SENT, VER, HCRC, MEM, PLEN, PCRC = 0, 101, 102, 103, 104, 105, 106, 107
+BIAS = 109          # ONF109E COMPENSATION TABLE INVALID (IR-NET-09, D-190)
 
 
 _NET_ARGS = {}
@@ -39,7 +40,30 @@ def build_oracle_network():
         stim=a["stim"], readout=a["readout"], dt_us=a["dt_us"],
         delay=a["delay"], refract=a["refract"], u_th=a["u_th"],
         u_reset=a["u_reset"], p11=a["p11"], p12=a["p12"], p22=a["p22"],
-        g_eps=a["g_eps"])
+        g_eps=a["g_eps"],
+        bias_rates=a.get("bias_rates", ()), bias_rows=a.get("bias_rows", ()))
+
+
+# v1.1 compensating-input table for the sample network (D-190, D-191).
+#
+# The fixture carries a real table rather than none, so that every path that
+# uses it -- TE-01..TE-09 here, the embedded-network engine path in
+# tests/tstsyn.c, and the oracle comparison -- exercises the compensating
+# input instead of only its absence.  A code path tested nowhere but on the
+# platform that is hardest to test is a code path nobody has tested.
+#
+# The values are exact binary fractions (2^-7 and 2^-5 times a small integer)
+# so that a reader can check an arrival by hand and no rounding hides a
+# mistake.  The rate 0 row is zero, which netwrite.build asserts and the
+# decoder re-checks on the raw bytes: ACC-2 requires a rate 0 request to
+# produce no spike anywhere.
+_BIAS_RATES = [0, 40, 200]
+
+
+def _bias_rows(n):
+    return [[0.0] * n,
+            [0.0078125 * ((i % 4) + 1) for i in range(n)],
+            [0.03125 * ((i % 4) + 1) for i in range(n)]]
 
 
 def sample_network():
@@ -63,14 +87,16 @@ def sample_network():
         dt_us=100, delay=18, refract=22,
         u_th=7.0, u_reset=0.0,
         p11=0.9950124791926823, p12=0.004937935295309022,
-        p22=0.9801986733067553, g_eps=1e-300))
+        p22=0.9801986733067553, g_eps=1e-300,
+        bias_rates=_BIAS_RATES, bias_rows=_bias_rows(n)))
     return netwrite.build(
         n=n, rowptr=rowptr, target=target, weight=weight,
         stim=[0, 1, 2, 3], readout=[12, 13, 14, 15],
         dt_us=100, delay=18, refract=22, max_ms=5000,
         u_th=7.0, u_reset=0.0,
         p11=0.9950124791926823, p12=0.004937935295309022,
-        p22=0.9801986733067553, g_eps=1e-300, w_syn=0.275, v_rest=-52.0)
+        p22=0.9801986733067553, g_eps=1e-300, w_syn=0.275, v_rest=-52.0,
+        bias_rates=_BIAS_RATES, bias_rows=_bias_rows(n))
 
 
 def patch(data, offset, raw):
@@ -85,6 +111,30 @@ def repair_hdrcrc(data):
     struct.pack_into(">I", b, L.NETHDR["hdrcrc"][1],
                      crc32(bytes(b[:L.NETHDR_CRC_COVERS])))
     return bytes(b)
+
+
+def repair_paycrc(data):
+    """Recompute the payload CRC, then the header CRC that covers it.
+
+    TE-10's cases corrupt the compensating-input table, which lives in the
+    payload.  Without this they would stop at check 6 and prove only that the
+    payload CRC works -- which TE-05 already proves.  Resealing both CRCs
+    models a PRODUCER that emitted a malformed table, which is the failure
+    ONF109E exists for; a TRANSPORT that damaged it is TE-05's case.
+    """
+    b = bytearray(data)
+    paylen = struct.unpack_from(">I", b, L.NETHDR["paylen"][1])[0]
+    struct.pack_into(">I", b, L.NETHDR["paycrc"][1],
+                     crc32(bytes(b[L.NETHDR_LEN:L.NETHDR_LEN + paylen])))
+    return repair_hdrcrc(bytes(b))
+
+
+def bias_row_offset(data):
+    """Absolute offset of the compensating table's first f64 row."""
+    off = struct.unpack_from(">I", data, L.NETHDR["offbias"][1])[0]
+    nbias = struct.unpack_from(">I", data, L.NETHDR["nbias"][1])[0]
+    pad = ((4 * nbias + L.NET_ALIGN - 1) // L.NET_ALIGN) * L.NET_ALIGN
+    return off + pad
 
 
 def cases(good):
@@ -173,6 +223,47 @@ def main():
         else:
             failed += 1
             lines.append("  FAIL %-36s rc=%s want=%d" % (name, got, want))
+
+    # --- TE-10: a malformed compensating-input table (IR-NET-09, D-190) --
+    # These reach onfldp, not onfdec, so they need the "run" argument; the
+    # header checks above stop before the payload is converted.  Each one
+    # reseals both CRCs, so what fails is the table check and nothing else.
+    #
+    # The rate 0 case is the one that matters most.  ACC-2 promises zero
+    # spikes everywhere at rate 0 on every platform and backend; a table
+    # whose first row were non-zero would break that silently, everywhere at
+    # once, and the only thing standing between a mis-emitted network and
+    # that outcome is this check.
+    bias_off = bias_row_offset(good)
+    te10 = [
+        ("TE-10 rate 0 row not zero",
+         repair_paycrc(patch(good, bias_off, struct.pack(">d", 1e-300)))),
+        ("TE-10 rates not ascending",
+         repair_paycrc(patch(good, struct.unpack_from(
+             ">I", good, L.NETHDR["offbias"][1])[0] + 4,
+             struct.pack(">I", 0)))),
+        ("TE-10 table does not start at 0",
+         repair_paycrc(patch(good, struct.unpack_from(
+             ">I", good, L.NETHDR["offbias"][1])[0],
+             struct.pack(">I", 1)))),
+    ]
+    for name, data in te10:
+        path = os.path.join(tmp, name.split()[0] + "_%d.net" % len(lines))
+        with open(path, "wb") as fh:
+            fh.write(data)
+        proc = subprocess.Popen([exe, path, "0", "run"], stdout=subprocess.PIPE)
+        out, _ = proc.communicate()
+        got = None
+        for line in out.decode("ascii", "replace").splitlines():
+            if line.startswith("LOAD"):
+                got = int(line.split("=")[1])
+        if got == BIAS:
+            passed += 1
+            lines.append("  ok   %-36s LOAD rc=%d" % (name, got))
+        else:
+            failed += 1
+            lines.append("  FAIL %-36s LOAD rc=%s want=%d"
+                         % (name, got, BIAS))
 
     # --- end-to-end: file on disk -> decode -> load -> simulate ----------
     # This is the first path that goes all the way from a serialised network to

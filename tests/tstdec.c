@@ -80,8 +80,8 @@ int main(int argc, char **argv)
     }
 
     if (rc == ONFD_OK && argc > 3) {
-        onf_u32 *rowptr, *target, *stim, *readout;
-        onf_f64 *weight, *su, *sg, *sring;
+        onf_u32 *rowptr, *target, *stim, *readout, *brate;
+        onf_f64 *weight, *su, *sg, *sring, *bias;
         onf_i32 *srfr, *sspk, *sfst, *sfrc, *sstm;
         struct onfsta st;
         onf_i32 i;
@@ -101,6 +101,20 @@ int main(int argc, char **argv)
         sfst = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
         sfrc = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
         sstm = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net.n);
+        /* v1.1 compensating-input table (D-190); nbias is 0 when the
+           network carries none. */
+        brate = NULL;
+        bias = NULL;
+        if (net.nbias > 0) {
+            brate = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net.nbias);
+            bias = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net.nbias
+                                     * (size_t)net.n);
+            if (brate == NULL || bias == NULL) {
+                printf("ALLOC failed for nbias=%ld n=%ld\n",
+                       (long)net.nbias, (long)net.n);
+                return 2;
+            }
+        }
         if (rowptr == NULL || target == NULL || weight == NULL
             || stim == NULL || readout == NULL || su == NULL || sg == NULL
             || sring == NULL || srfr == NULL || sspk == NULL
@@ -110,7 +124,8 @@ int main(int argc, char **argv)
             return 2;
         }
 
-        lrc = onfldp(buf, &net, rowptr, target, weight, stim, readout);
+        lrc = onfldp(buf, &net, rowptr, target, weight, stim, readout,
+                     brate, bias);
         printf("LOAD rc=%d\n", lrc);
         if (lrc != ONFD_OK) {
             return 0;

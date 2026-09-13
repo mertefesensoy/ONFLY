@@ -34,6 +34,7 @@
 #define ONFD_MEM    105     /* ONF105E  NETWORK EXCEEDS MEMORY LIMIT   RC 12 */
 #define ONFD_PLEN   106     /* ONF106E  PAYLOAD LENGTH INCONSISTENT    RC 12 */
 #define ONFD_PCRC   107     /* ONF107E  PAYLOAD CRC MISMATCH           RC 12 */
+#define ONFD_BIAS   109     /* ONF109E  COMPENSATION TABLE INVALID     RC 12 */
 
 /*
  * onfdec - verify a network file and populate a decoded view of it.
@@ -75,6 +76,8 @@ int onfdec(const onf_u8 *buf, onf_i32 len, onf_i32 limit,
  *   weight   caller storage for e values
  *   stim     caller storage for ns values
  *   readout  caller storage for nr values
+ *   brate    caller storage for nbias values, or null when nbias is 0
+ *   bias     caller storage for nbias * n values, or null when nbias is 0
  *
  * Returns ONFD_OK, or ONFD_PLEN if any section offset or the CSR structure is
  * inconsistent -- a row pointer that runs backwards or past the edge count, or
@@ -82,11 +85,19 @@ int onfdec(const onf_u8 *buf, onf_i32 len, onf_i32 limit,
  * trusted, because the CRC only proves the bytes arrived intact, not that the
  * producer wrote a sane network (VL-08).
  *
+ * Returns ONFD_BIAS if the v1.1 compensating-input table is present but not
+ * well formed: rates not strictly ascending, a first rate other than 0, or a
+ * rate 0 row that is not zero in every neuron.  The last of those is checked
+ * on the raw big-endian bytes rather than after conversion, so that no
+ * floating-point comparison stands between the file and ACC-2's guarantee
+ * that a rate 0 request produces no spike anywhere.
+ *
  * Every value is read by explicit byte shift (FR-LOD-05).  No allocation, no
  * I/O, no static data.
  */
 int onfldp(const onf_u8 *buf, struct onfnet *net,
            onf_u32 *rowptr, onf_u32 *target, onf_f64 *weight,
-           onf_u32 *stim, onf_u32 *readout);
+           onf_u32 *stim, onf_u32 *readout,
+           onf_u32 *brate, onf_f64 *bias);
 
 #endif /* ONFDEC_H */

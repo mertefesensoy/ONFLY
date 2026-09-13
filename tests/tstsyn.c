@@ -46,6 +46,7 @@
 #include "onfcom.h"     /* ONF_MAXOUT, the COMMAREA's output limit (IR-COM) */
 #include "onfcrc.h"
 #include "onfdec.h"
+#include "onfnhd.h"  /* header offsets, generated (NFR-MNT-01) */
 #include "onffpr.h"
 #include "onfker.h"
 #include "onfsynt.h"
@@ -53,16 +54,29 @@
 /* Appendix E return codes (RC column). */
 #define RC_OK 0
 
-/* Header field offsets read directly, as tstgld.c does (FR-LOD-05: explicit
-   byte shifts, never a pointer cast over the buffer). */
-#define OFF_MAXMS 48
-#define OFF_PAYCRC 156
+/* Header field offsets come from the GENERATED header, never from numbers
+   written out here (NFR-MNT-01, IR-COM-01).  They used to be literals, and
+   format version 1.1 moved paylen, paycrc and hdrcrc up by eight bytes when
+   D-190 added the compensating-input table -- which is exactly the silent
+   drift the generator exists to prevent.  Values are still read by explicit
+   byte shift, never by a pointer cast over the buffer (FR-LOD-05). */
+#define OFF_MAXMS ONF_N_MAXMS
+#define OFF_PAYCRC ONF_N_PAYCRC
 
 static onf_u32 rowptr[ONFSYN_N + 1];
 static onf_u32 target[ONFSYN_E];
 static onf_f64 weight[ONFSYN_E];
 static onf_u32 stim[ONFSYN_NS];
 static onf_u32 readout[ONFSYN_NR];
+
+/* v1.1 compensating-input table (D-190).  The synthetic network is generated
+   with a table so that the MVS path exercises the new code rather than only
+   its absence; ONFSYN_NBIAS is 0 if it ever is generated without one, and
+   these arrays are then unused.  A zero-length array is not C89, so both are
+   sized to at least one element. */
+#define SYNBIAS (ONFSYN_NBIAS > 0 ? ONFSYN_NBIAS : 1)
+static onf_u32 brate[SYNBIAS];
+static onf_f64 bias[SYNBIAS * ONFSYN_N];
 
 static onf_f64 su[ONFSYN_N], sg[ONFSYN_N];
 static onf_f64 sring[ONFSYN_DELAY * ONFSYN_N];
@@ -81,11 +95,11 @@ static onf_u8 work[ONFSYN_LEN + WORKPAD];
 /* Header field offsets this file patches, from SRS section 4.1. */
 #define OFF_MAGIC 0
 #define OFF_SENT 4
-#define OFF_VMAJOR 8
-#define OFF_REFRACT 44
-#define OFF_PAYLEN 152
-#define OFF_HDRCRC 160
-#define HDRCRC_COVER 160
+#define OFF_VMAJOR ONF_N_VMAJOR
+#define OFF_REFRACT ONF_N_REFRACT
+#define OFF_PAYLEN ONF_N_PAYLEN
+#define OFF_HDRCRC ONF_N_HDRCRC
+#define HDRCRC_COVER ONF_NHDR_CRCLEN
 
 /* Read a big-endian 32-bit field by explicit shifts (FR-LOD-05). */
 static onf_u32 be32(const onf_u8 *p, onf_i32 at)
@@ -114,8 +128,8 @@ static onf_i32 fresh(void)
 }
 
 /*
- * Recompute the header CRC over bytes 0..159 and store it at 160
- * (IR-NET-07).
+ * Recompute the header CRC over the bytes it covers and store it where the
+ * generated header says it lives (IR-NET-07).
  *
  * Half the integrity cases need this and half must NOT have it, and that
  * split is the whole point.  A field inside the header CRC's coverage
@@ -201,7 +215,7 @@ int main(void)
 
     /* --- TE-05: the payload damaged in transport, header intact ------- */
     fresh();
-    work[164 + 40] = (onf_u8)(work[164 + 40] ^ 0xFFU);
+    work[ONF_NHDR_LEN + 40] = (onf_u8)(work[ONF_NHDR_LEN + 40] ^ 0xFFU);
     report("paycrc", (onf_i32)ONFSYN_LEN, 0);
 
     /* --- TE-07: an FB dataset is zero-padded to an 80-byte record
@@ -221,8 +235,8 @@ int main(void)
     }
 
     /* --- load the payload into host order ------------------------------ */
-    if (onfldp(onfsynt, &net, rowptr, target, weight, stim, readout)
-            != ONFD_OK) {
+    if (onfldp(onfsynt, &net, rowptr, target, weight, stim, readout,
+               brate, bias) != ONFD_OK) {
         printf("LOAD failed\n");
         return 1;
     }

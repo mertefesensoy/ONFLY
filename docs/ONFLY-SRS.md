@@ -222,14 +222,15 @@ This subsection is informative. It records design obligations so that MVP decisi
 |---|---|---|
 | IR-NET-01 | The network file shall be a byte stream: a fixed header followed by a payload of aligned sections. All integers are big-endian two's complement or unsigned as stated; all floating-point values are IEEE 754 binary64, big-endian (sign and exponent byte first). | T — TU-06 |
 | IR-NET-02 | The file shall contain no text. Neuron type names travel in the names file (IR-NAM). | I |
-| IR-NET-03 | The magic constant shall be compared as an integer on every platform. Its value is 0x4F4E4631, final at format version 1.0 (TBD-09 closed by D-167). | T — TE-01 |
+| IR-NET-03 | The magic constant shall be compared as an integer on every platform. Its value is 0x4F4E4631, final at format version 1.0 (TBD-09 closed by D-167). The magic does not change with the format version: version 1.1 (D-190) carries the same magic and is distinguished by the minor version field, which is what D-167 reserved it for. | T — TE-01 |
 | IR-NET-04 | The byte-order sentinel shall be 0x01020304. Any other decoded value shall fail with ONF102E. | T — TE-02 |
 | IR-NET-05 | Payload sections shall start on 8-byte boundaries relative to the start of the file; padding bytes shall be zero. | T |
 | IR-NET-06 | Within each source neuron's row, target indices shall be strictly ascending. This order is normative for floating-point accumulation (Appendix C). | T — TP-04 |
-| IR-NET-07 | Header CRC-32 covers header bytes 0–159; payload CRC-32 covers exactly the declared payload length. The CRC is CRC-32/ISO-HDLC (the zlib polynomial), so Python's `zlib.crc32` is the reference. | T — TU-03 |
+| IR-NET-07 | Header CRC-32 covers header bytes 0–167 at format version 1.1 (0–159 at 1.0); payload CRC-32 covers exactly the declared payload length. The CRC is CRC-32/ISO-HDLC (the zlib polynomial), so Python's `zlib.crc32` is the reference. | T — TU-03 |
 | IR-NET-08 | On MVS the file shall be stored as RECFM=FB, LRECL=80, zero-padded at the end. The header's declared length is authoritative. | T — TE-07 |
+| IR-NET-09 | At format version 1.1 the network may carry a compensating-input table (D-190). Its sampled rates shall be strictly ascending and shall begin with 0, and the rate 0 row shall be zero in every neuron. A table that violates any of these shall fail with ONF109E. The engine shall select one row per request, by nearest sampled rate with ties to the lower rate and a rate beyond either end clamped to that end (D-191), and shall add that row to the synaptic variable as Appendix C specifies. | T — TE-10, TP-08 |
 
-**Header layout (format version 1.0, draft):**
+**Header layout (format version 1.1):** the header is 172 bytes. Version 1.0's was 164; D-190 inserted the two fields at 152 and 156 and moved the three above them up by eight bytes. A reader must check the minor version before trusting any offset above 148.
 
 | Offset | Size | Type | Field |
 |---|---|---|---|
@@ -263,9 +264,11 @@ This subsection is informative. It records design obligations so that MVP decisi
 | 140 | 4 | u32 | Offset: weights |
 | 144 | 4 | u32 | Offset: stimulus list |
 | 148 | 4 | u32 | Offset: readout list |
-| 152 | 4 | u32 | Payload length in bytes |
-| 156 | 4 | u32 | Payload CRC-32 |
-| 160 | 4 | u32 | Header CRC-32 (bytes 0–159) |
+| 152 | 4 | u32 | Offset: compensating-input table (v1.1, D-190); 0 when `nbias` is 0 |
+| 156 | 4 | u32 | `nbias` — compensating-input rows (v1.1, D-190); 0 means the network carries no table |
+| 160 | 4 | u32 | Payload length in bytes |
+| 164 | 4 | u32 | Payload CRC-32 |
+| 168 | 4 | u32 | Header CRC-32 (bytes 0–167) |
 
 **Payload sections:**
 
@@ -277,6 +280,7 @@ This subsection is informative. It records design obligations so that MVP decisi
 | Weights | E values (f64): synapse count × sign × W_syn, computed on x86 |
 | Stimulus list | S neuron indices (u32), ascending |
 | Readout list | R neuron indices (u32), ascending |
+| Compensating-input table (v1.1) | Present only when `nbias` > 0: `nbias` sampled stimulus rates (u32, strictly ascending, the first exactly 0), padded to the 8-byte boundary, then `nbias` rows of N values (f64) — row *r* is the input added to every neuron's synaptic variable at each step when the request's rate selects it (D-190, D-191, Appendix C step 0). The rate 0 row shall be zero in every neuron, so that ACC-2 holds by construction |
 
 ### 4.2 Names file (ONFNAM)
 
@@ -783,6 +787,8 @@ Each decision below was made by the owner during the requirements question round
 | D-188 | **The compensation plan is approved as presented.** A new diagnostic stage `prep/extract.py --compensate` builds three constructions for N in {250, 500, 1000} — **A**, selection only, the top-(N−k) by activity plus readout partners chosen to raise each readout's retained inhibitory drive fraction to its retained excitatory fraction; **B1**, the SR-EXT-01 top-N sets with per-target gains so each kept neuron's expected drive matches the full brain; **B2**, B1's gains refined by self-consistent rate matching against per-neuron full-brain spike counts — and puts every one through the VL-66 ACC-3 comparison into `data/calibration/acc3-compensated.json` | Change; discuss | Approved by the owner through AskUserQuestion. **Engineer's choices that bind nothing** (the D-182 precedent): gain cap 20x, damping 0.5, four iterations, B2 on N in {500, 1000} only. **One operating point:** the gains derive from the ranking summed over all eight rates, because a per-rate gain would mean a different network file per rate and MVS ships one file |
 | D-189 | **A construction that meets ACC-3 does not amend the SRS in the same step.** All three results stay diagnostic under `data/calibration/`; the engineer reports the table, and amending SR-EXT-01 or SR-EXT-02, ACC-3's role in Section 6.4 and the choice of the MVS network remain a separate owner decision taken on those numbers | Write a passing construction straight into SR-EXT-01/SR-EXT-02, emit it under `data/networks/` and name it in the manifest as the MVP subcircuit | Chosen by the owner through AskUserQuestion. Same discipline as D-180, D-181 and D-182: the diagnostic informs the decision, it does not make it |
 | D-190 | **SR-EXT-03's escalation is resolved by changing the model, not the criterion: each kept neuron carries a per-neuron compensating input standing for the drive its dropped presynaptic neurons used to supply, carried in a new network format version 1.1, with Appendix C amended to say where that input enters the step.** ACC-3, its ±10% tolerance and Section 6.4's completion rule are unchanged | Make ACC-3 a selection-and-reporting criterion, SR-EXT-03 picking the construction with the smallest worst-rate deviation (B1-n500 at 62% on today's evidence); make ACC-3 a reported measurement only and complete the MVP on ACC-1, ACC-2 and ACC-4..ACC-7; recalibrate W_syn per subcircuit first | Chosen by the owner through AskUserQuestion on the full evidence of VL-66..VL-70 — eleven constructions, none within 62% of the full brain. It is the only option that addresses the **measured** cause rather than the symptom: all 501 and all 1,001 kept neurons fire in the full brain, but only 153 and 456 fire inside their own subcircuit, so what a truncation loses is drive **sources**, which no rescaling of a retained edge can replace (VL-70). Costs accepted: a format version bump, a kernel change in normative Appendix C (frozen by D-71), an oracle change, and a re-baselining of every golden fingerprint |
+| D-191 | **The D-190 compensating input is a per-rate table selected by nearest sampled rate.** The network carries one bias vector per sampled stimulus rate — the eight TBD-07 rates plus rate 0, whose row is all zeros — and the engine selects, once per request before the first step, the row whose rate is nearest the request's; ties go to the lower rate (engineer's choice) and a rate beyond the table clamps to the nearest end | One vector scaled linearly by the request rate; a per-rate table with linear interpolation between samples | Chosen by the owner through AskUserQuestion. **A constant bias is inadmissible**: ACC-2 requires rate 0 to produce zero spikes in every neuron, and a constant input would fire neurons with no stimulus. **Linear scaling is refuted by measurement**: on 2026-09-13, 15 full-brain runs at the five validation rates with 3 seeds each (x86-64 Windows 11, mingw32 gcc 6.3.0, NATIVE) give total network activity 0.044 / 0.224 / 0.273 / 0.320 / 1.000 of its 200 Hz value at 10 / 40 / 60 / 120 / 200 Hz, against 0.05 / 0.20 / 0.30 / 0.60 / 1.00 if firing were proportional; the median per-neuron ratio is 0.0000 at every rate below 200, because the population changes by recruitment (14,230 neurons fire at 200 Hz, most of them silent lower down) rather than by scaling. Nearest-row selection is also the only one of the three that needs **no new floating-point operation**: it is an integer comparison, where both alternatives need an integer-to-binary64 conversion the onf_fp API does not have and NR-07 does not list |
+| D-192 | **The eight-step plan for format version 1.1 is approved as presented.** In order: the per-rate full-brain activity measurement (`prep/extract.py --ratebias`, eight rates x 3 seeds); the generated format change in `layout/master.py` (`offbias` u32 at 152 and `nbias` u32 at 156, `paylen` 160, `paycrc` 164, `hdrcrc` 168, header length 172, header CRC over bytes 0..167, `NET_VMINOR` 1, and a payload section of `nbias` ascending u32 rates followed by `nbias` x N f64 rows); the Appendix C amendment; the engine (`onfdec.c`, `onfker.c`, `onflyeng.c`); the oracle (`oracle/onfly_oracle/kernel.py`, `layout/netread.py`); `prep/emit.py`; the re-emission of every fixture and the re-baselining of the thirteen golden fingerprints; and ACC-3 on the compensated subcircuits with the VL-66 rates and seeds | Change; discuss | Approved by the owner through AskUserQuestion. **Engineer's choices that bind nothing:** three seeds per rate for the bias measurement, nearest-rate ties to the lower rate, and a real computed bias in the golden `path` fixture so that `make test` exercises the new code path rather than only its absence. **One check protects the reference:** a v1.1 full-brain run drops nothing, so `nbias` is 0 and its spike counts must reproduce v1.0's exactly — that is what keeps `data/calibration/acc4.json` usable as ACC-3's full-brain reference across the format change |
 
 ### A.2 Design decisions proposed in this draft
 
@@ -830,6 +836,8 @@ These were introduced by the architect while writing the specification. They are
 ## Appendix C. Normative simulation kernel (draft)
 
 > **Status: NORMATIVE** (D-71). The step ordering below was reconciled against Shiu et al.'s published `model.py` in the 2026-09-11 session; TBC-01 is closed. Amendments D-67, D-68 and D-69 are marked inline. ⊕ and ⊗ are correctly rounded binary64 operations evaluated strictly left to right.
+>
+> **Amended 2026-09-13 by D-190 and D-191** with step 0 and one line in ARRIVALS: the per-neuron compensating input that makes a truncated network stand in for the full brain. This is the first change to Appendix C since it became normative, and it was authorised by the owner on the evidence of VL-66…VL-70 — eleven subcircuit constructions, none of which comes within 62% of the full brain's readout response, because a network small enough for the MVS region loses not merely synaptic mass but the *drivers* of the majority of its own neurons. A network that drops nothing carries `nbias = 0` and runs exactly the version 1.0 arithmetic.
 
 **Coefficients (computed on x86, shipped as bit patterns).** With u = v − V_rest, du/dt = (g − u)/τ_mbr and dg/dt = −g/τ_syn, one step of length dt is u′ = P11·u + P12·g and g′ = P22·g, where:
 
@@ -840,6 +848,22 @@ These were introduced by the architect while writing the specification. They are
 
 **State.** For each neuron i: u[i], g[i] (binary64), rfr[i] (int32 refractory steps remaining), spikes[i] and first[i] (int32). A ring buffer ring[0..D−1][0..N−1] (binary64) holds delayed synaptic input. All binary64 state starts at +0.0; rfr starts at 0; first starts at −1. The PRNG is seeded from the request (NR-13).
 
+**Before the first step (amendment D-190, D-191):**
+
+```
+0. SELECT THE COMPENSATING INPUT
+   if nbias = 0:
+       bias = none
+   else:
+       r = the index minimising |brate[r] - rate|, and the SMALLEST such
+           index when two are equally near, so a tie goes to the lower
+           rate; a rate beyond either end of brate therefore selects that
+           end
+       bias = the row of N binary64 values at index r
+```
+
+The selection is an integer comparison and is made once per request, never inside the step loop. Interpolating between rows would need an integer-to-binary64 conversion, which the `onf_fp` API of NR-07 does not provide. `brate[0]` is 0 and its row is zero in every neuron (IR-NET-09), so a rate 0 request adds nothing and ACC-2's exact silence holds by construction rather than by measurement.
+
 **For each step t = 0, 1, …, T−1:**
 
 ```
@@ -848,6 +872,14 @@ These were introduced by the architect while writing the specification. They are
    for i = 0 .. N-1 (ascending):
        g[i] = g[i] (+) ring[slot][i]
        ring[slot][i] = +0.0
+       # D-190: exactly one further (+) per neuron per step, and only when
+       # the network carries a table.  A network with nbias = 0 must
+       # perform the arithmetic of format version 1.0 unchanged, so this
+       # is a separate loop and not an unconditional (+) of +0.0 -- under
+       # NR-07 an added operation is an added operation even when its
+       # operand is zero.
+       if bias is not none:
+           g[i] = g[i] (+) bias[i]
 
 2. STIMULUS DRAWS
    for each stimulus neuron s (ascending index):
@@ -978,6 +1010,7 @@ Because slot (t + D) mod D equals the slot consumed at the start of step t, spik
 | ONF106E | 12 | PAYLOAD LENGTH INCONSISTENT | Truncated transfer |
 | ONF107E | 12 | PAYLOAD CRC MISMATCH | Payload corrupted in transport |
 | ONF108E | 12 | NETWORK DATASET UNREADABLE | The network could not be read at all: absent, empty, or unopenable. Check the ONFNET DD or the supplied path. Added by D-85 |
+| ONF109E | 12 | COMPENSATION TABLE INVALID | The v1.1 compensating-input table is present but malformed: its sampled rates are not strictly ascending, the first is not 0, or the rate 0 row is not zero in every neuron. The last of those is checked on the raw bytes, so that ACC-2's guarantee of silence at rate 0 does not rest on the arithmetic under test. Re-emit the network. Added by D-190 |
 | ONF201W | 4 | STIMULUS CODE RESERVED, NOT SIMULATED | WATR and BITR are reserved in the MVP |
 | ONF202E | 8 | REQUEST FIELD OUT OF RANGE: field | Correct the request |
 | ONF203E | 8 | UNKNOWN STIMULUS CODE | Correct the request |

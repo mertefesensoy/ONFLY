@@ -23,6 +23,7 @@
 
 #include "onfcom.h"
 #include "onfdec.h"
+#include "onfnhd.h"  /* header offsets, generated (NFR-MNT-01) */
 #include "onffpr.h"
 #include "onfker.h"
 
@@ -44,8 +45,8 @@
 #define RC_ERR 8
 
 static onf_u8 *buf;
-static onf_u32 *rowptr, *target, *stim, *readout;
-static onf_f64 *weight, *su, *sg, *sring;
+static onf_u32 *rowptr, *target, *stim, *readout, *brate;
+static onf_f64 *weight, *su, *sg, *sring, *bias;
 static onf_i32 *srfr, *sspk, *sfst, *sfrc, *sstm;
 static onf_i32 oid[ONF_MAXOUT], olat[ONF_MAXOUT], ospk[ONF_MAXOUT];
 
@@ -137,7 +138,19 @@ int main(int argc, char **argv)
     sfrc  = (onf_i32 *)xalloc(sizeof(onf_i32) * (size_t)net.n, "force");
     sstm  = (onf_i32 *)xalloc(sizeof(onf_i32) * (size_t)net.n, "isstim");
 
-    if (onfldp(buf, &net, rowptr, target, weight, stim, readout) != ONFD_OK) {
+    /* v1.1 compensating-input table (D-190); nbias is 0 when the network
+       carries none, and then no storage is needed. */
+    brate = NULL;
+    bias = NULL;
+    if (net.nbias > 0) {
+        brate = (onf_u32 *)xalloc(sizeof(onf_u32) * (size_t)net.nbias,
+                                  "brate");
+        bias = (onf_f64 *)xalloc(sizeof(onf_f64) * (size_t)net.nbias
+                                 * (size_t)net.n, "bias");
+    }
+
+    if (onfldp(buf, &net, rowptr, target, weight, stim, readout,
+               brate, bias) != ONFD_OK) {
         printf("LOAD failed\n");
         return 1;
     }
@@ -145,12 +158,14 @@ int main(int argc, char **argv)
     /* The payload CRC and the header's maximum duration are read straight from
        the file; the fingerprint carries the payload CRC so that two identical
        requests against different networks cannot collide (IR-COM-05). */
-    paycrc  = (onf_u32)buf[156] << 24;
-    paycrc |= (onf_u32)buf[157] << 16;
-    paycrc |= (onf_u32)buf[158] << 8;
-    paycrc |= (onf_u32)buf[159];
-    maxms  = (onf_i32)(((onf_u32)buf[48] << 24) | ((onf_u32)buf[49] << 16)
-                     | ((onf_u32)buf[50] << 8) | (onf_u32)buf[51]);
+    paycrc  = (onf_u32)buf[ONF_N_PAYCRC] << 24;
+    paycrc |= (onf_u32)buf[ONF_N_PAYCRC + 1] << 16;
+    paycrc |= (onf_u32)buf[ONF_N_PAYCRC + 2] << 8;
+    paycrc |= (onf_u32)buf[ONF_N_PAYCRC + 3];
+    maxms  = (onf_i32)(((onf_u32)buf[ONF_N_MAXMS] << 24)
+                     | ((onf_u32)buf[ONF_N_MAXMS + 1] << 16)
+                     | ((onf_u32)buf[ONF_N_MAXMS + 2] << 8)
+                     | (onf_u32)buf[ONF_N_MAXMS + 3]);
     paycrc_i = (onf_i32)net.nr;
 
     st.u = su; st.g = sg; st.rfr = srfr; st.spikes = sspk;

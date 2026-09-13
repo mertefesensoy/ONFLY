@@ -120,10 +120,18 @@ _check()
 # ---------------------------------------------------------------------------
 # Network file header (IR-NET-01, SRS section 4.1 table).
 #
-# 164 bytes.  The header CRC at offset 160 covers bytes 0..159; the payload CRC
-# at 156 covers exactly the declared payload length (IR-NET-07).  All integers
-# are big-endian; all f64 values are IEEE 754 binary64, big-endian, arriving as
-# bit patterns computed on x86 (FR-PRP-06, NR-06).
+# 172 bytes at format version 1.1.  The header CRC at offset 168 covers bytes
+# 0..167; the payload CRC at 164 covers exactly the declared payload length
+# (IR-NET-07).  All integers are big-endian; all f64 values are IEEE 754
+# binary64, big-endian, arriving as bit patterns computed on x86 (FR-PRP-06,
+# NR-06).
+#
+# Version 1.1 (D-190, D-191, D-192) added `offbias` and `nbias` at 152 and 156
+# and pushed paylen, paycrc and hdrcrc up by eight bytes.  That is a breaking
+# change to the layout, which is what the version fields are for: D-167 fixed
+# the magic at 1.0 precisely so that parameter and layout changes would travel
+# in the version, not in the magic.  A reader must therefore check vminor
+# before trusting any offset above 148.
 #
 # Generated rather than hand-written for the same reason as the COMMAREA: this
 # header is read by C on three platforms and written by Python, and a
@@ -131,8 +139,8 @@ _check()
 # best and as a wrong answer at worst.
 # ---------------------------------------------------------------------------
 
-NETHDR_LEN = 164
-NETHDR_CRC_COVERS = 160     # header CRC covers bytes 0..159
+NETHDR_LEN = 172
+NETHDR_CRC_COVERS = 168     # header CRC covers bytes 0..167
 
 # (name, kind, offset, size)  kind: u32 | u16 | f64
 NETHDR = [
@@ -152,8 +160,13 @@ NETHDR = [
     ("offneur", "u32", 128, 4), ("offrow",   "u32", 132, 4),
     ("offtgt",  "u32", 136, 4), ("offwgt",   "u32", 140, 4),
     ("offstim", "u32", 144, 4), ("offread",  "u32", 148, 4),
-    ("paylen",  "u32", 152, 4), ("paycrc",   "u32", 156, 4),
-    ("hdrcrc",  "u32", 160, 4),
+    # v1.1 (D-190): the compensating-input table.  offbias is the payload
+    # offset of the section; nbias is how many rate rows it holds, and is 0
+    # for a network that drops nothing -- the full brain, or any network
+    # emitted without compensation.
+    ("offbias", "u32", 152, 4), ("nbias",    "u32", 156, 4),
+    ("paylen",  "u32", 160, 4), ("paycrc",   "u32", 164, 4),
+    ("hdrcrc",  "u32", 168, 4),
 ]
 
 # IR-NET-03: proposed value, final at format version 1.0 when TBD-09 closes.
@@ -162,7 +175,7 @@ NET_MAGIC = 0x4F4E4631
 # bytes; that fails with ONF102E.
 NET_SENTINEL = 0x01020304
 NET_VMAJOR = 1
-NET_VMINOR = 0
+NET_VMINOR = 1          # D-190: the compensating-input table
 
 # IR-NET-05: payload sections start on 8-byte boundaries relative to the start
 # of the file, and padding bytes are zero.

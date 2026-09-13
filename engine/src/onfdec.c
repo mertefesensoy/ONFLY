@@ -76,7 +76,7 @@ int onfdec(const onf_u8 *buf, onf_i32 len, onf_i32 limit,
            struct onfnet *net, onf_i32 *need)
 {
     onf_u32 paylen, paycrc, hdrcrc;
-    onf_i32 n, e, ns, nr, delay;
+    onf_i32 n, e, ns, nr, delay, nbias;
     onf_i32 bytes;
 
     if (need != 0) {
@@ -121,6 +121,7 @@ int onfdec(const onf_u8 *buf, onf_i32 len, onf_i32 limit,
     ns    = (onf_i32)g32(buf, ONF_N_NS);
     nr    = (onf_i32)g32(buf, ONF_N_NR);
     delay = (onf_i32)g32(buf, ONF_N_DELAY);
+    nbias = (onf_i32)g32(buf, ONF_N_NBIAS);
     paylen = g32(buf, ONF_N_PAYLEN);
 
     /* --- check 5: declared payload length (FR-LOD-03, IR-NET-08) --------
@@ -158,7 +159,7 @@ int onfdec(const onf_u8 *buf, onf_i32 len, onf_i32 limit,
        Computed in a 64-bit accumulator and range-checked before narrowing,
        because e * 12 alone overflows a signed 32-bit value once the edge count
        passes about 179 million (NR-11 forbids relying on overflow). */
-    if (n < 0 || e < 0 || ns < 0 || nr < 0) {
+    if (n < 0 || e < 0 || ns < 0 || nr < 0 || nbias < 0) {
         /* A header count whose u32 value exceeds INT32_MAX arrives here
            negative.  Such a network cannot be addressed on any ONFLY target
            and is refused rather than wrapped into a small positive size. */
@@ -172,7 +173,9 @@ int onfdec(const onf_u8 *buf, onf_i32 len, onf_i32 limit,
         || !onfadd(&bytes, onfmul(n, 8))           /* u       */
         || !onfadd(&bytes, onfmul(n, 8))           /* g       */
         || !onfadd(&bytes, onfmul(onfmul(delay, n), 8))   /* ring */
-        || !onfadd(&bytes, onfmul(n, 16))) {       /* rfr/spk/fst/frc */
+        || !onfadd(&bytes, onfmul(n, 16))          /* rfr/spk/fst/frc */
+        || !onfadd(&bytes, onfmul(nbias, 4))       /* bias rates (v1.1) */
+        || !onfadd(&bytes, onfmul(onfmul(nbias, n), 8))) {  /* bias rows */
         /* The requirement does not fit in a 32-bit byte count, so it exceeds
            any limit a caller could have configured. */
         if (need != 0) {
@@ -217,20 +220,24 @@ int onfdec(const onf_u8 *buf, onf_i32 len, onf_i32 limit,
        conversion into its own storage.  Leaving them null rather than pointing
        at raw file bytes means a caller that forgets to convert crashes
        immediately instead of simulating byte-swapped nonsense. */
+    net->nbias = nbias;
     net->rowptr = 0;
     net->target = 0;
     net->weight = 0;
     net->stim = 0;
     net->readout = 0;
+    net->brate = 0;
+    net->bias = 0;
 
     return ONFD_OK;
 }
 
 int onfldp(const onf_u8 *buf, struct onfnet *net,
            onf_u32 *rowptr, onf_u32 *target, onf_f64 *weight,
-           onf_u32 *stim, onf_u32 *readout)
+           onf_u32 *stim, onf_u32 *readout,
+           onf_u32 *brate, onf_f64 *bias)
 {
-    onf_i32 i, orow, otgt, owgt, ostm, ordo;
+    onf_i32 i, j, orow, otgt, owgt, ostm, ordo, obia, orow0, nb;
     onf_u32 prev;
 
     orow = (onf_i32)g32(buf, ONF_N_OFFROW);
@@ -238,6 +245,7 @@ int onfldp(const onf_u8 *buf, struct onfnet *net,
     owgt = (onf_i32)g32(buf, ONF_N_OFFWGT);
     ostm = (onf_i32)g32(buf, ONF_N_OFFSTIM);
     ordo = (onf_i32)g32(buf, ONF_N_OFFREAD);
+    obia = (onf_i32)g32(buf, ONF_N_OFFBIAS);
 
     /* IR-NET-05: every section starts on an 8-byte boundary.  A violation
        means the file was not produced by a conforming writer, so refuse it
@@ -293,6 +301,49 @@ int onfldp(const onf_u8 *buf, struct onfnet *net,
         if ((onf_i32)readout[i] >= net->n) {
             return ONFD_PLEN;
         }
+    }
+
+    /* --- v1.1 compensating-input table (D-190, D-191) ------------------
+       Laid out as nbias big-endian u32 rates, padded to the 8-byte boundary,
+       then nbias rows of n binary64 values.  Three invariants are checked
+       here rather than trusted, for the same reason the CSR structure is: a
+       correct CRC proves the bytes arrived, not that the producer wrote a
+       sane table (VL-08).
+
+       The rate 0 row is checked on the RAW BYTES.  ACC-2 says a rate 0
+       request produces zero spikes in every neuron on every platform and
+       backend, and that guarantee should not rest on a floating-point
+       comparison performed by the very arithmetic under test. */
+    nb = net->nbias;
+    if (nb > 0) {
+        if ((obia % ONF_NET_ALIGN) != 0) {
+            return ONFD_PLEN;
+        }
+        for (i = 0; i < nb; i++) {
+            brate[i] = g32(buf, obia + i * 4);
+            if (i > 0 && brate[i] <= brate[i - 1]) {
+                return ONFD_BIAS;   /* rates not strictly ascending */
+            }
+        }
+        if (brate[0] != 0UL) {
+            return ONFD_BIAS;       /* the table must start at rate 0 */
+        }
+        /* Rates occupy nb * 4 bytes, then padding up to ONF_NET_ALIGN. */
+        orow0 = obia + ((nb * 4 + ONF_NET_ALIGN - 1) / ONF_NET_ALIGN)
+                * ONF_NET_ALIGN;
+        for (j = 0; j < net->n * 8; j++) {
+            if (buf[orow0 + j] != (onf_u8)0) {
+                return ONFD_BIAS;   /* ACC-2: rate 0 row is not zero */
+            }
+        }
+        for (i = 0; i < nb * net->n; i++) {
+            bias[i] = gf64(buf, orow0 + i * 8);
+        }
+        net->brate = brate;
+        net->bias = bias;
+    } else {
+        net->brate = 0;
+        net->bias = 0;
     }
 
     net->rowptr = rowptr;

@@ -94,6 +94,9 @@ def emit():
     w.write("#define ONFSYN_NS %d\n" % len(a["stim"]))
     w.write("#define ONFSYN_NR %d\n" % len(a["readout"]))
     w.write("#define ONFSYN_DELAY %d\n" % a["delay"])
+    # v1.1 (D-190): how many compensating-input rows the network carries, so
+    # tests/tstsyn.c can size its arrays statically like every other section.
+    w.write("#define ONFSYN_NBIAS %d\n" % len(a.get("bias_rates", ())))
     w.write("\n")
     w.write("/* The requests tests/run_syn.py expects, in this order.\n"
             "   Each row is { stimid, rate_hz, sim_ms, seed }. */\n")

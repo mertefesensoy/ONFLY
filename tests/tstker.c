@@ -120,6 +120,15 @@ static onf_i32 build(struct onfnet *net)
     net->p12 = onffbit(0x3F7439CCUL, 0xE9A65D55UL);    /* exact propagator */
     net->p22 = onffbit(0x3FEF5DC9UL, 0x9BADEC5BUL);    /* exp(-dt/tau_syn) */
     net->geps = onffbit(0x01A56E1FUL, 0xC2F8F359UL);   /* 1e-300  */
+
+    /* v1.1 (D-190): this network is built here rather than decoded from a
+       file, so the compensating-input fields must be set explicitly.  Left
+       uninitialised they are whatever was on the stack, and a non-zero
+       nbias sends the kernel through a null bias pointer -- which is
+       exactly what happened the first time this test met a v1.1 onfnet. */
+    net->nbias = 0;
+    net->brate = 0;
+    net->bias = 0;
     return edges;
 }
 

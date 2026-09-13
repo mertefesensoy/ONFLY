@@ -27,6 +27,7 @@ for sub in ("tests", "tools", "layout", "generated", "oracle"):
     sys.path.insert(0, os.path.join(ROOT, sub))
 
 import gensyn                                     # noqa: E402
+import onfcom_py as L                             # noqa: E402
 import run_dec                                    # noqa: E402
 from onfly_oracle import kernel as okernel        # noqa: E402
 from onfly_oracle.fingerprint import fingerprint  # noqa: E402
@@ -111,7 +112,11 @@ def compare(text):
     data = run_dec.sample_network()
     a = run_dec._NET_ARGS
     net = run_dec.build_oracle_network()
-    paycrc = int.from_bytes(data[156:160], "big")
+    # Offset from the GENERATED header, not a literal: format version 1.1
+    # moved paycrc up by eight bytes when D-190 added the
+    # compensating-input table, and a literal here read nbias instead.
+    off = L.NETHDR["paycrc"][1]
+    paycrc = int.from_bytes(data[off:off + 4], "big")
     maxms = int.from_bytes(data[48:52], "big")
 
     # --- FR-LOD-02 on the good image -------------------------------------

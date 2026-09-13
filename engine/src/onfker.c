@@ -20,6 +20,7 @@ int onfrun(const struct onfnet *net, struct onfsta *st,
     onf_f64 zero;
     onf_u32 thresh;
     onf_i32 t, i, k, s, slot, arrive, base;
+    onf_i32 br, bd, bbest, bbestd, brow;
     onf_f64 a, b;
     int was_rfr;
 
@@ -47,14 +48,55 @@ int onfrun(const struct onfnet *net, struct onfsta *st,
         st->ring[i] = zero;
     }
 
+    /* --- 0. COMPENSATING INPUT (D-190, D-191) ---------------------------
+       Appendix C step 0: choose the table row once, before the first step,
+       from this request's rate.  D-191 selects the NEAREST sampled rate,
+       ties to the lower one, and clamps a rate beyond either end onto that
+       end.  The comparison is integer throughout: interpolating between
+       rows would need an integer-to-binary64 conversion, which the onf_fp
+       API does not provide and NR-07 does not list.
+
+       brow is the index into net->bias of the chosen row, or -1 when the
+       network carries no table. */
+    brow = -1;
+    if (net->nbias > 0) {
+        bbest = 0;
+        bbestd = -1;
+        for (br = 0; br < net->nbias; br++) {
+            bd = (onf_i32)net->brate[br] - rate;
+            if (bd < 0) {
+                bd = -bd;
+            }
+            /* Strict <, so the first row at the minimum distance wins and
+               a tie goes to the lower rate: brate is ascending. */
+            if (bbestd < 0 || bd < bbestd) {
+                bbest = br;
+                bbestd = bd;
+            }
+        }
+        brow = bbest * net->n;
+    }
+
     for (t = 0; t < steps; t++) {
 
-        /* --- 1. ARRIVALS ------------------------------------------------ */
+        /* --- 1. ARRIVALS ------------------------------------------------
+           Two loops rather than one adding zero: a network with no table
+           must produce exactly the arithmetic it produced before v1.1, and
+           an unconditional (+) of +0.0 is not free -- it would be one more
+           operation in a sequence NR-07 makes normative. */
         slot = t % net->delay;
         base = slot * net->n;
-        for (i = 0; i < net->n; i++) {
-            st->g[i] = onffadd(st->g[i], st->ring[base + i]);
-            st->ring[base + i] = zero;
+        if (brow < 0) {
+            for (i = 0; i < net->n; i++) {
+                st->g[i] = onffadd(st->g[i], st->ring[base + i]);
+                st->ring[base + i] = zero;
+            }
+        } else {
+            for (i = 0; i < net->n; i++) {
+                st->g[i] = onffadd(st->g[i], st->ring[base + i]);
+                st->ring[base + i] = zero;
+                st->g[i] = onffadd(st->g[i], net->bias[brow + i]);
+            }
         }
 
         /* --- 2. STIMULUS DRAWS ------------------------------------------

@@ -60,6 +60,25 @@ struct onfnet {
     onf_f64 p12;
     onf_f64 p22;
     onf_f64 geps;               /* subnormal clamp threshold (NR-08) */
+    /*
+     * v1.1 compensating-input table (D-190, D-191).  nbias is the number of
+     * sampled stimulus rates; brate points at nbias rates, strictly
+     * ascending and beginning with 0; bias points at nbias * n binary64
+     * values, row r covering neurons 0..n-1 at rate brate[r].
+     *
+     * nbias == 0 means the network carries no table and the kernel adds
+     * nothing -- which is what the full brain and every pre-v1.1 network
+     * carry, since a network that drops nothing has nothing to compensate
+     * for.  The kernel must then behave exactly as it did before v1.1, so
+     * the two cases are separate loops rather than one loop adding zero.
+     *
+     * The rate 0 row is required to be zero everywhere, so that ACC-2 -- a
+     * request with rate 0 produces zero spikes in every neuron -- stays a
+     * deterministic property rather than an accident of the table.
+     */
+    onf_i32 nbias;
+    const onf_u32 *brate;       /* nbias sampled rates, ascending from 0 */
+    const onf_f64 *bias;        /* nbias * n compensating inputs */
 };
 
 /*

@@ -501,9 +501,16 @@ shim: $(BUILD) softfloat/onfsub.c fp
 # every network file and every ACC-5 fingerprint would move silently.  Its
 # fixture is hand-built, so like the first half of TP-01 it needs no
 # MaleCNS data and runs on a bare checkout.
+#
+# TP-08 joins them (D-190, D-191): the v1.1 compensating-input table's row
+# selection and its rate 0 invariant.  The tie rule is the one place the C
+# kernel and the Python oracle could silently disagree, and a non-zero rate 0
+# row would break ACC-2 on every platform at once, so both are pinned here
+# on a hand-built fixture rather than left to the integration tests.
 prep:
 	$(PYTHON) tests/test_signs.py
 	$(PYTHON) tests/test_gain.py
+	$(PYTHON) tests/test_bias.py
 
 # --- TE-09: ONFLYENG, verify-only mode and the run manifest ---------------
 # The minimal engine level of D-78: the self-test, the FR-LOD-02 load checks,

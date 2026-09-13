@@ -1,4 +1,5 @@
 {
+  "format_version": "1.1",
   "max_ms": 1300,
   "source": "SR-EXT-01 ranking data/calibration/activity-ranking.json",
   "subcircuits": {
@@ -1007,13 +1008,15 @@
         1050443274,
         1053964972
       ],
-      "bytes": 407400,
-      "crc32": "7BCE45F7",
+      "bytes": 407408,
+      "crc32": "6B25C9B5",
       "edges": 32929,
       "file": "onfnet-malecns-v1.0-n1000.bin",
+      "format_version": "1.1",
+      "nbias": 0,
       "neurons": 1001,
       "readout_added": 1,
-      "sha256": "e1e3b8163427c4560bc7a55da79f0d1937166c02b3e24e5bd72d02821dab75fd",
+      "sha256": "696710112a7461ddef9cec94b0ba522678cf15aaa3c93dc76435d0fea06fbe7b",
       "stimulus_added": 0
     },
     "250": {
@@ -1276,13 +1279,15 @@
         1050014552,
         1050045395
       ],
-      "bytes": 47704,
-      "crc32": "B29C0762",
+      "bytes": 47712,
+      "crc32": "4CDDE080",
       "edges": 3699,
       "file": "onfnet-malecns-v1.0-n250.bin",
+      "format_version": "1.1",
+      "nbias": 0,
       "neurons": 256,
       "readout_added": 2,
-      "sha256": "b34d8cc1cff008a365075e4623d4a1231b684637140fb9c6c52d304add552dbb",
+      "sha256": "60b2945dc93f5b49562475141f313d97fdcf410bc1f89ee60ee3f7a80957d41e",
       "stimulus_added": 4
     },
     "500": {
@@ -1790,13 +1795,15 @@
         1050045395,
         1050443274
       ],
-      "bytes": 135648,
-      "crc32": "D2A7C8AF",
+      "bytes": 135656,
+      "crc32": "F1EC90CF",
       "edges": 10783,
       "file": "onfnet-malecns-v1.0-n500.bin",
+      "format_version": "1.1",
+      "nbias": 0,
       "neurons": 501,
       "readout_added": 1,
-      "sha256": "1e06f808fc43039dfeab13368a4a8f0b2332ea77f275a97a0449549bd3d6f087",
+      "sha256": "2fb32775197c66dae16b5f936bb59efa5851df1bc07c2e1a53f931ba0a48e56c",
       "stimulus_added": 0
     }
   },

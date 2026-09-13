@@ -131,6 +131,7 @@ static const char *onfemsg(int rc)
     case ONFD_PLEN:  return "PAYLOAD LENGTH INCONSISTENT";
     case ONFD_PCRC:  return "PAYLOAD CRC MISMATCH";
     case ONFD_READ:  return "NETWORK DATASET UNREADABLE";
+    case ONFD_BIAS:  return "COMPENSATION TABLE INVALID";
     default:         return "UNKNOWN LOAD FAILURE";
     }
 }
@@ -221,6 +222,12 @@ static void onfemft(const onf_u8 *buf, const struct onfnet *net,
            (unsigned long)onfehdr(buf, ONF_N_DT + 4));
     printf("ONF002I   DELAY REFRACT   %ld %ld STEPS\n",
            (long)net->delay, (long)net->refract);
+    /* v1.1 (D-190): how many compensating-input rows this network carries.
+       0 means none, which is what the full brain and every uncompensated
+       network carry.  It belongs in the manifest for the same reason the
+       float backend does (NFR-OBS-01): a run whose numbers differ from
+       another's must be able to say, on its own face, what it was running. */
+    printf("ONF002I   BIAS ROWS       %ld\n", (long)net->nbias);
     printf("ONF002I   BYTES NEED      %ld %ld\n", (long)len, (long)need);
 }
 

@@ -1,46 +1,57 @@
 {
+  "compensating_input": "Format version 1.1 (D-190, IR-NET-09). The truncated fixtures carry a per-rate compensating-input table standing for the drive their dropped presynaptic neurons supplied; the full brain drops nothing and carries none, so its results are unchanged by the format change. The SR-EXT-01 subcircuits carry none: they are SR-EXT-02 as written, and every compensated construction lives under data/calibration/ (D-189).",
   "dataset": "male-cns:v1.0",
   "dataset_uuid": "4b2087c0fbe046bfaf0d60bc970e3e5d",
   "decisions": [
+    "D-138",
+    "D-167",
+    "D-173",
+    "D-175",
+    "D-190",
+    "D-191",
+    "D-192",
     "D-52",
     "D-54",
     "D-55",
     "D-56",
     "D-59",
-    "D-60",
-    "D-138",
-    "D-167",
-    "D-173",
-    "D-175"
+    "D-60"
   ],
+  "format_version": "1.1",
   "limits": [
     "VL-12",
     "VL-13"
   ],
   "networks": {
     "full": {
-      "bytes": 299515256,
-      "crc32": "7DEF7BD0",
+      "bytes": 299515264,
+      "crc32": "44C8B933",
       "edges": 24775486,
       "file": "onfnet-malecns-v1.0-full.bin",
+      "format_version": "1.1",
+      "nbias": 0,
       "neurons": 184099,
-      "sha256": "ea605b865c52dcdda663f674462443ee37f8a8f908403d4b0fd9276b280df2f5"
+      "sha256": "aaa825c2d025e96add0bd3c111977b34699a6d60d13880477a8bd502b46e8af1"
     },
     "hop2": {
-      "bytes": 20615112,
-      "crc32": "9261D946",
+      "bytes": 21588672,
+      "crc32": "7B88494F",
       "edges": 1704385,
       "file": "onfnet-malecns-v1.0-hop2.bin",
+      "format_version": "1.1",
+      "nbias": 9,
       "neurons": 13521,
-      "sha256": "a2854c281fde5116d261f8e4b7bead660d36686ad02a5ece4ddbe46c393a9946"
+      "sha256": "e371b1bea20ebecbe5c1081ea3292c1a391f48bf2df4ca37f8dbf9948e750331"
     },
     "path": {
-      "bytes": 885416,
-      "crc32": "EE9BE3F1",
+      "bytes": 951200,
+      "crc32": "70A9A555",
       "edges": 72852,
       "file": "onfnet-malecns-v1.0-path.bin",
+      "format_version": "1.1",
+      "nbias": 9,
       "neurons": 913,
-      "sha256": "93e4f375456e7de687c84483c1f196a388c9104d5758a3dc7f1ed136bce69af0"
+      "sha256": "168627c833d7af0f33bd0ed8d2bd1fbb407fd3c4436e0f57558c772cbb8b28f9"
     }
   },
   "not_the_srext_subcircuit": "SR-EXT-01 defines the MVP subcircuit by activity in a full-brain run, which needs W_syn calibrated first. Both files are provisional with respect to SR-EXT.",

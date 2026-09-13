@@ -103,6 +103,34 @@ def read(path):
         "bytes": len(blob),
     }
 
+    # --- v1.1 compensating-input table (D-190, D-191) ----------------------
+    # nbias == 0 means the network drops nothing and needs no compensation;
+    # that is the full brain and every network emitted without it.
+    nbias = g("nbias")
+    out["bias_rates"], out["bias_rows"] = [], []
+    if nbias:
+        off = g("offbias")
+        rates = u32s(off, nbias)
+        rowoff = off + ((4 * nbias + L.NET_ALIGN - 1)
+                        // L.NET_ALIGN) * L.NET_ALIGN
+        rows = []
+        for r in range(nbias):
+            rows.append(list(struct.unpack_from(
+                ">%dd" % n, blob, rowoff + r * 8 * n)) if n else [])
+        # The same three invariants netwrite.build asserts on the way out, so
+        # that a file which lost them in transit is rejected here rather than
+        # quietly simulated with a wrong compensating input.
+        if rates != sorted(set(rates)):
+            raise NetworkFileError(
+                109, "COMPENSATION TABLE INVALID: rates not strictly ascending")
+        if rates[0] != 0:
+            raise NetworkFileError(
+                109, "COMPENSATION TABLE INVALID: does not start at rate 0")
+        if any(w != 0.0 for w in rows[0]):
+            raise NetworkFileError(
+                109, "COMPENSATION TABLE INVALID: rate 0 row is not zero")
+        out["bias_rates"], out["bias_rows"] = rates, rows
+
     # IR-NET-06 is normative for accumulation, so it is verified rather than
     # assumed: a row read out of order would give a different answer, silently.
     tgt, row = out["target"], out["rowptr"]
@@ -123,7 +151,9 @@ def as_oracle_network(spec):
         dt_us=spec["dt_us"], delay=spec["delay"], refract=spec["refract"],
         u_th=spec["u_th"], u_reset=spec["u_reset"],
         p11=spec["p11"], p12=spec["p12"], p22=spec["p22"],
-        g_eps=spec["g_eps"])
+        g_eps=spec["g_eps"],
+        bias_rates=spec.get("bias_rates") or [],
+        bias_rows=spec.get("bias_rows") or [])
 
 
 def main():

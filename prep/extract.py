@@ -42,6 +42,22 @@ recording digests and the selected body ids.
              network file (the D-75 path fixture, the hop2 neighbourhood);
              results in acc3-<label>.json.
 
+  --refixture
+             D-192 step 7: re-emit data/networks/ at format version 1.1.
+             A v1.0 file is unreadable to a v1.1 engine (ONF103E), so every
+             fixture has to be rewritten.  The truncated ones carry a real
+             compensating table, the full brain carries none, and the
+             SR-EXT-01 subcircuits carry none because they are SR-EXT-02 as
+             written.  Needs --ratebias first.
+
+  --biasnet  D-190..D-192: the construction the owner chose to resolve
+             SR-EXT-03's escalation.  The SR-EXT-01 top-N sets, emitted at
+             network format version 1.1 with a per-rate compensating-input
+             table standing for the drive their dropped presynaptic
+             neurons used to supply, then put through the VL-66 ACC-3
+             comparison into data/calibration/acc3-biasnet.json.  Needs
+             --ratebias first.  Diagnostic only (D-189).
+
   --compensate
              D-186..D-189 diagnostic, three compared constructions for
              N in {250, 500, 1000}: A, selection only with part of the
@@ -69,6 +85,9 @@ Run (repository root):
     python prep/extract.py --diag    [--jobs 14]
     python prep/extract.py --acc3-file data/networks/<file>.bin --label path
     python prep/extract.py --compensate [--jobs 14]
+    python prep/extract.py --ratebias   [--jobs 8]
+    python prep/extract.py --refixture
+    python prep/extract.py --biasnet    [--jobs 14]
 """
 import argparse
 import hashlib
@@ -594,6 +613,69 @@ def closure(jobs):
     print("wrote acc3-closure.json (%d s)" % out["elapsed_s"])
 
 
+# --- D-190..D-192: per-rate full-brain activity, the input to the bias ----
+# The compensating input of D-190 stands for the drive a kept neuron's
+# DROPPED presynaptic neurons used to supply, which is proportional to how
+# often those neurons themselves fire.  SR-EXT-01's ranking sums firing over
+# all eight rates and cannot answer that per rate, and D-191 measured why one
+# number will not do: the population changes by recruitment, not by scaling.
+#
+# So this stage measures, for every neuron and every sampled rate, the mean
+# spike count per run.  Rate 0 is not run: ACC-2 fixes its answer at exactly
+# zero everywhere, and running it would only risk contradicting a criterion
+# that is true by construction.
+#
+# Three seeds per rate is D-192's engineer's choice.  The bias for one kept
+# neuron is a SUM over its dropped presynaptic partners, so the per-neuron
+# sampling error averages down before it reaches the quantity that matters.
+RATEACT = os.path.join(cal.CAL_DIR, "rate-activity.npz")
+BIAS_SEEDS = (1, 2, 3)                              # D-192
+BIAS_RATES = (0,) + ALL_RATES                       # rate 0 row is zeros
+
+
+def ratebias(jobs):
+    """Mean per-neuron spike count at each sampled rate, on the full brain."""
+    acc, order = {}, []
+
+    def on_done(k, text):
+        _p, r, s = k
+        res = parse_all(text)
+        if res["rc"] != 0 or res["counts"] is None:
+            raise SystemExit("run %s failed:\n%s" % ((r, s), text[-2000:]))
+        acc.setdefault(r, []).append(res["counts"])
+        order.append((r, s))
+        print("  %d of %d: rate=%d seed=%d"
+              % (len(order), len(ALL_RATES) * len(BIAS_SEEDS), r, s))
+        sys.stdout.flush()
+
+    t0 = time.time()
+    run_pool([(FULL, r, s) for r in ALL_RATES for s in BIAS_SEEDS],
+             jobs, ["--all"], on_done)
+
+    n = len(acc[ALL_RATES[0]][0])
+    out = {"rates": np.array(BIAS_RATES, dtype=np.int64)}
+    rows = np.zeros((len(BIAS_RATES), n), dtype=np.float64)
+    for idx, r in enumerate(BIAS_RATES):
+        if r == 0:
+            continue                                # ACC-2: exactly zero
+        rows[idx] = np.mean(np.array(acc[r], dtype=np.float64), axis=0)
+    out["mean_spikes"] = rows
+    out["seeds"] = np.array(BIAS_SEEDS, dtype=np.int64)
+    np.savez(RATEACT, **out)
+
+    print("")
+    print("%6s %14s %12s %12s" % ("rate", "total spikes", "neurons>0",
+                                  "mean/active"))
+    for idx, r in enumerate(BIAS_RATES):
+        act = rows[idx] > 0
+        print("%6d %14.1f %12d %12.3f"
+              % (r, rows[idx].sum(), int(act.sum()),
+                 rows[idx][act].mean() if act.any() else 0.0))
+    print("wrote %s (%d neurons, %d rates, %d s)"
+          % (RATEACT.replace("\\", "/"), n, len(BIAS_RATES),
+             round(time.time() - t0)))
+
+
 # --- D-186..D-189: the compared truncation constructions -------------------
 # Three constructions, all diagnostic (D-189): their networks live under
 # data/calibration/ and nothing here amends SR-EXT-01 or SR-EXT-02.
@@ -980,6 +1062,266 @@ def compensate(jobs):
     print("wrote %s (%d s)" % (COMP.replace("\\", "/"), out["elapsed_s"]))
 
 
+# --- D-190..D-192: the compensated subcircuits -----------------------------
+# The construction the owner chose to resolve SR-EXT-03's escalation.  Every
+# earlier attempt (VL-66..VL-70) worked on the NETWORK -- which neurons to
+# keep, what to do with the weights that survive -- and all eleven failed for
+# one measured reason: a subcircuit small enough for the MVS region loses the
+# neurons that DRIVE most of its own neurons, so 70% of a 500-neuron set and
+# 54% of a 1000-neuron set never fire at all inside it.  No selection rule
+# and no rescaling of a surviving edge can supply an input whose source is
+# gone.
+#
+# This construction changes the MODEL instead: each kept neuron receives, at
+# every step, the mean input its dropped presynaptic neurons used to deliver.
+# That is a mean-field closure, the standard way to truncate a network, and
+# it is why D-190 amends Appendix C rather than SR-EXT-01 or SR-EXT-02.
+BIASNET = os.path.join(cal.CAL_DIR, "acc3-biasnet.json")
+
+
+def bias_table(arrays, nodes, rate_act):
+    """The v1.1 compensating-input table for one kept set.
+
+    Returns ``(rates, rows)`` in the form netwrite.build wants: ``rates`` is
+    the sampled stimulus rates ascending from 0, and ``rows[r][k]`` is the
+    value added to the synaptic variable of the k-th kept neuron (in
+    ascending body-id order) at every step of a request that selects row r.
+
+    The arithmetic.  Neuron j fires S_j(rate) times in a run of ``steps``
+    steps, measured on the full brain by --ratebias.  Each of those spikes
+    adds w_ji to neuron i's synaptic variable, where w_ji is the signed
+    synapse count times W_syn.  So the mean addition per step from a dropped
+    presynaptic neuron j is w_ji * S_j(rate) / steps, and the row entry is
+    that summed over every dropped presynaptic neuron of i:
+
+        bias[rate][i] = sum over j not in S, j -> i of
+                        w_ji * S_j(rate) / steps
+
+    Dividing by the measurement's own step count is what makes the value a
+    per-step expectation rather than a per-run one, so a request of any
+    duration gets the same input per step.
+
+    Rate 0's row is zero because --ratebias never runs rate 0: ACC-2 fixes
+    its answer, and a measurement could only contradict a criterion that is
+    true by construction.
+
+    Every kept neuron gets a row entry, stimulus neurons included.  In the
+    full brain a stimulus neuron receives synaptic input like any other, and
+    omitting it would make the truncation less faithful, not more careful --
+    its Poisson drive is delivered by ``force``, not through g.
+    """
+    pre, post = arrays["body_pre"], arrays["body_post"]
+    sw = arrays["signed_weight"]
+    rates = [int(r) for r in rate_act["rates"]]
+    mean = rate_act["mean_spikes"]          # (len(rates), N_full)
+
+    bodies = np.union1d(np.unique(pre), np.unique(post))
+    srt = np.sort(nodes)
+    # Edges whose TARGET is kept but whose SOURCE was dropped: exactly the
+    # input the truncation removed.  An edge with both ends kept is still in
+    # the network and must not be counted twice.
+    keep_post = np.isin(post, srt)
+    drop_pre = ~np.isin(pre, srt)
+    lost = keep_post & drop_pre
+    ipre = np.searchsorted(bodies, pre[lost])
+    ipost = np.searchsorted(srt, post[lost])
+    w = sw[lost].astype(np.float64) * emit.W_SYN
+
+    steps = float(int(round(cal.SIM_MS / emit.DT_MS)))
+    nk = len(srt)
+    rows = []
+    for r_i, r in enumerate(rates):
+        if r == 0:
+            rows.append([0.0] * nk)
+            continue
+        contrib = w * (mean[r_i][ipre] / steps)
+        row = np.bincount(ipost, weights=contrib, minlength=nk)
+        rows.append([float(x) for x in row])
+    return rates, rows
+
+
+def biasnet(jobs):
+    """Emit the compensated subcircuits and put them through ACC-3."""
+    ranking = load_json(RANKING, None)
+    full = load_json(ACC4, None)
+    if ranking is None or full is None:
+        raise SystemExit("need activity-ranking.json (--rank) and acc4.json")
+    if not os.path.isfile(RATEACT):
+        raise SystemExit("need %s (--ratebias)" % RATEACT)
+    rate_act = np.load(RATEACT)
+    arrays, stim, read = cal.load_cache()
+    top1000 = np.array([t["body"] for t in ranking["top1000"]],
+                       dtype=np.int64)
+
+    t0 = time.time()
+    cases = {}
+    for n in N_SEQ:
+        nodes = np.union1d(np.union1d(top1000[:n], stim), read)
+        rates, rows = bias_table(arrays, nodes, rate_act)
+        label = "C-n%d" % n
+        blob, nn, e = emit.build_network(arrays, nodes, stim, read, label,
+                                         bias_rates=rates, bias_rows=rows)
+        path = os.path.join(cal.CAL_DIR, "diag-%s.bin" % label)
+        io.open(path, "wb").write(blob)
+        mags = [max(abs(x) for x in row) if row else 0.0 for row in rows]
+        cases[label] = {
+            "construction": "C", "N": n, "file": path, "neurons": int(nn),
+            "edges": int(e), "sha256": hashlib.sha256(blob).hexdigest(),
+            "bias_rates": rates, "nbias": len(rates),
+            "bias_max_abs_per_rate": mags,
+        }
+        print("C  N=%d: %d neurons, %d edges, %d bias rows, max |bias| "
+              "per rate %s"
+              % (n, nn, e, len(rates),
+                 " ".join("%.4g" % m for m in mags)))
+        sys.stdout.flush()
+
+    cases = acc3_eval(cases, full, jobs)
+    out = {"decisions": ["D-135", "D-165", "D-166", "D-190", "D-191",
+                         "D-192"],
+           "full_brain_source": "data/calibration/acc4.json (same seeds)",
+           "diagnostic_only": True,
+           "rate_activity": os.path.basename(RATEACT),
+           "cases": cases, "elapsed_s": round(time.time() - t0)}
+    save_json(BIASNET, out)
+
+    print("")
+    print("%-8s %6s %7s %8s %8s %8s %8s %8s  %s"
+          % ("case", "N", "neurons", "10Hz", "40Hz", "60Hz", "120Hz",
+             "200Hz", "ACC-3"))
+    print("%-8s %6s %7s %8.2f %8.2f %8.2f %8.2f %8.2f  %s"
+          % ("full", "-", 184099,
+             *[full["per_rate"][str(r)]["onfly_mean_hz"] for r in VAL_RATES],
+             "reference"))
+    for label in sorted(cases):
+        c = cases[label]
+        print("%-8s %6d %7d %8.2f %8.2f %8.2f %8.2f %8.2f  %s"
+              % (label, c["N"], c["neurons"],
+                 *[c["per_rate"][str(r)]["sub_mean_hz"] for r in VAL_RATES],
+                 "PASS" if c["acc3_pass"] else "FAIL"))
+    for label in sorted(cases):
+        c = cases[label]
+        worst = max(abs(c["per_rate"][str(r)]["sub_mean_hz"]
+                        - c["per_rate"][str(r)]["full_mean_hz"])
+                    / c["per_rate"][str(r)]["full_mean_hz"]
+                    for r in VAL_RATES)
+        print("%-8s worst relative deviation %.0f%%  need=%s bytes "
+              "(NFR-MEM-01 %s)"
+              % (label, 100.0 * worst, c["need_bytes"],
+                 "PASS" if c["nfr_mem_01_pass"] else "FAIL"))
+    passing = [l for l in sorted(cases) if cases[l]["acc3_pass"]]
+    print("")
+    print("ACC-3 passing: %s" % (", ".join(passing) if passing else "none"))
+    print("wrote %s (%d s)" % (BIASNET.replace("\\", "/"), out["elapsed_s"]))
+
+
+# --- D-192 step 7: re-emit every fixture at network format version 1.1 -----
+# Version 1.1 moved three header fields, so a v1.0 file is not merely older,
+# it is unreadable: ONF103E.  Every network in the repository therefore has
+# to be re-emitted, and this is the step that does it.
+#
+# It runs from data/calibration/signed.npz rather than from the MaleCNS
+# feather files, because that cache IS prep/signs.build_signs's output --
+# prep/calibrate.build_cache writes nothing else into it -- and the feather
+# files are large, gitignored and absent from a fresh worktree.  The result
+# is byte-identical either way; only the input path differs.
+#
+# Who gets a compensating table, and why:
+#
+#   full     none.  It drops nothing, so there is nothing to compensate for,
+#            and nbias = 0 makes it run exactly the version 1.0 arithmetic.
+#            That is what keeps data/calibration/acc4.json usable as ACC-3's
+#            full-brain reference across the format change.
+#   path     a real one.  This is the golden fixture ACC-5 is evaluated on,
+#            so giving it a table is what makes `make test` exercise the new
+#            code path rather than only its absence.  A path exercised only
+#            on the platform hardest to test is a path nobody has tested.
+#   hop2     a real one, for the same reason: it is a truncation.
+#   n250/500/1000  none.  They are SR-EXT-01's sets under SR-EXT-02 as
+#            WRITTEN, and D-189 keeps every compensated construction under
+#            data/calibration/.  Mixing the two in data/networks/ would make
+#            the directory ambiguous about which rule produced what.
+FIXTURES = ("full", "hop2", "path")
+
+
+def refixture():
+    if not os.path.isfile(RATEACT):
+        raise SystemExit("need %s (--ratebias)" % RATEACT)
+    rate_act = np.load(RATEACT)
+    arrays, stim, read = cal.load_cache()
+    pre, post = arrays["body_pre"], arrays["body_post"]
+
+    nodes_of = {
+        "full": np.union1d(np.unique(pre), np.unique(post)),
+        "hop2": np.union1d(emit.two_hop(pre, post, stim), read),
+        "path": emit.path_restricted(pre, post, stim, read),
+    }
+
+    man = load_json(os.path.join(NET_DIR, "MANIFEST.json"), None)
+    if man is None:
+        raise SystemExit("data/networks/MANIFEST.json is missing")
+
+    for label in FIXTURES:
+        nodes = nodes_of[label]
+        if label == "full":
+            rates, rows = None, None
+        else:
+            rates, rows = bias_table(arrays, nodes, rate_act)
+        blob, n, e = emit.build_network(arrays, nodes, stim, read, label,
+                                        bias_rates=rates, bias_rows=rows)
+        path = os.path.join(NET_DIR, "onfnet-malecns-v1.0-%s.bin" % label)
+        io.open(path, "wb").write(blob)
+        man["networks"][label] = {
+            "file": os.path.basename(path), "neurons": int(n),
+            "edges": int(e), "bytes": len(blob),
+            "sha256": hashlib.sha256(blob).hexdigest(),
+            "crc32": "%08X" % (zlib.crc32(blob) & 0xFFFFFFFF),
+            "format_version": "1.1",
+            "nbias": 0 if rates is None else len(rates),
+        }
+        print("  %-5s n=%-7d e=%-9d %10d bytes  nbias=%d"
+              % (label, n, e, len(blob), 0 if rates is None else len(rates)))
+
+    # The SR-EXT-01 subcircuits keep SR-EXT-02's unchanged weights and carry
+    # no table; they are re-emitted only so that they are readable at all.
+    ranking = load_json(RANKING, None)
+    subman = load_json(SUBMAN, None)
+    if ranking is not None and subman is not None:
+        top1000 = np.array([t["body"] for t in ranking["top1000"]],
+                           dtype=np.int64)
+        for nsz in N_SEQ:
+            nodes = np.union1d(np.union1d(top1000[:nsz], stim), read)
+            blob, n, e = emit.build_network(arrays, nodes, stim, read,
+                                            "n%d" % nsz)
+            path = os.path.join(NET_DIR,
+                                "onfnet-malecns-v1.0-n%d.bin" % nsz)
+            io.open(path, "wb").write(blob)
+            ent = subman["subcircuits"][str(nsz)]
+            ent.update({"neurons": int(n), "edges": int(e),
+                        "bytes": len(blob),
+                        "sha256": hashlib.sha256(blob).hexdigest(),
+                        "crc32": "%08X" % (zlib.crc32(blob) & 0xFFFFFFFF),
+                        "format_version": "1.1", "nbias": 0})
+            print("  n%-4d n=%-7d e=%-9d %10d bytes  nbias=0"
+                  % (nsz, n, e, len(blob)))
+        subman["format_version"] = "1.1"
+        save_json(SUBMAN, subman)
+
+    man["format_version"] = "1.1"
+    man["decisions"] = sorted(set(man.get("decisions", []))
+                              | {"D-190", "D-191", "D-192"})
+    man["compensating_input"] = (
+        "Format version 1.1 (D-190, IR-NET-09). The truncated fixtures carry "
+        "a per-rate compensating-input table standing for the drive their "
+        "dropped presynaptic neurons supplied; the full brain drops nothing "
+        "and carries none, so its results are unchanged by the format "
+        "change. The SR-EXT-01 subcircuits carry none: they are SR-EXT-02 as "
+        "written, and every compensated construction lives under "
+        "data/calibration/ (D-189).")
+    save_json(os.path.join(NET_DIR, "MANIFEST.json"), man)
+    print("wrote %s" % os.path.join(NET_DIR, "MANIFEST.json").replace("\\", "/"))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rank", action="store_true")
@@ -990,6 +1332,9 @@ def main():
     ap.add_argument("--acc3", action="store_true")
     ap.add_argument("--diag", action="store_true")
     ap.add_argument("--compensate", action="store_true")
+    ap.add_argument("--ratebias", action="store_true")
+    ap.add_argument("--biasnet", action="store_true")
+    ap.add_argument("--refixture", action="store_true")
     ap.add_argument("--jobs", type=int, default=14)
     a = ap.parse_args()
     if not os.path.isfile(cal.RUNNET):
@@ -1006,8 +1351,14 @@ def main():
         acc3_file(a.acc3_file, a.label or "file", a.jobs)
     if a.closure:
         closure(a.jobs)
+    if a.ratebias:
+        ratebias(a.jobs)
     if a.compensate:
         compensate(a.jobs)
+    if a.refixture:
+        refixture()
+    if a.biasnet:
+        biasnet(a.jobs)
     return 0
 
 

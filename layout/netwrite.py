@@ -133,7 +133,7 @@ def _align_up(value, to):
 def build(n, rowptr, target, weight, stim, readout,
           dt_us, delay, refract, max_ms,
           u_th, u_reset, p11, p12, p22, g_eps, w_syn, v_rest,
-          type_ids=None, method=1):
+          type_ids=None, method=1, bias_rates=None, bias_rows=None):
     """Serialise a network and return it as ``bytes``.
 
     Arguments mirror the header fields of SRS section 4.1. ``weight`` is a list
@@ -146,8 +146,21 @@ def build(n, rowptr, target, weight, stim, readout,
         normative for floating-point accumulation.
       * every payload section starts on an 8-byte boundary relative to the
         start of the file, and every padding byte is zero (IR-NET-05).
-      * the header CRC covers bytes 0..159 and the payload CRC covers exactly
-        the declared payload length (IR-NET-07).
+      * the header CRC covers bytes 0..NETHDR_CRC_COVERS-1 and the payload CRC
+        covers exactly the declared payload length (IR-NET-07).
+
+    ``bias_rates`` and ``bias_rows`` carry the v1.1 compensating-input table
+    (D-190, D-191): ``bias_rates`` is a strictly ascending list of sampled
+    stimulus rates in Hz whose first entry must be 0, and ``bias_rows`` is one
+    list of n binary64 values per rate.  Both None means no compensation, and
+    the header's ``nbias`` is then 0 -- which is what the full brain and every
+    pre-v1.1 network carry, since a network that drops nothing has nothing to
+    compensate for.
+
+    Rate 0's row is required to be all zeros and is asserted here rather than
+    zeroed, because ACC-2 ("a request with rate 0 produces zero spikes in every
+    neuron") is a deterministic criterion that a non-zero row would silently
+    break on every platform at once.
 
     Returns the complete file as bytes. No side effects.
     """
@@ -185,6 +198,34 @@ def build(n, rowptr, target, weight, stim, readout,
     off_stim = add("stim", _pack_u32(stim))
     off_read = add("readout", _pack_u32(readout))
 
+    # --- v1.1 compensating-input table (D-190, D-191) -----------------------
+    # One section, laid out as nbias big-endian u32 rates followed by padding
+    # to the 8-byte boundary and then nbias rows of n binary64 values.  The
+    # rates travel with the table rather than in the header because the
+    # header has no room for a variable-length list and because a table whose
+    # rates were implicit would be unreadable without the emitting code.
+    nbias = 0
+    off_bias = 0
+    if bias_rates is not None or bias_rows is not None:
+        assert bias_rates is not None and bias_rows is not None, \
+            "bias_rates and bias_rows must be given together"
+        nbias = len(bias_rates)
+        assert nbias == len(bias_rows), "one row per sampled rate"
+        assert nbias > 0, "an empty table must be expressed as None, not []"
+        assert list(bias_rates) == sorted(set(bias_rates)), \
+            "bias rates must be strictly ascending"
+        assert bias_rates[0] == 0, "the table must start at rate 0"
+        assert all(w == 0.0 for w in bias_rows[0]), \
+            "ACC-2: the rate 0 row must be exactly zero everywhere"
+        for row in bias_rows:
+            assert len(row) == n, "each bias row needs one value per neuron"
+        blob = bytearray(_pack_u32(list(bias_rates)))
+        gap = (-len(blob)) % L.NET_ALIGN
+        blob += b"\x00" * gap
+        for row in bias_rows:
+            blob += _pack_f64(row)
+        off_bias = add("bias", bytes(blob))
+
     # --- assemble the payload, zero-filling every alignment gap -------------
     payload = bytearray()
     base = L.NETHDR_LEN
@@ -208,6 +249,7 @@ def build(n, rowptr, target, weight, stim, readout,
         "wsyn": w_syn, "vrest": v_rest,
         "offneur": off_neur, "offrow": off_row, "offtgt": off_tgt,
         "offwgt": off_wgt, "offstim": off_stim, "offread": off_read,
+        "offbias": off_bias, "nbias": nbias,
         "paylen": paylen, "paycrc": crc32(bytes(payload)),
         "hdrcrc": 0,                        # filled in below
     }
