@@ -321,6 +321,29 @@ set keeps 50 of them (1,177 excitatory, 693 inhibitory), the top 500 keep 20
 the 191 neurons that fire above 100 Hz throughout and drops MN9's inhibitory
 context. This is SR-EXT-03's escalation case; the disposition is the owner's.
 
+### 6.8.1 Diagnostics (D-180, D-181; VL-67, VL-68)
+
+```
+python prep/extract.py --diag --jobs 14              # top-N + all MN9 presynaptic partners
+   500     40      71.07      14.35     1.44   FAIL   (N=500+partners, 798 neurons)
+  1000     40      58.65      14.35     1.44   FAIL   (N=1000+partners, 1259 neurons)
+python prep/extract.py --acc3-file data/networks/onfnet-malecns-v1.0-path.bin --label path
+    40      94.72      14.35     1.44   FAIL    ... path: 913 neurons, ACC-3 FAIL (69 s)
+python prep/extract.py --acc3-file data/networks/onfnet-malecns-v1.0-hop2.bin --label hop2
+    10       4.78       3.67     1.00   FAIL
+    40      36.25      14.35     1.44   FAIL
+    60      52.35      28.38     2.84   FAIL
+   120      89.55      68.38     6.84   FAIL
+   200     110.38      88.80     8.88   FAIL
+hop2: 13521 neurons, 1704385 edges, need=22886404 (NFR-MEM-01 FAIL), ACC-3 FAIL (444 s)
+```
+
+Every construction tried — global activity (VL-66), activity plus MN9's
+partners (VL-67), the path fixture and the whole two-hop neighbourhood
+(VL-68) — removes inhibition reaching the pathway from outside the kept set;
+the smaller the set, the freer the readout runs (or, at N = 250, the more
+silent). ACC-3 as written is not met by any of them.
+
 ### 6.9 Regression
 
 ```

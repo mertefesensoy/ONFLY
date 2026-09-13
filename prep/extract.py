@@ -37,12 +37,18 @@ recording digests and the selected body ids.
              data/calibration/ and put through the same ACC-3 comparison;
              results in acc3-partners.json.
 
+  --acc3-file <network> --label <name>
+             D-181 diagnostic: the same ACC-3 comparison on any existing
+             network file (the D-75 path fixture, the hop2 neighbourhood);
+             results in acc3-<label>.json.
+
 Run (repository root):
 
     python prep/extract.py --rank    [--jobs 14]
     python prep/extract.py --extract
     python prep/extract.py --acc3    [--jobs 14]
     python prep/extract.py --diag    [--jobs 14]
+    python prep/extract.py --acc3-file data/networks/<file>.bin --label path
 """
 import argparse
 import hashlib
@@ -403,9 +409,65 @@ def diag(jobs):
     print("wrote acc3-partners.json (%d s)" % out["elapsed_s"])
 
 
+# --- D-181 diagnostic: ACC-3 on an existing network file -------------------
+def acc3_file(path, label, jobs):
+    full = load_json(ACC4, None)
+    if full is None:
+        raise SystemExit("need acc4.json")
+    results = {}
+
+    def on_done(k, text):
+        res = cal.parse_run(text)
+        need, n, e = None, None, None
+        for line in text.splitlines():
+            if line.startswith("NET "):
+                f = dict(t.split("=", 1) for t in line.split()[1:]
+                         if "=" in t)
+                need, n, e = int(f["need"]), int(f["n"]), int(f["e"])
+        if res["rc"] != 0 or len(res["readouts"]) != 2:
+            raise SystemExit("run %s failed:\n%s" % (k, text))
+        results[k] = (res, need, n, e)
+
+    t0 = time.time()
+    run_pool([(path, r, sd) for r in VAL_RATES for sd in SEEDS], jobs, [],
+             on_done)
+    per_rate, ok_all = {}, True
+    need = n = e = None
+    print("%6s %10s %10s %8s %6s" % ("rate", "subcirc", "full", "tol",
+                                    "ACC-3"))
+    for r in VAL_RATES:
+        means = []
+        for sd in SEEDS:
+            res, need, n, e = results[(path, r, sd)]
+            sp = [x["spikes"] for x in res["readouts"]]
+            means.append(sum(sp) * 1000.0 / cal.SIM_MS / len(sp))
+        mean = sum(means) / len(means)
+        fb = full["per_rate"][str(r)]["onfly_mean_hz"]
+        tol = max(REL_TOL * fb, ABS_FLOOR)
+        ok = abs(mean - fb) <= tol
+        ok_all = ok_all and ok
+        per_rate[str(r)] = {"sub_mean_hz": mean, "full_mean_hz": fb,
+                            "tolerance_hz": tol, "pass": ok}
+        print("%6d %10.2f %10.2f %8.2f %6s"
+              % (r, mean, fb, tol, "PASS" if ok else "FAIL"))
+    out = {"decision": "D-181", "network": os.path.basename(path),
+           "sha256": hashlib.sha256(io.open(path, "rb").read()).hexdigest(),
+           "neurons": n, "edges": e, "need_bytes": need,
+           "nfr_mem_01_pass": need is not None and need <= REGION_BYTES,
+           "per_rate": per_rate, "acc3_pass": ok_all,
+           "elapsed_s": round(time.time() - t0)}
+    save_json(os.path.join(cal.CAL_DIR, "acc3-%s.json" % label), out)
+    print("%s: %d neurons, %d edges, need=%d (NFR-MEM-01 %s), ACC-3 %s "
+          "(%d s)" % (label, n, e, need,
+                      "PASS" if out["nfr_mem_01_pass"] else "FAIL",
+                      "PASS" if ok_all else "FAIL", out["elapsed_s"]))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rank", action="store_true")
+    ap.add_argument("--acc3-file", default=None)
+    ap.add_argument("--label", default=None)
     ap.add_argument("--extract", action="store_true")
     ap.add_argument("--acc3", action="store_true")
     ap.add_argument("--diag", action="store_true")
@@ -421,6 +483,8 @@ def main():
         acc3(a.jobs)
     if a.diag:
         diag(a.jobs)
+    if a.acc3_file:
+        acc3_file(a.acc3_file, a.label or "file", a.jobs)
     return 0
 
 

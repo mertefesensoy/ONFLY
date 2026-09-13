@@ -1,0 +1,43 @@
+{
+  "acc3_pass": false,
+  "decision": "D-181",
+  "edges": 1704385,
+  "elapsed_s": 444,
+  "need_bytes": 22886404,
+  "network": "onfnet-malecns-v1.0-hop2.bin",
+  "neurons": 13521,
+  "nfr_mem_01_pass": false,
+  "per_rate": {
+    "10": {
+      "full_mean_hz": 3.6666666666666665,
+      "pass": false,
+      "sub_mean_hz": 4.783333333333333,
+      "tolerance_hz": 1.0
+    },
+    "120": {
+      "full_mean_hz": 68.38333333333334,
+      "pass": false,
+      "sub_mean_hz": 89.55,
+      "tolerance_hz": 6.838333333333335
+    },
+    "200": {
+      "full_mean_hz": 88.8,
+      "pass": false,
+      "sub_mean_hz": 110.38333333333334,
+      "tolerance_hz": 8.88
+    },
+    "40": {
+      "full_mean_hz": 14.35,
+      "pass": false,
+      "sub_mean_hz": 36.25,
+      "tolerance_hz": 1.435
+    },
+    "60": {
+      "full_mean_hz": 28.383333333333333,
+      "pass": false,
+      "sub_mean_hz": 52.35,
+      "tolerance_hz": 2.8383333333333334
+    }
+  },
+  "sha256": "a2854c281fde5116d261f8e4b7bead660d36686ad02a5ece4ddbe46c393a9946"
+}
