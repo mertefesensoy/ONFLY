@@ -344,6 +344,26 @@ partners (VL-67), the path fixture and the whole two-hop neighbourhood
 the smaller the set, the freer the readout runs (or, at N = 250, the more
 silent). ACC-3 as written is not met by any of them.
 
+### 6.8.2 Inhibitory closure (D-182; VL-69)
+
+```
+python prep/extract.py --closure --jobs 14
+closure n500-s5: 501 -> 4456  (over cap, not run)
+closure n500-s1: 501 -> 8660  (over cap, not run)
+closure n1000-s5: 1001 -> 9683  (over cap, not run)
+closure n1000-s1: 1001 -> 20050  (over cap, not run)
+python prep/extract.py --acc3-file data/calibration/diag-closure-n500-s5.bin --label closure-n500-s5
+    10       0.00       3.67     1.00   FAIL
+    40       4.08      14.35     1.44   FAIL
+    60       8.40      28.38     2.84   FAIL
+   120      13.73      68.38     6.84   FAIL
+   200      16.95      88.80     8.88   FAIL
+closure-n500-s5: 4456 neurons, 292648 edges, need=4313860 (NFR-MEM-01 PASS), ACC-3 FAIL (179 s)
+```
+
+One inhibitory hop over-suppresses as much as none under-suppresses; the
+balance exists only in the whole network (VL-69).
+
 ### 6.9 Regression
 
 ```

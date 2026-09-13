@@ -42,6 +42,12 @@ recording digests and the selected body ids.
              network file (the D-75 path fixture, the hop2 neighbourhood);
              results in acc3-<label>.json.
 
+  --closure  D-182 diagnostic: from top-N (500, 1000) + stimulus + readouts,
+             add every inhibitory presynaptic partner of every kept neuron,
+             repeat to a fixed point or past 4,000 neurons, for a minimum
+             synapse count of 5 and of 1; ACC-3 on each result under the
+             cap; results in acc3-closure.json.
+
 Run (repository root):
 
     python prep/extract.py --rank    [--jobs 14]
@@ -463,9 +469,121 @@ def acc3_file(path, label, jobs):
                       "PASS" if ok_all else "FAIL", out["elapsed_s"]))
 
 
+# --- D-182 diagnostic: inhibitory closure ---------------------------------
+CLOSURE_CAP = 4000                 # SR-EXT-03's largest candidate size
+
+
+def inhibitory_closure(pre, post, sw, seed_nodes, min_syn, cap):
+    """Grow ``seed_nodes`` by inhibitory presynaptic partners to a fixed
+    point or until the set exceeds ``cap``.  Returns (nodes, history)."""
+    inh = sw <= -min_syn                      # inhibitory, at least min_syn
+    pre_i, post_i = pre[inh], post[inh]
+    nodes = np.array(sorted(set(int(x) for x in seed_nodes)), dtype=np.int64)
+    history = [int(len(nodes))]
+    while True:
+        new = np.unique(pre_i[np.isin(post_i, nodes)])
+        grown = np.union1d(nodes, new)
+        if len(grown) == len(nodes):
+            break
+        nodes = grown
+        history.append(int(len(nodes)))
+        if len(nodes) > cap:
+            break
+    return nodes, history
+
+
+def closure(jobs):
+    ranking = load_json(RANKING, None)
+    full = load_json(ACC4, None)
+    if ranking is None or full is None:
+        raise SystemExit("need activity-ranking.json (--rank) and acc4.json")
+    arrays, stim, read = cal.load_cache()
+    pre, post, sw = (arrays["body_pre"], arrays["body_post"],
+                     arrays["signed_weight"])
+    cases = {}
+    for n in (500, 1000):
+        top = np.array([t["body"] for t in ranking["top1000"][:n]],
+                       dtype=np.int64)
+        seed_nodes = np.union1d(np.union1d(top, stim), read)
+        for min_syn in (5, 1):
+            nodes, hist = inhibitory_closure(pre, post, sw, seed_nodes,
+                                             min_syn, CLOSURE_CAP)
+            label = "n%d-s%d" % (n, min_syn)
+            print("closure %s: %s%s" % (label, " -> ".join(str(h) for h
+                                                          in hist),
+                                        "  (over cap, not run)"
+                                        if len(nodes) > CLOSURE_CAP else ""))
+            entry = {"start_N": n, "min_syn": min_syn, "history": hist,
+                     "neurons": int(len(nodes)),
+                     "over_cap": bool(len(nodes) > CLOSURE_CAP)}
+            if not entry["over_cap"]:
+                blob, nn, e = emit.build_network(arrays, nodes, stim, read,
+                                                 "closure-" + label)
+                path = os.path.join(cal.CAL_DIR,
+                                    "diag-closure-%s.bin" % label)
+                io.open(path, "wb").write(blob)
+                entry.update({"file": path, "edges": int(e),
+                              "sha256": hashlib.sha256(blob).hexdigest()})
+            cases[label] = entry
+    del arrays
+
+    results = {}
+
+    def on_done(k, text):
+        res = cal.parse_run(text)
+        need = None
+        for line in text.splitlines():
+            if line.startswith("NET "):
+                need = int(dict(t.split("=", 1) for t in line.split()[1:]
+                                if "=" in t)["need"])
+        if res["rc"] != 0 or len(res["readouts"]) != 2:
+            raise SystemExit("run %s failed:\n%s" % (k, text))
+        results[k] = (res, need)
+
+    jobs_list = [(c["file"], r, sd) for c in cases.values()
+                 if not c["over_cap"] for r in VAL_RATES for sd in SEEDS]
+    t0 = time.time()
+    run_pool(jobs_list, jobs, [], on_done)
+
+    print("%10s %6s %10s %10s %8s %6s" % ("case", "rate", "subcirc", "full",
+                                         "tol", "ACC-3"))
+    for label, c in cases.items():
+        if c["over_cap"]:
+            continue
+        per_rate, ok_all, need = {}, True, None
+        for r in VAL_RATES:
+            means = []
+            for sd in SEEDS:
+                res, need = results[(c["file"], r, sd)]
+                sp = [x["spikes"] for x in res["readouts"]]
+                means.append(sum(sp) * 1000.0 / cal.SIM_MS / len(sp))
+            mean = sum(means) / len(means)
+            fb = full["per_rate"][str(r)]["onfly_mean_hz"]
+            tol = max(REL_TOL * fb, ABS_FLOOR)
+            ok = abs(mean - fb) <= tol
+            ok_all = ok_all and ok
+            per_rate[str(r)] = {"sub_mean_hz": mean, "full_mean_hz": fb,
+                                "tolerance_hz": tol, "pass": ok}
+            print("%10s %6d %10.2f %10.2f %8.2f %6s"
+                  % (label, r, mean, fb, tol, "PASS" if ok else "FAIL"))
+        c.update({"per_rate": per_rate, "acc3_pass": ok_all,
+                  "need_bytes": need,
+                  "nfr_mem_01_pass": need is not None
+                  and need <= REGION_BYTES})
+        print("%s: %d neurons, %d edges, need=%s (NFR-MEM-01 %s), ACC-3 %s"
+              % (label, c["neurons"], c["edges"], need,
+                 "PASS" if c["nfr_mem_01_pass"] else "FAIL",
+                 "PASS" if ok_all else "FAIL"))
+    out = {"decision": "D-182", "cap": CLOSURE_CAP, "cases": cases,
+           "elapsed_s": round(time.time() - t0)}
+    save_json(os.path.join(cal.CAL_DIR, "acc3-closure.json"), out)
+    print("wrote acc3-closure.json (%d s)" % out["elapsed_s"])
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rank", action="store_true")
+    ap.add_argument("--closure", action="store_true")
     ap.add_argument("--acc3-file", default=None)
     ap.add_argument("--label", default=None)
     ap.add_argument("--extract", action="store_true")
@@ -485,6 +603,8 @@ def main():
         diag(a.jobs)
     if a.acc3_file:
         acc3_file(a.acc3_file, a.label or "file", a.jobs)
+    if a.closure:
+        closure(a.jobs)
     return 0
 
 

@@ -1,0 +1,47 @@
+{
+  "cap": 4000,
+  "cases": {
+    "n1000-s1": {
+      "history": [
+        1001,
+        20050
+      ],
+      "min_syn": 1,
+      "neurons": 20050,
+      "over_cap": true,
+      "start_N": 1000
+    },
+    "n1000-s5": {
+      "history": [
+        1001,
+        9683
+      ],
+      "min_syn": 5,
+      "neurons": 9683,
+      "over_cap": true,
+      "start_N": 1000
+    },
+    "n500-s1": {
+      "history": [
+        501,
+        8660
+      ],
+      "min_syn": 1,
+      "neurons": 8660,
+      "over_cap": true,
+      "start_N": 500
+    },
+    "n500-s5": {
+      "history": [
+        501,
+        4456
+      ],
+      "min_syn": 5,
+      "neurons": 4456,
+      "over_cap": true,
+      "start_N": 500
+    }
+  },
+  "decision": "D-182",
+  "elapsed_s": 0
+}
