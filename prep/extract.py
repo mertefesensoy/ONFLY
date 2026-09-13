@@ -52,6 +52,14 @@ recording digests and the selected body ids.
              whether the mechanism has the freedom.  Results in
              data/calibration/acc3-fitbias.json.  Diagnostic only (D-189).
 
+  --admit    D-205: emit the SR-EXT subcircuit determined by VL-76 --
+             N = 500 with its fitted compensating table -- into
+             data/networks/ and record it in the manifest as the MVP
+             network, with its selection rule, estimator, fitted
+             constant and every acceptance verdict.  Refuses if the
+             emitted bytes differ from the artifact the criteria were
+             measured on.
+
   --acc1 <network> [--label name]
              D-203: ACC-1 on a candidate MVS subcircuit -- at every
              validation rate where the SHIU reference is above zero, at
@@ -118,6 +126,7 @@ Run (repository root):
     python prep/extract.py --fitbias    [--jobs 14]
     python prep/extract.py --constbias  [--jobs 14]
     python prep/extract.py --acc1 <network> --label n500
+    python prep/extract.py --admit
 """
 import argparse
 import hashlib
@@ -1995,6 +2004,123 @@ def acc1(path, label, jobs):
     print("wrote %s (%d s)" % (ACC1OUT.replace("\\", "/"), out["elapsed_s"]))
 
 
+# --- D-205: emit the admitted MVP subcircuit -------------------------------
+# SR-EXT-03's determination is N = 500 (VL-76), and D-205 admits the
+# compensated network that satisfies it.  This is the one place a
+# compensated network leaves data/calibration/ for data/networks/, so it
+# writes down everything a reader needs to reproduce it: the selection rule,
+# the estimator, the fitted constant, and the measurements each came from.
+MVPN = 500                      # SR-EXT-03, determined by VL-76
+
+
+def admit(jobs):
+    """Emit the SR-EXT subcircuit into data/networks/ and record it."""
+    ranking = load_json(RANKING, None)
+    if ranking is None:
+        raise SystemExit("need activity-ranking.json (--rank)")
+    if not os.path.isfile(RATEACT):
+        raise SystemExit("need %s (--ratebias)" % RATEACT)
+    fitted = load_json(CONSTBIAS, None)
+    if fitted is None:
+        raise SystemExit("need %s (--constbias)" % CONSTBIAS)
+    case = fitted["cases"].get("F3-n%d" % MVPN)
+    if case is None:
+        raise SystemExit("no F3-n%d in %s" % (MVPN, CONSTBIAS))
+    if not case.get("acc3_pass"):
+        raise SystemExit("F3-n%d does not pass ACC-3; refusing to admit it"
+                         % MVPN)
+    m = case["multiplier"]
+
+    rate_act = np.load(RATEACT)
+    arrays, stim, read = cal.load_cache()
+    top = np.array([t["body"] for t in ranking["top1000"][:MVPN]],
+                   dtype=np.int64)
+    nodes = np.union1d(np.union1d(top, stim), read)
+    rates, rows = bias_table(arrays, nodes, rate_act)
+    rows = scaled_rows(rows, rates, lambda r, m=m: m)
+
+    blob, nn, e = emit.build_network(arrays, nodes, stim, read,
+                                     "srext-n%d" % MVPN,
+                                     bias_rates=rates, bias_rows=rows)
+    path = os.path.join(NET_DIR, "onfnet-malecns-v1.0-srext.bin")
+    io.open(path, "wb").write(blob)
+    sha = hashlib.sha256(blob).hexdigest()
+
+    # The emitted file must be the very artifact the criteria were measured
+    # on.  Anything else would make VL-76..VL-78 describe a different file.
+    diag = case["file"]
+    if os.path.isfile(diag):
+        same = hashlib.sha256(io.open(diag, "rb").read()).hexdigest() == sha
+        if not same:
+            raise SystemExit(
+                "the emitted subcircuit differs from the one ACC-1, ACC-3 "
+                "and the backend comparison were measured on (%s); refusing "
+                "to admit an unverified file" % diag)
+        print("  digest matches the measured artifact %s"
+              % os.path.basename(diag))
+
+    man = load_json(os.path.join(NET_DIR, "MANIFEST.json"), None)
+    if man is None:
+        raise SystemExit("data/networks/MANIFEST.json is missing")
+    man["networks"]["srext"] = {
+        "file": os.path.basename(path), "neurons": int(nn), "edges": int(e),
+        "bytes": len(blob), "sha256": sha,
+        "crc32": "%08X" % (zlib.crc32(blob) & 0xFFFFFFFF),
+        "format_version": "1.1", "nbias": len(rates),
+        "role": "SR-EXT subcircuit, the MVP network for MVS (D-205)",
+        "N": MVPN,
+        "selection": ("SR-EXT-01: the %d most active neurons by total spike "
+                      "count over the 240-run full-brain ranking of VL-66, "
+                      "ties by ascending body id, plus every stimulus and "
+                      "readout neuron" % MVPN),
+        "weights": "SR-EXT-02: unchanged, every MaleCNS connection among them",
+        "compensating_input": {
+            "requirement": "SR-EXT-02 as amended by D-205, IR-NET-09",
+            "estimator": ("per-neuron MEDIAN over 15 seeds of the full "
+                          "brain's per-rate spike count (D-193), "
+                          "data/calibration/rate-activity.npz"),
+            "multiplier": m,
+            "multiplier_fitted_on": list(cal.CAL_RATES),
+            "multiplier_objective": ("SR-CAL-03's mean relative error "
+                                     "against the full brain (D-200)"),
+            "calibration_mean_rel_err": case["calibration_mean_rel_err"],
+            "rates": rates,
+        },
+        "acceptance": {
+            "ACC-1": "PASS, 30/30 seeds at 40, 60, 120, 200 Hz (VL-77)",
+            "ACC-2": "PASS on NATIVE, SOFT3E and SOFT2C (VL-77, VL-78)",
+            "ACC-3": ("PASS at 40, 60, 120, 200 Hz; 10 Hz excluded and "
+                      "reported per D-202 (VL-76)"),
+            "backends": ("NATIVE, SOFT3E and SOFT2C agree bit-for-bit on "
+                         "300 of 300 comparisons (VL-78)"),
+            "not_proven": ("Every result is x86-64. Nothing is proven for "
+                           "Linux s390x, MVS 3.8j or z/OS; the v1.1 header "
+                           "has never been decoded by GCCMVS. ACC-4 fails "
+                           "(VL-64, VL-65) and compares the full brain "
+                           "against Shiu, not this network. ACC-5, ACC-6 "
+                           "and ACC-7 are unevaluated on it."),
+        },
+        "decisions": ["D-190", "D-191", "D-193", "D-200", "D-202", "D-205"],
+        "limits": ["VL-76", "VL-77", "VL-78"],
+    }
+    man["mvp_subcircuit"] = "srext"
+    man["decisions"] = sorted(set(man.get("decisions", []))
+                              | {"D-202", "D-205"})
+    man.pop("not_the_srext_subcircuit", None)
+    man["srext_determination"] = (
+        "SR-EXT-03: N = 500, the smallest of {250, 500, 1000} satisfying "
+        "ACC-3, NFR-MEM-01 and NFR-PERF-01 (VL-76). The escalation raised by "
+        "D-183 is closed by D-205.")
+    save_json(os.path.join(NET_DIR, "MANIFEST.json"), man)
+
+    print("admitted %s: %d neurons, %d edges, %d bytes, nbias=%d, "
+          "multiplier %.4f" % (os.path.basename(path), nn, e, len(blob),
+                               len(rates), m))
+    print("sha256 %s" % sha)
+    print("wrote %s" % os.path.join(NET_DIR, "MANIFEST.json").replace(
+        "\\", "/"))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rank", action="store_true")
@@ -2010,6 +2136,7 @@ def main():
     ap.add_argument("--refixture", action="store_true")
     ap.add_argument("--fitbias", action="store_true")
     ap.add_argument("--constbias", action="store_true")
+    ap.add_argument("--admit", action="store_true")
     ap.add_argument("--acc1", default=None,
                     help="network file to evaluate ACC-1 and "
                          "ACC-2 on (D-203)")
@@ -2050,6 +2177,8 @@ def main():
         fitbias(a.jobs)
     if a.constbias:
         constbias(a.jobs)
+    if a.admit:
+        admit(a.jobs)
     if a.acc1:
         acc1(a.acc1, a.label or "candidate", a.jobs)
     return 0

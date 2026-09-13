@@ -10,6 +10,8 @@
     "D-190",
     "D-191",
     "D-192",
+    "D-202",
+    "D-205",
     "D-52",
     "D-54",
     "D-55",
@@ -22,6 +24,7 @@
     "VL-12",
     "VL-13"
   ],
+  "mvp_subcircuit": "srext",
   "networks": {
     "full": {
       "bytes": 299515264,
@@ -52,9 +55,65 @@
       "nbias": 9,
       "neurons": 913,
       "sha256": "168627c833d7af0f33bd0ed8d2bd1fbb407fd3c4436e0f57558c772cbb8b28f9"
+    },
+    "srext": {
+      "N": 500,
+      "acceptance": {
+        "ACC-1": "PASS, 30/30 seeds at 40, 60, 120, 200 Hz (VL-77)",
+        "ACC-2": "PASS on NATIVE, SOFT3E and SOFT2C (VL-77, VL-78)",
+        "ACC-3": "PASS at 40, 60, 120, 200 Hz; 10 Hz excluded and reported per D-202 (VL-76)",
+        "backends": "NATIVE, SOFT3E and SOFT2C agree bit-for-bit on 300 of 300 comparisons (VL-78)",
+        "not_proven": "Every result is x86-64. Nothing is proven for Linux s390x, MVS 3.8j or z/OS; the v1.1 header has never been decoded by GCCMVS. ACC-4 fails (VL-64, VL-65) and compares the full brain against Shiu, not this network. ACC-5, ACC-6 and ACC-7 are unevaluated on it."
+      },
+      "bytes": 171768,
+      "compensating_input": {
+        "calibration_mean_rel_err": 0.34055847463804323,
+        "estimator": "per-neuron MEDIAN over 15 seeds of the full brain's per-rate spike count (D-193), data/calibration/rate-activity.npz",
+        "multiplier": 0.6467764060356653,
+        "multiplier_fitted_on": [
+          20,
+          80,
+          160
+        ],
+        "multiplier_objective": "SR-CAL-03's mean relative error against the full brain (D-200)",
+        "rates": [
+          0,
+          10,
+          20,
+          40,
+          60,
+          80,
+          120,
+          160,
+          200
+        ],
+        "requirement": "SR-EXT-02 as amended by D-205, IR-NET-09"
+      },
+      "crc32": "038CAE79",
+      "decisions": [
+        "D-190",
+        "D-191",
+        "D-193",
+        "D-200",
+        "D-202",
+        "D-205"
+      ],
+      "edges": 10783,
+      "file": "onfnet-malecns-v1.0-srext.bin",
+      "format_version": "1.1",
+      "limits": [
+        "VL-76",
+        "VL-77",
+        "VL-78"
+      ],
+      "nbias": 9,
+      "neurons": 501,
+      "role": "SR-EXT subcircuit, the MVP network for MVS (D-205)",
+      "selection": "SR-EXT-01: the 500 most active neurons by total spike count over the 240-run full-brain ranking of VL-66, ties by ascending body id, plus every stimulus and readout neuron",
+      "sha256": "bf09a3ad18a82b8ecc0dd2fd397d81e332f38c98a78325269f5c39d2b3b1f66d",
+      "weights": "SR-EXT-02: unchanged, every MaleCNS connection among them"
     }
   },
-  "not_the_srext_subcircuit": "SR-EXT-01 defines the MVP subcircuit by activity in a full-brain run, which needs W_syn calibrated first. Both files are provisional with respect to SR-EXT.",
   "parameters": {
     "G_EPS": 2.2250738585072014e-308,
     "V_reset": -52.0,
@@ -73,6 +132,7 @@
     "tau_syn_ms": 5.0
   },
   "readout_type": "MN9",
+  "srext_determination": "SR-EXT-03: N = 500, the smallest of {250, 500, 1000} satisfying ACC-3, NFR-MEM-01 and NFR-PERF-01 (VL-76). The escalation raised by D-183 is closed by D-205.",
   "stimulus_types": [
     "PhG9",
     "dorsal_tpGRN"
