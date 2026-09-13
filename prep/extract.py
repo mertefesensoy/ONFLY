@@ -951,8 +951,31 @@ def rate_match(arrays, dm, nodes, ge, gi, stim, read, totals, label, jobs):
     return ge, gi, history
 
 
+def acc3_excluded(full, rate):
+    """Is this validation rate excluded from ACC-3 (D-202)?
+
+    ACC-3 tests a rate only where the full-brain reference mean exceeds its
+    own standard deviation over the same seeds.  Where it does not, the
+    reference is not a reproducible quantity but the frequency of a rare
+    event, and the rate is reported instead of tested.
+
+    On the D-135 seeds this is true of exactly one rate: 10 Hz, whose
+    reference is 3.67 +- 4.22 Hz, against 14.35 +- 8.45, 28.38 +- 7.85,
+    68.38 +- 8.19 and 88.80 +- 5.07 at 40, 60, 120 and 200 Hz.  The test is
+    written on the CONDITION rather than on the rate so that it stays
+    honest if a later W_syn or stimulus set destabilises a different one.
+    """
+    e = full["per_rate"][str(rate)]
+    return e.get("onfly_sd_hz", 0.0) >= e["onfly_mean_hz"]
+
+
 def acc3_eval(cases, full, jobs):
-    """The VL-66 ACC-3 comparison, run over several networks at once."""
+    """The VL-66 ACC-3 comparison, run over several networks at once.
+
+    Amended by D-202: a rate the reference cannot pin down is excluded and
+    reported rather than tested.  Every rate is still MEASURED and its value
+    recorded -- the exclusion changes the verdict, never the evidence.
+    """
     results = {}
 
     def on_done(k, text):
@@ -978,14 +1001,28 @@ def acc3_eval(cases, full, jobs):
                 sp = [x["spikes"] for x in res["readouts"]]
                 means.append(sum(sp) * 1000.0 / cal.SIM_MS / len(sp))
             mean = sum(means) / len(means)
-            fb = full["per_rate"][str(r)]["onfly_mean_hz"]
+            fbe = full["per_rate"][str(r)]
+            fb = fbe["onfly_mean_hz"]
             tol = max(REL_TOL * fb, ABS_FLOOR)
             ok = abs(mean - fb) <= tol
-            ok_all = ok_all and ok
-            per_rate[str(r)] = {"sub_mean_hz": mean, "full_mean_hz": fb,
-                                "tolerance_hz": tol, "pass": ok}
+            excluded = acc3_excluded(full, r)
+            # D-202: an excluded rate is reported, never counted.  Its
+            # measured value and its own pass/fail stay in the record so a
+            # reader can see what was set aside and why.
+            if not excluded:
+                ok_all = ok_all and ok
+            per_rate[str(r)] = {
+                "sub_mean_hz": mean, "full_mean_hz": fb,
+                "full_sd_hz": fbe.get("onfly_sd_hz"),
+                "tolerance_hz": tol, "pass": ok,
+                "excluded": excluded,
+                "excluded_reason": ("D-202: reference sd %.2f >= mean %.2f"
+                                    % (fbe.get("onfly_sd_hz", 0.0), fb))
+                if excluded else None}
         c["per_rate"] = per_rate
         c["acc3_pass"] = ok_all
+        c["acc3_excluded_rates"] = [r for r in VAL_RATES
+                                    if acc3_excluded(full, r)]
         c["need_bytes"] = need
         c["nfr_mem_01_pass"] = need is not None and need <= REGION_BYTES
     return cases
