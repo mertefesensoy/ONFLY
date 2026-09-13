@@ -5,7 +5,7 @@
 | Date | 2026-09-13 |
 | Author | ONFLY senior engineer |
 | Phase / gate | Phase C (Science, x86) — resolving the SR-EXT-03 escalation |
-| Owner decisions relied on | D-190, D-191, D-192, D-193 (and D-184…D-189 for the evidence that led here) |
+| Owner decisions relied on | D-190, D-191, D-192, D-193, D-194 (and D-184…D-189 for the evidence that led here) |
 | Requirements touched | IR-NET-01, IR-NET-03, IR-NET-05, IR-NET-07, **IR-NET-09 (new)**, Appendix C, Appendix E (**ONF109E**, new), ACC-2, ACC-3, SR-EXT-01, SR-EXT-02, NFR-MNT-01, NFR-OBS-01 |
 | Open items closed | none — SR-EXT-03's escalation is still open |
 
@@ -276,12 +276,54 @@ run_syn [SOFT2C backend, WIN32]: 60 passed, 0 failed
 cmpback: SOFT3E, NATIVE, SOFT2C agree bit-for-bit on 41 result lines
 ```
 
-**The science result** (`python prep/extract.py --ratebias --jobs 8`, 24 runs
-in 1,403 s; `--biasnet --jobs 14`, 450 runs in 217 s) is recorded as VL-71
-and summarised in §7 of that entry. In short: the compensation rescues the
+**The science result, in two passes.**
+
+*Pass 1, VL-71* (`--ratebias --jobs 8`, 24 runs in 1,403 s, 3 seeds, mean;
+`--biasnet --jobs 14`, 450 runs in 217 s). The compensation rescues the
 N = 250 subcircuit from complete silence — the first construction of twelve
-to change a truncation's qualitative behaviour — but **no size meets ACC-3**,
-and at N = 1000 it makes the fit worse for the estimator reason in §4.3.
+to change a truncation's *qualitative* behaviour — but no size meets ACC-3,
+and at N = 1000 it makes the fit worse, for the estimator reason in §4.3.
+
+*Pass 2, VL-72* (`--ratebias --jobs 8`, **120 runs in 6,770 s**, 15 seeds,
+median; `--biasnet --jobs 14`, 450 runs in 214 s). §4.3's hypothesis is
+confirmed directly: mean ÷ median of total activity is 1.80 / 1.02 / 1.76 /
+0.99 / 0.97 / 0.98 / 1.42 / 1.37 at 10 / 20 / 40 / 60 / 80 / 120 / 160 /
+200 Hz — the ignition tail inflated the estimate at exactly the four rates
+whose networks overshot and nowhere else. N = 1000's largest bias falls from
+18.55 to 8.12.
+
+Mean MN9 rate over seeds 1…30, full brain 3.67 / 14.35 / 28.38 / 68.38 /
+88.80 Hz:
+
+| construction | 10 | 40 | 60 | 120 | 200 | worst | worst >10 Hz |
+|---|---|---|---|---|---|---|---|
+| C-n250 (median) | 0.00 | 0.00 | 49.50 | 101.00 | 129.00 | 100% | 100% |
+| C-n500 (median) | 0.28 | 9.55 | 35.52 | 94.20 | 115.25 | 92% | **38%** |
+| C-n1000 (median) | 0.12 | 28.47 | 57.32 | 110.68 | 125.62 | 102% | 102% |
+| C-n500 (3-seed mean) | 1.40 | 22.23 | 41.42 | 89.97 | 121.07 | 99% | 55% |
+| n500 uncompensated | 0.00 | 8.53 | 18.07 | 29.98 | 37.20 | 100% | 58% |
+
+**All fifteen comparisons fail.** Two different "best" emerge and they
+disagree: on ACC-3's own statistic — the worst rate — the leader of thirteen
+constructions is still B1-n500 at 62% (VL-70), because it fires 1.40 Hz at
+10 Hz where C-n500 fires 0.28; above that floor, over 40–200 Hz, the leader
+is C-n500 (median) at 38%.
+
+**Why 10 Hz resists every construction, and it is not a construction
+problem.** VL-64 measured the full brain's own 10 Hz response as 3.67 Hz with
+a standard deviation of **4.22** over 30 seeds — a spread larger than the
+mean, because MN9 fires at 10 Hz only in the seeds where the network ignites.
+ACC-3's tolerance there is the 1 Hz absolute floor. So at 10 Hz the criterion
+asks a 500-neuron truncation to reproduce, to within 1 Hz, the *frequency of
+a rare stochastic event* in a 184,099-neuron network. That is a property of
+the criterion meeting this model.
+
+**Where it was left (D-194).** The owner declined to weaken ACC-3 on thirteen
+failed constructions and chose to keep looking for one that meets it as
+written. The two named next attempts are a compensating input that varies
+*within* a run, and one *fitted* per rate against the full brain rather than
+measured from it. The session stopped here because the owner is travelling
+with the development host, not because the work is complete.
 
 **What these results do NOT prove** (SRS Appendix D):
 
@@ -308,7 +350,7 @@ been broken so nothing further propagates. Flagged for the owner.
 ## 7. Related docs
 
 * `docs/ONFLY-SRS.md` §4.1 (IR-NET-01…09), §6.3, §6.4, Appendix A.1
-  D-184…D-193, Appendix C, Appendix D VL-66…VL-71, Appendix E ONF109E.
+  D-184…D-194, Appendix C, Appendix D VL-66…VL-72, Appendix E ONF109E.
 * `docs/implementations/2026-09-13-truncation-compensation.md` — the eleven
   network-level constructions this replaced.
 * `data/calibration/acc3-biasnet.json`, `rate-activity.npz`,
