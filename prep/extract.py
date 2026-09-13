@@ -127,6 +127,7 @@ Run (repository root):
     python prep/extract.py --constbias  [--jobs 14]
     python prep/extract.py --acc1 <network> --label n500
     python prep/extract.py --admit
+    python prep/extract.py --calcheck [--jobs 8]
 """
 import argparse
 import hashlib
@@ -2121,6 +2122,89 @@ def admit(jobs):
         "\\", "/"))
 
 
+# --- D-207: re-verify the calibrated W_syn without re-running the search ---
+# SR-CAL's search was 144 full-brain runs and about four hours (VL-63).  Its
+# RESULT, though, is one number -- W_syn = 0.2969 mV -- and that number is
+# checkable in nine runs: the chosen candidate's own MN9 rates at the
+# calibration rates are recorded in VL-63, and the shipped full network is
+# emitted at exactly that W_syn, so re-running it at those rates and seeds
+# must reproduce them.
+#
+# It is a stronger check than it looks.  The full network was re-emitted at
+# format v1.1 since VL-63 was measured (D-192), with nbias = 0 so that the
+# arithmetic is unchanged.  If those numbers still match, the format change
+# is confirmed neutral on the reference network as well.
+CALCHECK = os.path.join(cal.CAL_DIR, "calcheck.json")
+
+#: VL-63's recorded MN9 rates for the chosen candidate, W_syn = 0.2969 mV,
+#: at the SR-CAL-02 calibration rates with D-169's three seeds.
+VL63_MN9 = {20: 3.83, 80: 46.17, 160: 77.33}
+VL63_W_SYN = 0.2969
+
+
+def calcheck(jobs):
+    """Re-run the calibrated full brain at the calibration rates."""
+    man = load_json(os.path.join(NET_DIR, "MANIFEST.json"), None)
+    if man is None:
+        raise SystemExit("data/networks/MANIFEST.json is missing")
+    w = man["parameters"]["W_syn"]
+    if abs(w - VL63_W_SYN) > 1e-12:
+        raise SystemExit("manifest W_syn is %r, not VL-63's %r"
+                         % (w, VL63_W_SYN))
+
+    blob = io.open(FULL, "rb").read()
+    sha = hashlib.sha256(blob).hexdigest()
+    if sha != man["networks"]["full"]["sha256"]:
+        raise SystemExit("the full network on disk does not match the "
+                         "manifest digest")
+
+    results = {}
+
+    def on_done(k, text):
+        res = cal.parse_run(text)
+        if res["rc"] != 0 or len(res["readouts"]) != 2:
+            raise SystemExit("run %s failed:\n%s" % (k, text[-2000:]))
+        sp = [x["spikes"] for x in res["readouts"]]
+        results[k] = sum(sp) * 1000.0 / cal.SIM_MS / len(sp)
+
+    t0 = time.time()
+    run_pool([(FULL, r, s) for r in cal.CAL_RATES for s in cal.SEEDS],
+             jobs, [], on_done)
+
+    per_rate, ok_all = {}, True
+    for r in cal.CAL_RATES:
+        got = sum(results[(FULL, r, s)] for s in cal.SEEDS) / len(cal.SEEDS)
+        want = VL63_MN9[r]
+        ok = abs(got - want) < 0.005          # VL-63 is recorded to 2 dp
+        ok_all = ok_all and ok
+        per_rate[str(r)] = {"measured_hz": got, "vl63_hz": want, "pass": ok}
+
+    out = {"network": os.path.basename(FULL), "sha256": sha,
+           "w_syn": w, "seeds": list(cal.SEEDS),
+           "rates": list(cal.CAL_RATES), "per_rate": per_rate,
+           "pass": ok_all, "decisions": ["D-169", "D-173", "D-207"],
+           "reference": "VL-63, the SR-CAL search's chosen candidate",
+           "note": ("Re-verifies the calibration RESULT, not the search. "
+                    "The full network carries nbias = 0, so v1.1 runs the "
+                    "same arithmetic as the v1.0 file VL-63 was measured "
+                    "on; agreement confirms that too."),
+           "elapsed_s": round(time.time() - t0)}
+    save_json(CALCHECK, out)
+
+    print("calibration check: W_syn %.4f mV, %s, seeds %s"
+          % (w, os.path.basename(FULL), list(cal.SEEDS)))
+    print("%6s %12s %12s %s" % ("rate", "measured Hz", "VL-63 Hz", "verdict"))
+    for r in cal.CAL_RATES:
+        e = per_rate[str(r)]
+        print("%6d %12.2f %12.2f %s"
+              % (r, e["measured_hz"], e["vl63_hz"],
+                 "MATCH" if e["pass"] else "DIFFERS"))
+    print("SR-CAL result %s (%d s)"
+          % ("REPRODUCED" if ok_all else "NOT REPRODUCED",
+             out["elapsed_s"]))
+    print("wrote %s" % CALCHECK.replace("\\", "/"))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rank", action="store_true")
@@ -2137,6 +2221,7 @@ def main():
     ap.add_argument("--fitbias", action="store_true")
     ap.add_argument("--constbias", action="store_true")
     ap.add_argument("--admit", action="store_true")
+    ap.add_argument("--calcheck", action="store_true")
     ap.add_argument("--acc1", default=None,
                     help="network file to evaluate ACC-1 and "
                          "ACC-2 on (D-203)")
@@ -2177,6 +2262,8 @@ def main():
         fitbias(a.jobs)
     if a.constbias:
         constbias(a.jobs)
+    if a.calcheck:
+        calcheck(a.jobs)
     if a.admit:
         admit(a.jobs)
     if a.acc1:
