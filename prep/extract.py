@@ -52,6 +52,15 @@ recording digests and the selected body ids.
              whether the mechanism has the freedom.  Results in
              data/calibration/acc3-fitbias.json.  Diagnostic only (D-189).
 
+  --constbias
+             D-200: F3, one CONSTANT multiplier on the median-bias rows,
+             fitted on the D-165 calibration rates {20, 80, 160} against
+             SR-CAL-03's own objective and judged out of sample by ACC-3 on
+             the validation rates.  One parameter against five test points,
+             which is the form VL-73's flat per-rate multipliers support.
+             Results in data/calibration/acc3-constbias.json.  Diagnostic
+             only (D-189).
+
   --refixture
              D-192 step 7: re-emit data/networks/ at format version 1.1.
              A v1.0 file is unreadable to a v1.1 engine (ONF103E), so every
@@ -99,6 +108,7 @@ Run (repository root):
     python prep/extract.py --refixture
     python prep/extract.py --biasnet    [--jobs 14]
     python prep/extract.py --fitbias    [--jobs 14]
+    python prep/extract.py --constbias  [--jobs 14]
 """
 import argparse
 import hashlib
@@ -1668,6 +1678,162 @@ def fitbias(jobs):
     print("wrote %s (%d s)" % (FITBIAS.replace("\\", "/"), out["elapsed_s"]))
 
 
+# --- D-200: F3, one constant multiplier ------------------------------------
+# The most parsimonious form VL-73's data supports.  Its per-rate multipliers
+# at N = 500 are flat at about 0.58 from 60 Hz up -- 0.6032, 0.5519, 0.5781,
+# 0.6455, 0.6235 -- and F1's two-parameter line leans away from them only
+# because the 20 Hz calibration point wants 0.2570.  One parameter fitted on
+# three calibration rates and tested on five validation rates carries MORE
+# evidence than F1's two, not less.
+CONSTBIAS = os.path.join(cal.CAL_DIR, "acc3-constbias.json")
+
+
+def const_objective(arrays, nodes, stim, read, rates, rows, targets, m,
+                    label, jobs, log):
+    """Mean relative error over the calibration rates at multiplier ``m``.
+
+    The objective is SR-CAL-03's own form -- the mean over calibration rates
+    of |measured - target| / target.  No rate is excluded: D-172's exclusion
+    applies to a zero REFERENCE, and none of {20, 80, 160} has one here
+    (5.63, 46.20, 76.57 Hz).
+    """
+    rws = scaled_rows(rows, rates, lambda r, m=m: m)
+    path, _n, _e, _sha = emit_diag_bias(arrays, nodes, stim, read,
+                                        "%s-probe" % label, rates, rws)
+    errs = []
+    for r in cal.CAL_RATES:
+        v = mn9_at(path, r, FIT_SEEDS, jobs)
+        errs.append(abs(v - targets[r]) / targets[r])
+        log.append({"multiplier": m, "rate": r, "mn9_hz": v,
+                    "target_hz": targets[r]})
+    return sum(errs) / len(errs)
+
+
+def fit_constant(arrays, nodes, stim, read, rates, rows, targets, label,
+                 jobs, log):
+    """Coarse scan then refine, for the same reason D-171 gave and VL-73
+    measured: the response is not monotone in the multiplier, so a search
+    that assumes it is will return the cap."""
+    seen = [(m, const_objective(arrays, nodes, stim, read, rates, rows,
+                                targets, m, label, jobs, log))
+            for m in FIT_GRID]
+    for m, err in seen:
+        print("    scan x%-6.3g mean relative error %.4f" % (m, err))
+        sys.stdout.flush()
+    best = min(range(len(seen)), key=lambda k: seen[k][1])
+    lo = seen[best - 1][0] if best > 0 else seen[0][0]
+    hi = seen[best + 1][0] if best + 1 < len(seen) else seen[-1][0]
+    for _ in range(6):
+        if hi - lo < 1e-3:
+            break
+        m1 = lo + (hi - lo) / 3.0
+        m2 = hi - (hi - lo) / 3.0
+        e1 = const_objective(arrays, nodes, stim, read, rates, rows, targets,
+                             m1, label, jobs, log)
+        e2 = const_objective(arrays, nodes, stim, read, rates, rows, targets,
+                             m2, label, jobs, log)
+        if e1 <= e2:
+            hi = m2
+        else:
+            lo = m1
+    mid = 0.5 * (lo + hi)
+    emid = const_objective(arrays, nodes, stim, read, rates, rows, targets,
+                           mid, label, jobs, log)
+    if seen[best][1] < emid:
+        return seen[best][0], seen[best][1]
+    return mid, emid
+
+
+def constbias(jobs):
+    ranking = load_json(RANKING, None)
+    full = load_json(ACC4, None)
+    if ranking is None or full is None:
+        raise SystemExit("need activity-ranking.json (--rank) and acc4.json")
+    if not os.path.isfile(RATEACT):
+        raise SystemExit("need %s (--ratebias)" % RATEACT)
+    rate_act = np.load(RATEACT)
+    arrays, stim, read = cal.load_cache()
+    top1000 = np.array([t["body"] for t in ranking["top1000"]],
+                       dtype=np.int64)
+    fb = full_brain_mn9(rate_act, arrays, read)
+    print("calibration targets (Hz): %s"
+          % "  ".join("%d:%.2f" % (r, fb[r]) for r in cal.CAL_RATES))
+    sys.stdout.flush()
+
+    t0 = time.time()
+    cases, fits = {}, {}
+    for n in FIT_N:
+        nodes = np.union1d(np.union1d(top1000[:n], stim), read)
+        rates, rows = bias_table(arrays, nodes, rate_act)
+        sub = edges_within(arrays, nodes)
+        log = []
+        print("N=%d  F3: fitting one constant multiplier on %s"
+              % (n, list(cal.CAL_RATES)))
+        sys.stdout.flush()
+        m, err = fit_constant(sub, nodes, stim, read, rates, rows, fb,
+                              "F3-n%d" % n, jobs, log)
+        print("N=%d  F3: multiplier %.4f, mean relative error %.4f on the "
+              "calibration rates" % (n, m, err))
+        sys.stdout.flush()
+        f3_rows = scaled_rows(rows, rates, lambda r, m=m: m)
+        path, nn, e, sha = emit_diag_bias(sub, nodes, stim, read,
+                                          "F3-n%d" % n, rates, f3_rows)
+        cases["F3-n%d" % n] = {
+            "construction": "F3", "N": n, "file": path, "neurons": nn,
+            "edges": e, "sha256": sha, "in_sample": False,
+            "form": "one constant multiplier", "multiplier": m,
+            "fitted_on": list(cal.CAL_RATES),
+            "calibration_mean_rel_err": err,
+        }
+        fits["n%d" % n] = {"multiplier": m, "calibration_error": err,
+                           "probe_log": log}
+
+    cases = acc3_eval(cases, full, jobs)
+    out = {"decisions": ["D-165", "D-166", "D-171", "D-191", "D-193",
+                         "D-199", "D-200"],
+           "full_brain_source": "data/calibration/acc4.json (30 seeds)",
+           "fit_targets": dict((str(r), fb[r]) for r in sorted(fb)),
+           "fit_target_source": ("data/calibration/rate-activity.npz, "
+                                 "15-seed mean, both readouts (D-170)"),
+           "diagnostic_only": True, "fit_seeds": list(FIT_SEEDS),
+           "cases": cases, "fits": fits,
+           "elapsed_s": round(time.time() - t0)}
+    save_json(CONSTBIAS, out)
+
+    print("")
+    print("%-8s %6s %8s %8s %8s %8s %8s  %-6s %s"
+          % ("case", "N", "10Hz", "40Hz", "60Hz", "120Hz", "200Hz", "ACC-3",
+             "rates inside"))
+    print("%-8s %6s %8.2f %8.2f %8.2f %8.2f %8.2f  %-6s %s"
+          % ("full", "-",
+             *[full["per_rate"][str(r)]["onfly_mean_hz"] for r in VAL_RATES],
+             "ref", "-"))
+    for label in sorted(cases):
+        c = cases[label]
+        inside = sum(1 for r in VAL_RATES if c["per_rate"][str(r)]["pass"])
+        print("%-8s %6d %8.2f %8.2f %8.2f %8.2f %8.2f  %-6s %d of 5"
+              % (label, c["N"],
+                 *[c["per_rate"][str(r)]["sub_mean_hz"] for r in VAL_RATES],
+                 "PASS" if c["acc3_pass"] else "FAIL", inside))
+    for label in sorted(cases):
+        c = cases[label]
+        worst = max(abs(c["per_rate"][str(r)]["sub_mean_hz"]
+                        - c["per_rate"][str(r)]["full_mean_hz"])
+                    / c["per_rate"][str(r)]["full_mean_hz"]
+                    for r in VAL_RATES)
+        above = max(abs(c["per_rate"][str(r)]["sub_mean_hz"]
+                        - c["per_rate"][str(r)]["full_mean_hz"])
+                    / c["per_rate"][str(r)]["full_mean_hz"]
+                    for r in VAL_RATES[1:])
+        print("%-8s multiplier %.4f   worst %3.0f%%   above the 10 Hz floor "
+              "%3.0f%%   need=%s bytes (NFR-MEM-01 %s)"
+              % (label, c["multiplier"], 100 * worst, 100 * above,
+                 c["need_bytes"], "PASS" if c["nfr_mem_01_pass"] else "FAIL"))
+    print("")
+    print("wrote %s (%d s)" % (CONSTBIAS.replace("\\", "/"),
+                               out["elapsed_s"]))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rank", action="store_true")
@@ -1682,6 +1848,7 @@ def main():
     ap.add_argument("--biasnet", action="store_true")
     ap.add_argument("--refixture", action="store_true")
     ap.add_argument("--fitbias", action="store_true")
+    ap.add_argument("--constbias", action="store_true")
     ap.add_argument("--jobs", type=int, default=14)
     a = ap.parse_args()
     if not os.path.isfile(cal.RUNNET):
@@ -1708,6 +1875,8 @@ def main():
         biasnet(a.jobs)
     if a.fitbias:
         fitbias(a.jobs)
+    if a.constbias:
+        constbias(a.jobs)
     return 0
 
 
