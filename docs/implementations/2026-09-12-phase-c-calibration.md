@@ -5,10 +5,10 @@
 | Date | 2026-09-12 |
 | Author | ONFLY engineering session (third session of the day) |
 | Phase / gate | Phase C — Science (x86); scope set by D-162 |
-| Owner decisions relied on | D-162 … D-172 (D-173 onward for the disposition) |
+| Owner decisions relied on | D-162 … D-183 |
 | Requirements touched | SR-CAL-01, SR-CAL-02, SR-CAL-03, SR-CAL-04, SR-CAL-05, SR-MOD-05, FR-PRP-05, FR-PRP-06, IR-NET-03, IR-MSG-02, ACC-3, ACC-4 |
 | Open items closed | TBC-06, TBD-07, TBD-08, TBD-09, TBD-10 |
-| Owner decisions this session | D-162 … D-179 |
+| Owner decisions this session | D-162 … D-183 |
 
 ## 1. Problem / motivation
 
@@ -389,7 +389,9 @@ make test exit=0
   0.10 to 0.12, and the last digit reflects seed variance, not physics.
 - **20 Hz is excluded from the objective** (D-172) and ONFLY's MN9 fires there
   where Shiu's does not.
-- **ACC-3 is unevaluated**: no SR-EXT subcircuit exists yet. ACC-1 is defined on
+- **ACC-3 is evaluated and unmet** (VL-66..69): the N = 250/500/1000 subcircuits,
+  the MN9-partner patch, the path fixture, hop2 and the one-step inhibitory
+  closure all fail it; no MVP subcircuit is chosen (D-183). ACC-1 is defined on
   the MVS subcircuit; anything reported here for it is a full-brain x86 preview.
 - **VL-06, VL-12, VL-13** (female FlyWire reference versus male MaleCNS,
   labellar versus pharyngeal stimulus sets, 40.2% of synapses) apply in full.
