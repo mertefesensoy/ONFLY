@@ -625,11 +625,23 @@ def closure(jobs):
 # zero everywhere, and running it would only risk contradicting a criterion
 # that is true by construction.
 #
-# Three seeds per rate is D-192's engineer's choice.  The bias for one kept
-# neuron is a SUM over its dropped presynaptic partners, so the per-neuron
-# sampling error averages down before it reaches the quantity that matters.
+# Fifteen seeds per rate, and the estimator is the per-neuron MEDIAN over
+# seeds (D-193, raised from D-192's three seeds and mean).
+#
+# Why the median.  A full-brain run either ignites the hyperactive population
+# VL-66 found -- 191 neurons sustaining 250 to 280 Hz -- or it does not, so
+# each neuron's spike count over seeds is bimodal rather than clustered
+# around its mean.  A mean of a bimodal quantity sits between the two modes
+# and, with the ignition tail far above the quiet mode, above the typical
+# run: VL-71 measured the consequence directly, an N = 1000 bias of 18.55 in
+# the 160 Hz row against 0.16 to 0.59 at every rate up to 120 Hz, with U_th
+# at 7.0 mV, and every compensated network overshooting from 60 Hz up.  The
+# median ignores the tail instead of averaging it in.
+#
+# Both estimators are stored, so the three-seed mean that produced VL-71
+# stays auditable and that result reproducible.
 RATEACT = os.path.join(cal.CAL_DIR, "rate-activity.npz")
-BIAS_SEEDS = (1, 2, 3)                              # D-192
+BIAS_SEEDS = tuple(range(1, 16))                    # D-193
 BIAS_RATES = (0,) + ALL_RATES                       # rate 0 row is zeros
 
 
@@ -654,26 +666,34 @@ def ratebias(jobs):
 
     n = len(acc[ALL_RATES[0]][0])
     out = {"rates": np.array(BIAS_RATES, dtype=np.int64)}
-    rows = np.zeros((len(BIAS_RATES), n), dtype=np.float64)
+    means = np.zeros((len(BIAS_RATES), n), dtype=np.float64)
+    medians = np.zeros((len(BIAS_RATES), n), dtype=np.float64)
     for idx, r in enumerate(BIAS_RATES):
         if r == 0:
             continue                                # ACC-2: exactly zero
-        rows[idx] = np.mean(np.array(acc[r], dtype=np.float64), axis=0)
-    out["mean_spikes"] = rows
+        seen = np.array(acc[r], dtype=np.float64)
+        means[idx] = np.mean(seen, axis=0)
+        medians[idx] = np.median(seen, axis=0)
+    out["mean_spikes"] = means
+    out["median_spikes"] = medians
     out["seeds"] = np.array(BIAS_SEEDS, dtype=np.int64)
     np.savez(RATEACT, **out)
 
+    # Print both, because the gap between them IS the finding: where the mean
+    # stands far above the median, the ignition tail of VL-66's hyperactive
+    # population is what a three-seed mean was reporting (D-193).
     print("")
-    print("%6s %14s %12s %12s" % ("rate", "total spikes", "neurons>0",
-                                  "mean/active"))
+    print("%6s %14s %14s %10s %12s"
+          % ("rate", "total (mean)", "total (median)", "neurons>0",
+             "mean/median"))
     for idx, r in enumerate(BIAS_RATES):
-        act = rows[idx] > 0
-        print("%6d %14.1f %12d %12.3f"
-              % (r, rows[idx].sum(), int(act.sum()),
-                 rows[idx][act].mean() if act.any() else 0.0))
-    print("wrote %s (%d neurons, %d rates, %d s)"
+        tm, td = means[idx].sum(), medians[idx].sum()
+        print("%6d %14.1f %14.1f %10d %12s"
+              % (r, tm, td, int((medians[idx] > 0).sum()),
+                 "%.2f" % (tm / td) if td > 0 else "-"))
+    print("wrote %s (%d neurons, %d rates, %d seeds, %d s)"
           % (RATEACT.replace("\\", "/"), n, len(BIAS_RATES),
-             round(time.time() - t0)))
+             len(BIAS_SEEDS), round(time.time() - t0)))
 
 
 # --- D-186..D-189: the compared truncation constructions -------------------
@@ -1113,7 +1133,12 @@ def bias_table(arrays, nodes, rate_act):
     pre, post = arrays["body_pre"], arrays["body_post"]
     sw = arrays["signed_weight"]
     rates = [int(r) for r in rate_act["rates"]]
-    mean = rate_act["mean_spikes"]          # (len(rates), N_full)
+    # D-193: the median over seeds, where the file has one.  A file written
+    # before D-193 carries only the mean, and falling back to it keeps VL-71
+    # reproducible from the artifact that produced it.
+    key = ("median_spikes" if "median_spikes" in rate_act.files
+           else "mean_spikes")
+    mean = rate_act[key]                    # (len(rates), N_full)
 
     bodies = np.union1d(np.unique(pre), np.unique(post))
     srt = np.sort(nodes)
