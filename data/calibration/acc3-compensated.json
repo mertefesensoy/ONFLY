@@ -1,0 +1,508 @@
+{
+  "cases": {
+    "A-n1000": {
+      "N": 1000,
+      "acc3_pass": false,
+      "construction": "A",
+      "edges": 32385,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-A-n1000.bin",
+      "inhibitory_partners_added": 14,
+      "need_bytes": 566464,
+      "neurons": 988,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": false,
+          "sub_mean_hz": 0.43333333333333335,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": false,
+          "sub_mean_hz": 81.88333333333334,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": false,
+          "sub_mean_hz": 101.53333333333333,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": false,
+          "sub_mean_hz": 32.483333333333334,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": false,
+          "sub_mean_hz": 50.88333333333333,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "readout_drive_fraction": {
+        "exc_fraction": 0.9093983460541076,
+        "inh_fraction": 0.9558637614814037
+      },
+      "sha256": "2e9055a52cb7f07cb4f3c890a69df769d02c6924979da5a4c71d9b951d6b75e7",
+      "weights_changed": false
+    },
+    "A-n250": {
+      "N": 250,
+      "acc3_pass": false,
+      "construction": "A",
+      "edges": 3707,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-A-n250.bin",
+      "inhibitory_partners_added": 1,
+      "need_bytes": 90748,
+      "neurons": 257,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "readout_drive_fraction": {
+        "exc_fraction": 0.000752996313285538,
+        "inh_fraction": 0.029559931294101977
+      },
+      "sha256": "4682a3c4d2a568575082a8a1dddbe113b3b774eaaaf555e2e602e31c13a53567",
+      "weights_changed": false
+    },
+    "A-n500": {
+      "N": 500,
+      "acc3_pass": false,
+      "construction": "A",
+      "edges": 10778,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-A-n500.bin",
+      "inhibitory_partners_added": 4,
+      "need_bytes": 219340,
+      "neurons": 500,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": false,
+          "sub_mean_hz": 16.783333333333335,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": false,
+          "sub_mean_hz": 20.633333333333333,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": false,
+          "sub_mean_hz": 5.583333333333333,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": false,
+          "sub_mean_hz": 10.966666666666667,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "readout_drive_fraction": {
+        "exc_fraction": 0.5695449590111588,
+        "inh_fraction": 0.8645440933293541
+      },
+      "sha256": "9c9111ed7e41f4c8eac2c4fbef31978a07a7408c6bff853bb1b012252590fba8",
+      "weights_changed": false
+    },
+    "B1-n1000": {
+      "N": 1000,
+      "acc3_pass": false,
+      "construction": "B1",
+      "edges": 32929,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-B1-n1000.bin",
+      "gain_exc": {
+        "max": 20.0,
+        "median": 1.0633677332442704,
+        "min": 1.0
+      },
+      "gain_inh": {
+        "max": 20.0,
+        "median": 1.196968534490217,
+        "min": 1.0
+      },
+      "need_bytes": 575332,
+      "neurons": 1001,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": false,
+          "sub_mean_hz": 0.6166666666666667,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": false,
+          "sub_mean_hz": 88.76666666666667,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": false,
+          "sub_mean_hz": 113.96666666666667,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": false,
+          "sub_mean_hz": 34.6,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": false,
+          "sub_mean_hz": 54.233333333333334,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "sha256": "5b6d1505858a2234f764538fd8d620f2a3b842ad66bca18f8d66dcbe95d792c9",
+      "weights_changed": true
+    },
+    "B1-n250": {
+      "N": 250,
+      "acc3_pass": false,
+      "construction": "B1",
+      "edges": 3699,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-B1-n250.bin",
+      "gain_exc": {
+        "max": 20.0,
+        "median": 1.1258900697835945,
+        "min": 1.0
+      },
+      "gain_inh": {
+        "max": 20.0,
+        "median": 2.365808749861536,
+        "min": 1.0
+      },
+      "need_bytes": 90472,
+      "neurons": 256,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": false,
+          "sub_mean_hz": 0.0,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "sha256": "7941d9368b77e2a67bc84a99283666d381c6521ce38bdd8d859404973e92c7f1",
+      "weights_changed": true
+    },
+    "B1-n500": {
+      "N": 500,
+      "acc3_pass": false,
+      "construction": "B1",
+      "edges": 10783,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-B1-n500.bin",
+      "gain_exc": {
+        "max": 20.0,
+        "median": 1.192051692007202,
+        "min": 1.0
+      },
+      "gain_inh": {
+        "max": 20.0,
+        "median": 1.5039605388007218,
+        "min": 1.0
+      },
+      "need_bytes": 219580,
+      "neurons": 501,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": false,
+          "sub_mean_hz": 1.4,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": false,
+          "sub_mean_hz": 34.65,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": false,
+          "sub_mean_hz": 47.15,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": false,
+          "sub_mean_hz": 17.966666666666665,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": false,
+          "sub_mean_hz": 23.35,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "sha256": "8837fff00cbd3ba860212f56cf70dc82a1e1d5cd5e3cc696fde3992791901a54",
+      "weights_changed": true
+    },
+    "B2-n1000": {
+      "N": 1000,
+      "acc3_pass": false,
+      "construction": "B2",
+      "damping": 0.5,
+      "edges": 32929,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-B2-n1000.bin",
+      "gain_cap": 20.0,
+      "gain_exc": {
+        "max": 20.0,
+        "median": 3.5869444892651554,
+        "min": 0.6149253815286103
+      },
+      "history": [
+        {
+          "edges": 32929,
+          "interior_compared": 985,
+          "iteration": 0,
+          "median_rel_err": 1.0,
+          "neurons": 1001
+        },
+        {
+          "edges": 32929,
+          "interior_compared": 985,
+          "iteration": 1,
+          "median_rel_err": 0.9997499562423424,
+          "neurons": 1001
+        },
+        {
+          "edges": 32929,
+          "interior_compared": 985,
+          "iteration": 2,
+          "median_rel_err": 1.0,
+          "neurons": 1001
+        },
+        {
+          "edges": 32929,
+          "interior_compared": 985,
+          "iteration": 3,
+          "median_rel_err": 0.9328474326426992,
+          "neurons": 1001
+        }
+      ],
+      "iterations": 4,
+      "need_bytes": 575332,
+      "neurons": 1001,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": false,
+          "sub_mean_hz": 51.5,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": false,
+          "sub_mean_hz": 40.0,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": false,
+          "sub_mean_hz": 45.233333333333334,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": false,
+          "sub_mean_hz": 40.416666666666664,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": false,
+          "sub_mean_hz": 37.416666666666664,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "sha256": "8aebd9dffc85d6d04eb2e474111a042a2e6aec0375607efd0d9fa4a456749e1a",
+      "weights_changed": true
+    },
+    "B2-n500": {
+      "N": 500,
+      "acc3_pass": false,
+      "construction": "B2",
+      "damping": 0.5,
+      "edges": 10783,
+      "file": "C:\\Users\\senso\\OneDrive\\Masa\u00fcst\u00fc\\ONFLY\\.claude\\worktrees\\onfly-senior-engineer-394408\\data\\calibration\\diag-B2-n500.bin",
+      "gain_cap": 20.0,
+      "gain_exc": {
+        "max": 20.0,
+        "median": 10.632856230696156,
+        "min": 0.9258026080937785
+      },
+      "history": [
+        {
+          "edges": 10783,
+          "interior_compared": 485,
+          "iteration": 0,
+          "median_rel_err": 1.0,
+          "neurons": 501
+        },
+        {
+          "edges": 10783,
+          "interior_compared": 485,
+          "iteration": 1,
+          "median_rel_err": 1.0,
+          "neurons": 501
+        },
+        {
+          "edges": 10783,
+          "interior_compared": 485,
+          "iteration": 2,
+          "median_rel_err": 1.0,
+          "neurons": 501
+        },
+        {
+          "edges": 10783,
+          "interior_compared": 485,
+          "iteration": 3,
+          "median_rel_err": 1.3495980557113478,
+          "neurons": 501
+        }
+      ],
+      "iterations": 4,
+      "need_bytes": 219580,
+      "neurons": 501,
+      "nfr_mem_01_pass": true,
+      "per_rate": {
+        "10": {
+          "full_mean_hz": 3.6666666666666665,
+          "pass": false,
+          "sub_mean_hz": 13.05,
+          "tolerance_hz": 1.0
+        },
+        "120": {
+          "full_mean_hz": 68.38333333333334,
+          "pass": false,
+          "sub_mean_hz": 28.666666666666668,
+          "tolerance_hz": 6.838333333333335
+        },
+        "200": {
+          "full_mean_hz": 88.8,
+          "pass": false,
+          "sub_mean_hz": 51.733333333333334,
+          "tolerance_hz": 8.88
+        },
+        "40": {
+          "full_mean_hz": 14.35,
+          "pass": false,
+          "sub_mean_hz": 17.116666666666667,
+          "tolerance_hz": 1.435
+        },
+        "60": {
+          "full_mean_hz": 28.383333333333333,
+          "pass": false,
+          "sub_mean_hz": 19.383333333333333,
+          "tolerance_hz": 2.8383333333333334
+        }
+      },
+      "sha256": "6cb8a6eba5c6131b5878e69e303fde4a800c3cf9c49cb51060fec2a92a0ca5f3",
+      "weights_changed": true
+    }
+  },
+  "decisions": [
+    "D-135",
+    "D-165",
+    "D-166",
+    "D-186",
+    "D-187",
+    "D-188",
+    "D-189"
+  ],
+  "diagnostic_only": true,
+  "elapsed_s": 609,
+  "full_brain_source": "data/calibration/acc4.json (same seeds)",
+  "notes": {
+    "construction_A": "selection only; SR-EXT-02's unchanged weights intact",
+    "construction_B1": "SR-EXT-01 top-N with per-target gains so each kept neuron's expected drive matches the full brain; SR-EXT-02 deviated from",
+    "construction_B2": "B1's gains refined by rate matching on interior neurons only; readouts and stimulus neurons are never tuned, so ACC-3 stays an out-of-sample check"
+  },
+  "parameters": {
+    "b2_N": [
+      500,
+      1000
+    ],
+    "damping": 0.5,
+    "gain_cap": 20.0,
+    "iterations": 4,
+    "match_seeds": [
+      1,
+      2,
+      3
+    ]
+  }
+}
