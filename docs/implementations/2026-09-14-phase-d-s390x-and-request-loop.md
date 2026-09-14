@@ -252,6 +252,26 @@ mingw32-make golden
           across 2 networks
 ```
 
+**The card path reconstructs Section 8.4's requests exactly.** Running the
+STEP2 loop over the ONFREQ dataset `tools/mkreq.py` built from control cards
+prints the same fingerprints the golden suite computes from its own
+compiled-in table:
+
+```
+build/onflyeng_nat.exe "" <srext network> <onfreq> <onfrsp>
+  ONF301I REQUEST 1 COMPLETE FP=6C3F7272     G-15 fp=6C3F7272
+  ONF301I REQUEST 2 COMPLETE FP=BAF81D91     G-16 fp=BAF81D91
+  ONF301I REQUEST 3 COMPLETE FP=F9C7EE77     G-17 fp=F9C7EE77
+  ONF301I REQUEST 4 COMPLETE FP=4FD0ED1E     G-18 fp=4FD0ED1E
+  ONF301I REQUEST 5 COMPLETE FP=C4C320BC     G-19 fp=C4C320BC
+  ONF302I STEP SUMMARY: 5 OK, 0 WARN, 0 ERROR
+```
+
+Five for five. That is a chain, not a single check: IR-JCL-02's fixed-column
+cards, `mkreq.py`'s packing, `onfrqg`'s big-endian field reads and `onfrq1`'s
+validation together reproduce exactly the requests Section 8.4 defines — and
+the two drivers computing the fingerprints reach the same answer.
+
 **The recording is reproducible, which is what makes a cross-platform
 difference mean something.** Two independent runs of
 `run_tx.py --record` on the same host produced byte-identical artifacts:
