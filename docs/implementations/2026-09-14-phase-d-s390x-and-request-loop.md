@@ -5,8 +5,8 @@
 | Date | 2026-09-14 |
 | Author | ONFLY engineering session |
 | Phase / gate | **Phase D — Big-endian** (SRS Section 9.2) |
-| Owner decisions relied on | D-214 … D-228 |
-| Requirements touched | FR-LNX-01, FR-LNX-02, FR-BAT-01, FR-BAT-02, FR-BAT-05, FR-LOD-05, IR-COM-01, IR-COM-04, IR-COM-05, IR-JCL-02, IR-JCL-03, IR-JCL-04, IR-TRN-03, NR-09, NR-11, NR-12, NR-14, NFR-OBS-01, NFR-PRT-01, ACC-5 |
+| Owner decisions relied on | D-214 … D-233 |
+| Requirements touched | FR-LNX-01, FR-LNX-02, FR-BAT-01, FR-BAT-02, FR-BAT-05, FR-LOD-04, FR-LOD-05, IR-COM-01, IR-COM-04, IR-COM-05, IR-JCL-02, IR-JCL-03, IR-JCL-04, IR-TRN-03, NR-09, NR-11, NR-12, NR-14, NFR-OBS-01, NFR-PRT-01, ACC-5 |
 | Open items closed | none |
 
 ## 1. Problem / motivation
@@ -146,8 +146,35 @@ byte-identical before and after the refactor — that identity is the evidence
 that the extraction was behaviour-preserving, and it was checked on all three
 x86 backends and both networks before anything else was built on top.
 
-Two integer relations are re-stated because the loop now enforces them on
-data that arrives from a file rather than from a compiled-in table:
+### 4.1 Why the full network's duration is not arbitrary
+
+D-230 left `full`'s short duration open and D-232 fixed it at 100 ms, on a
+measurement that changed the question. The first recording used 1 ms and was
+**vacuous**: both readout entries came back `(id, −1, 0)`, never firing, so
+the three fingerprints differed only because the rate is a field of the
+request. That is the D-70 trap — a suite whose readouts never fire cannot
+detect a kernel change — reappearing in a new place.
+
+Let *L(k)* be the first-spike latency of readout *k* and *S(k, T)* its spike
+count over a run of duration *T*. Measured at 200 Hz, seed 1, x86-64 NATIVE:
+
+| *T* | *S*(306, *T*) | *S*(6394, *T*) | wall clock |
+|---|---|---|---|
+| 1 ms | 0 | 0 | — |
+| 50 ms | 4 | 1 | 18.5 s |
+| 100 ms | 11 | 2 | 35.9 s |
+| 200 ms | 28 | 5 | 74.3 s |
+
+with *L*(306) = 26.0 ms and *L*(6394) = 39.0 ms, both independent of *T*.
+Any *T* below about 40 ms leaves the second readout silent, and *T* = 50 ms
+leaves it firing exactly once — the same single-spike margin D-213 rejected
+when it moved G-19 off 30 Hz. 100 ms is the smallest tested duration at
+which both readouts fire more than once.
+
+### 4.2 Two integer relations
+
+These are re-stated because the loop now enforces them on data that arrives
+from a file rather than from a compiled-in table:
 
 - **NR-12's draw bound.** A request is rejected unless
   `rate_hz × dt_us ≤ 1,000,000`. Below that bound the rejection-sampling
@@ -179,6 +206,11 @@ recorded in SRS Appendix A.1 before the code that depends on it was written.
 | D-226 ONF906S at RC 16 | ONF204E at RC 8; reuse ONF108E |
 | D-227 keep ONF905S, annotated | remove it; re-purpose it |
 | D-228 TE-09 proved structurally **and** observationally | observational only; structural only |
+| D-229 three requests on `hop2` and `full`: 0, 40, 200 Hz | one request each; the same five `srext` carries |
+| D-230 `hop2` at 1000 ms, `full` short | 1000 ms for both; short for both |
+| D-231 the payload bound moves to `onfplat.h` | raise it globally; use `runnet` for `full`; drop `full` |
+| D-232 `full` runs at 100 ms | 50 ms; 200 ms; the 1000 ms standard duration |
+| D-233 `liclint` and `prep` skip with a printed line | a reduced target list; install the dependencies in the guest |
 
 Two engineer errors are recorded rather than quietly fixed, because both
 changed what the owner was told:
