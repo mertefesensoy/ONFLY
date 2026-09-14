@@ -48,6 +48,19 @@ import run_gld                                     # noqa: E402
 BACKENDS = ("soft", "nat", "2c")
 
 
+def write_text(path, text):
+    """Write a recorded text artifact in BINARY mode with LF endings.
+
+    This is not fussiness.  Python's text mode translates "\\n" to the host's
+    line ending, so the same fingerprints recorded on Windows and on Linux
+    would differ in every line terminator and the comparison would report a
+    difference on every file -- a false failure that says nothing about byte
+    order, which is the only thing these artifacts exist to measure.
+    """
+    with open(path, "wb") as f:
+        f.write(text.replace("\r\n", "\n").encode("ascii", "replace"))
+
+
 def exe(builddir, stem, backend):
     """A built binary's path, tolerating the .exe suffix on both platforms."""
     for name in ("%s_%s.exe" % (stem, backend), "%s_%s" % (stem, backend)):
@@ -119,8 +132,7 @@ def record(outdir, builddir):
                 first_eng = (eng, netpath)
 
             name = os.path.join(outdir, "gold-%s-%s.txt" % (label, backend))
-            with open(name, "w") as f:
-                f.write(gold_lines(gld, netpath, tag))
+            write_text(name, gold_lines(gld, netpath, tag))
             made.append(name)
 
             rsp = os.path.join(outdir, "rsp-%s-%s.bin" % (label, backend))
@@ -134,8 +146,8 @@ def record(outdir, builddir):
                 return 2
             made.append(rsp)
 
-    with open(os.path.join(outdir, "PLATFORM.txt"), "w") as f:
-        f.write(platform_note(first_eng[0], first_eng[1]))
+    write_text(os.path.join(outdir, "PLATFORM.txt"),
+               platform_note(first_eng[0], first_eng[1]))
 
     for name in sorted(made):
         print("run_tx: recorded %s (%d bytes)"
