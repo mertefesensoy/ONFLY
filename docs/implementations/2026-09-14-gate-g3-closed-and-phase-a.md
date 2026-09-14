@@ -134,11 +134,29 @@ name, in exactly the right place, and was wrong. Every candidate is verified
 
 Sources are searched in order: `$ONFLY_FIXTURES`, the main checkout this
 worktree belongs to, then sibling worktrees. Nothing outside the project tree
-is searched and nothing is written outside `data/networks/`. Files are hard
-linked, so they cost no extra disk and cannot drift; a filesystem that refuses
-a link gets a copy. A network found nowhere is reported as what it is — a file
-that `prep/emit.py` must regenerate from the MaleCNS data — not as a link
-failure.
+is searched and nothing is written outside `data/networks/`. A network found
+nowhere is reported as what it is — a file that `prep/emit.py` must regenerate
+from the MaleCNS data — not as a link failure.
+
+**Files are copied, never hard linked — and the first version of this tool got
+that wrong.** It hard linked by default, on the reasoning that fixtures are
+immutable so links are free and save 322 MB per worktree. That reasoning is
+wrong, and the project had already paid for it: on 2026-09-13 the networks were
+hard linked between worktrees for exactly that reason, and
+`prep/extract.py --refixture` then wrote **through** the links, silently
+replacing six network files belonging to a different worktree. Nothing reported
+it. A fixture is immutable only until some tool decides to re-emit it.
+
+The defect was caught before it could do harm a second time, and two things
+were repaired:
+
+- `place()` now copies by default; `--link` is an explicit opt-in for a caller
+  who knows their tree is read-only, and the reasoning is written into the
+  function so the next person to think links are free reads the incident first.
+- The fixtures this session had already hard-linked into the worktree were
+  converted to independent copies. `fsutil hardlink list` showed 2–3 names per
+  file beforehand and exactly 1 afterwards, with every CRC-32 preserved across
+  the conversion.
 
 `fixtures` is deliberately **not** a prerequisite of `test`. It reaches outside
 the checkout, and a test target must not do that on its own.
@@ -187,17 +205,31 @@ not only the happy one:
 
 ```
 # a fixture deleted outright
-fixtures: path   LINKED   951200 bytes, CRC 70A9A555  <- ...394408/data/networks/...
+fixtures: path   COPIED   951200 bytes, CRC 70A9A555  <- ...6642cd/data/networks/...
 
 # a fixture present, correctly named, and STALE at the v1.0 size
 fixtures: path   MISSING  885416 bytes, expected 951200
 fixtures: 1 network(s) missing or wrong
-# then repaired
-fixtures: path   LINKED   951200 bytes, CRC 70A9A555  <- ...6642cd/data/networks/...
 ```
 
 The second case is the one that matters: the diagnosis is now
 `885416 bytes, expected 951200` instead of an `ONF103E` raised four frames deep.
+
+And the recovered file is an independent copy, not a link:
+
+```
+$ fsutil hardlink list data/networks/onfnet-malecns-v1.0-path.bin | wc -l
+1
+```
+
+The seven fixtures this session had already hard-linked were converted the same
+way, CRC-32 verified before and after each conversion:
+
+```
+onfnet-malecns-v1.0-full.bin    unlinked, 299515264 bytes, CRC 44C8B933 preserved
+onfnet-malecns-v1.0-srext.bin   unlinked,    171768 bytes, CRC 038CAE79 preserved
+...   (7 files, 2-3 names each beforehand, exactly 1 afterwards)
+```
 
 ### 6.1 What this does **not** prove
 
@@ -210,9 +242,9 @@ The second case is the one that matters: the diagnosis is now
   record of a 2026-09-11 session, not reproduced.
 - **`run_sub` tests a regular expression, not MVS.** It proves the summariser
   classifies lines correctly; it says nothing about whether any job ran.
-- **`fixtures.py` was exercised on this host only**, with hard links on NTFS.
-  The copy fallback path was not exercised, because no filesystem here refused
-  a link.
+- **`fixtures.py` was exercised on this host only**, on NTFS. The `--link`
+  path is implemented but is now off by default and was exercised only before
+  the default was corrected; the copy path is what the tests above cover.
 
 ## 7. Related docs
 
