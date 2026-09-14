@@ -1,0 +1,36 @@
+GOLD id=G-01 code=SUGR stimid=1 rate=0 ms=1000 seed=1 rc=0 out=2 steps=10000 fp=6C143127
+GOUT id=G-01 k=0 n=13 lat=-1 spk=0
+GOUT id=G-01 k=1 n=302 lat=-1 spk=0
+GOLD id=G-02 code=SUGR stimid=1 rate=10 ms=1000 seed=1 rc=0 out=2 steps=10000 fp=5CAB2AA0
+GOUT id=G-02 k=0 n=13 lat=517200 spk=13
+GOUT id=G-02 k=1 n=302 lat=541800 spk=1
+GOLD id=G-03 code=SUGR stimid=1 rate=40 ms=1000 seed=1 rc=0 out=2 steps=10000 fp=A54BAAC7
+GOUT id=G-03 k=0 n=13 lat=293600 spk=8
+GOUT id=G-03 k=1 n=302 lat=-1 spk=0
+GOLD id=G-04 code=SUGR stimid=1 rate=120 ms=1000 seed=1 rc=0 out=2 steps=10000 fp=82808C5F
+GOUT id=G-04 k=0 n=13 lat=44500 spk=131
+GOUT id=G-04 k=1 n=302 lat=85700 spk=14
+GOLD id=G-05 code=SUGR stimid=1 rate=200 ms=1000 seed=1 rc=0 out=2 steps=10000 fp=CBEB5C0B
+GOUT id=G-05 k=0 n=13 lat=25000 spk=146
+GOUT id=G-05 k=1 n=302 lat=54700 spk=24
+GOLD id=G-06 code=SUGR stimid=1 rate=200 ms=1000 seed=999999999 rc=0 out=2 steps=10000 fp=4F98279A
+GOUT id=G-06 k=0 n=13 lat=24400 spk=161
+GOUT id=G-06 k=1 n=302 lat=72400 spk=27
+GOLD id=G-07 code=SUGR stimid=1 rate=9999 ms=100 seed=7 rc=0 out=2 steps=1000 fp=C4CABE4D
+GOUT id=G-07 k=0 n=13 lat=42600 spk=13
+GOUT id=G-07 k=1 n=302 lat=69800 spk=1
+GOLD id=G-08 code=SUGR stimid=1 rate=120 ms=1 seed=7 rc=0 out=2 steps=10 fp=F37639B8
+GOUT id=G-08 k=0 n=13 lat=-1 spk=0
+GOUT id=G-08 k=1 n=302 lat=-1 spk=0
+GOLD id=G-09 code=SUGR stimid=1 rate=120 ms=1300 seed=7 rc=0 out=2 steps=13000 fp=5E07D024
+GOUT id=G-09 k=0 n=13 lat=41500 spk=157
+GOUT id=G-09 k=1 n=302 lat=74300 spk=19
+GOLD id=G-10 code=SUGR stimid=1 rate=120 ms=1000 seed=0 rc=0 out=2 steps=10000 fp=461A343E
+GOUT id=G-10 k=0 n=13 lat=39600 spk=120
+GOUT id=G-10 k=1 n=302 lat=105500 spk=12
+GOLD id=G-11 code=WATR stimid=2 rate=120 ms=1000 seed=1 rc=4 out=0 steps=0 fp=025CBFDB
+GOLD id=G-12 code=XXXX stimid=0 rate=120 ms=1000 seed=1 rc=8 out=0 steps=0 fp=740E6A92
+GOLD id=G-13 code=SUGR stimid=1 rate=-1 ms=1000 seed=1 rc=8 out=0 steps=0 fp=A30B1F03
+GOLD id=G-14 code=SUGR stimid=1 rate=60 ms=1000 seed=1 rc=0 out=2 steps=10000 fp=8EC69ADE
+GOUT id=G-14 k=0 n=13 lat=143400 spk=19
+GOUT id=G-14 k=1 n=302 lat=-1 spk=0

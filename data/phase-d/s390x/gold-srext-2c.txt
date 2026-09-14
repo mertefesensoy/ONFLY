@@ -1,0 +1,15 @@
+GOLD id=G-15 code=SUGR stimid=1 rate=0 ms=1000 seed=1 rc=0 out=2 steps=10000 fp=6C3F7272
+GOUT id=G-15 k=0 n=9 lat=-1 spk=0
+GOUT id=G-15 k=1 n=88 lat=-1 spk=0
+GOLD id=G-16 code=SUGR stimid=1 rate=40 ms=1000 seed=1 rc=0 out=2 steps=10000 fp=BAF81D91
+GOUT id=G-16 k=0 n=9 lat=25800 spk=27
+GOUT id=G-16 k=1 n=88 lat=-1 spk=0
+GOLD id=G-17 code=SUGR stimid=1 rate=200 ms=1000 seed=1 rc=0 out=2 steps=10000 fp=F9C7EE77
+GOUT id=G-17 k=0 n=9 lat=8600 spk=165
+GOUT id=G-17 k=1 n=88 lat=43400 spk=15
+GOLD id=G-18 code=SUGR stimid=1 rate=9999 ms=1000 seed=1 rc=0 out=2 steps=10000 fp=4FD0ED1E
+GOUT id=G-18 k=0 n=9 lat=8500 spk=189
+GOUT id=G-18 k=1 n=88 lat=41100 spk=24
+GOLD id=G-19 code=SUGR stimid=1 rate=100 ms=1000 seed=1 rc=0 out=2 steps=10000 fp=C4C320BC
+GOUT id=G-19 k=0 n=9 lat=12100 spk=100
+GOUT id=G-19 k=1 n=88 lat=-1 spk=0
