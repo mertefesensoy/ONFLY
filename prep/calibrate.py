@@ -361,7 +361,19 @@ def main():
     ap.add_argument("--jobs", type=int, default=3)
     ap.add_argument("--keep", action="store_true",
                     help="keep the emitted candidate networks on disk")
+    # D-209: a re-run must not read the old log, because evaluate() returns
+    # a cached candidate rather than measuring it -- a "re-run" against the
+    # existing log would run nothing.  A separate path also preserves the
+    # original record, which is evidence for VL-63 and VL-79 even though it
+    # is not replayable.
+    ap.add_argument("--log", default=None,
+                    help="search log to read and write (default "
+                         "data/calibration/search-log.json)")
     a = ap.parse_args()
+    global LOG
+    if a.log:
+        LOG = a.log if os.path.isabs(a.log) else os.path.join(CAL_DIR, a.log)
+        print("search log: %s" % LOG.replace("\\", "/"))
     log = load_log()
     if a.status:
         status(log)
