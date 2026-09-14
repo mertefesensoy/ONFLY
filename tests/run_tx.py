@@ -92,6 +92,38 @@ def gold_lines(binary, netpath, tag):
     return "\n".join(keep) + "\n"
 
 
+def syn_lines(binary):
+    """The embedded synthetic network's decode and simulation lines.
+
+    Section 9.2 asks Phase D for TX-01 and TX-02 "on a synthetic network,
+    then on v1.0", and this is that synthetic network: tests/tstsyn.c runs
+    against a network compiled into the program (D-121, D-122) rather than
+    read from a file.
+
+    Recording it is not redundant with the golden suite.  The synthetic
+    network is the one case where the bytes under test travelled as C
+    source rather than as a file, so agreement here separates two things a
+    file-based comparison cannot: that the DECODER reads big-endian
+    correctly, and that the transport delivered the file intact.
+
+    DEC and HDR are kept as well as SYN and SOUT.  They report the decoded
+    header -- counts, timestep, payload CRC, maximum duration -- so a
+    disagreement in decoding shows up as a wrong field rather than only as
+    a wrong fingerprint further down.
+    """
+    proc = subprocess.Popen([os.path.abspath(binary)], stdout=subprocess.PIPE)
+    out, _ = proc.communicate()
+    if proc.returncode != 0:
+        raise RuntimeError("%s exited %d" % (binary, proc.returncode))
+    keep = []
+    for line in out.decode("ascii", "replace").splitlines():
+        for tag in ("DEC ", "HDR ", "SYN ", "SOUT "):
+            if line.startswith(tag):
+                keep.append(line)
+                break
+    return "\n".join(keep) + "\n"
+
+
 def platform_note(binary, netpath):
     """ONF002I manifest fields that identify the row (NFR-OBS-01)."""
     proc = subprocess.Popen(
@@ -147,6 +179,17 @@ def record(outdir, builddir):
                                  % (eng, label))
                 return 2
             made.append(rsp)
+
+    # Section 9.2's "synthetic network" half of Phase D.
+    for backend in BACKENDS:
+        syn = exe(builddir, "tstsyn", backend)
+        if syn is None:
+            sys.stderr.write("missing tstsyn_%s in %s; run the `syn` "
+                             "target first\n" % (backend, builddir))
+            return 2
+        name = os.path.join(outdir, "syn-%s.txt" % backend)
+        write_text(name, syn_lines(syn))
+        made.append(name)
 
     write_text(os.path.join(outdir, "PLATFORM.txt"),
                platform_note(first_eng[0], first_eng[1]))
