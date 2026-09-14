@@ -502,6 +502,14 @@ permits.
 
 ### 6.3 What these results do **not** prove
 
+- **TT-02 is not a cross-platform identity check, and must not be read as
+  one.** The two runs cover the same total — 836,352 cases each — but split
+  it differently: x86 checked 781,128 and skipped 55,224 NaN cases, s390x
+  checked 781,524 and skipped 54,828. TestFloat's generator randomises
+  operands, so each platform is checking *its own* arithmetic against *its
+  own* reference, which is exactly what NR-14 asks for. The cross-platform
+  question is TX-02's, and it is answered by byte-identical fingerprints,
+  not by these counts.
 - **QEMU is not hardware.** VL-01 applies: `qemu-system-s390x` emulates
   z/Architecture floating point in software. An s390x result under TCG is a
   statement about Linux on z/Architecture as QEMU implements it, not about a
