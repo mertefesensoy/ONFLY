@@ -218,14 +218,36 @@ def run(cards, jobname, timeout=180):
     return collect(jobname, before, timeout=timeout)
 
 
+# The lines worth keeping out of a job's printer output.
+#
+# `ABEND` is anchored on both sides, and that is the whole point of
+# spelling this out rather than leaving a bare word in the alternation.
+# An unanchored `ABEND` matches any line that merely CONTAINS those five
+# letters, and MVS listings are full of them: Gate G0 listed the members
+# of SYS2.JCLLIB, which include `JOBABEND` and `ABEND0C1`, and every one
+# of those member names was reported as though a job had abended (D-249).
+# A gate record that cries abend over a directory listing is worse than
+# one that says nothing, because the reader has to go and disprove it.
+#
+# `\bABEND(ED)?\b` rejects both: in `JOBABEND` the preceding `B` means
+# there is no word boundary before `ABEND`, and in `ABEND0C1` the
+# following `0` means there is none after it.  It still matches the forms
+# MVS actually uses -- `ABEND S0C4`, `ABEND=S806`, `ABENDED` -- and
+# `COMPLETION CODE` is added because a system completion code is how an
+# abend is reported when the word itself does not appear.
+KEEP_RE = re.compile(
+    r"IEF142I|IEF450I|IEF472I|COND CODE|COMPLETION CODE|"
+    r"\bABEND(ED)?\b|\$HASP|IEC\d|IEW\d|JCC[A-Z]?\d|"
+    r"ERROR|WARNING|SEVERE")
+
+
 def summarise(out):
     """The lines a reader actually wants: step results and diagnostics."""
     if out is None:
         return ["(no output: the job did not finish within the timeout)"]
     keep = []
     for line in out.splitlines():
-        if re.search(r"IEF142I|IEF450I|COND CODE|ABEND|\$HASP|IEC\d|"
-                     r"IEW\d|JCC[A-Z]?\d|ERROR|WARNING|SEVERE", line):
+        if KEEP_RE.search(line):
             keep.append(line.rstrip())
     return keep or ["(no step-result lines found)"]
 

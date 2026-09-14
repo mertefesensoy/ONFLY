@@ -158,7 +158,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint liclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req
+.PHONY: all test generate lint liclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req sub fixtures fixtures-check
 
 all: test
 
@@ -723,9 +723,34 @@ runners: $(BUILD) $(GENERATED) runner
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint liclint col80 c04 c04mvs tt01 tt02 c2c sfs shim layout units fp kernel syn \
+test: lint liclint col80 c04 c04mvs sub tt01 tt02 c2c sfs shim layout units fp kernel syn \
       decode eng req golden prep
 	@echo "ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE"
+
+# D-249.  `summarise()` in tools/mvsub.py turns a few thousand lines of
+# JES2 output into the handful a person reads -- and, through the gate
+# tooling, into the lines a gate record keeps.  A bare `ABEND` in its
+# alternation reported the SYS2.JCLLIB member names JOBABEND and
+# ABEND0C1 as abends during Gate G0.  Pure Python; nothing to build.
+sub:
+	$(PYTHON) tests/run_sub.py
+
+# D-249.  data/networks/*.bin is gitignored (322 MB), so a fresh clone or
+# worktree starts without it and the first symptom is ONF103E raised four
+# frames deep inside run_req.  This links the networks in from the main
+# checkout or a sibling worktree, verifying every candidate against
+# MANIFEST.json -- bytes, CRC-32 and SHA-256 -- before linking it and
+# again afterwards.
+#
+# Deliberately NOT a prerequisite of `test`: it reaches outside this
+# checkout, and a test target must not do that on its own.  Run it when
+# `test` complains, or `fixtures-check` to diagnose without changing
+# anything.
+fixtures:
+	$(PYTHON) tools/fixtures.py
+
+fixtures-check:
+	$(PYTHON) tools/fixtures.py --check
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"
