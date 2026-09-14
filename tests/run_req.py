@@ -111,11 +111,19 @@ def check_network(exes, tag, label, netpath, tmp, rows):
         for r in records:
             f.write(r)
 
+    # The oracle is a pure-Python simulation and is by far the most expensive
+    # thing here: 94 s for one backend on x86, and this runs on s390x under
+    # TCG emulation as well.  It is therefore computed ONCE per request and
+    # reused across backends.  The earlier shape recomputed it four times per
+    # request -- once for the step return code and once per backend -- which
+    # is a four-fold cost for an identical answer, since the oracle does not
+    # know or care which backend it is being compared against.
+    expect = {}
     worst = 0
     for (gid, code, stimid, rate, ms, seed, _tag) in requests:
-        want_fp, want_rc, want_steps = run_gld.oracle_request(
+        expect[gid] = run_gld.oracle_request(
             net, paycrc, stimid, rate, ms, seed)
-        worst = max(worst, want_rc)
+        worst = max(worst, expect[gid][1])
 
     written = {}
     for exe in exes:
@@ -153,8 +161,7 @@ def check_network(exes, tag, label, netpath, tmp, rows):
         for i, (gid, code, stimid, rate, ms,
                 seed, _tag) in enumerate(requests):
             rec = blob[i * L.RECORD_LEN:(i + 1) * L.RECORD_LEN]
-            want_fp, want_rc, want_steps = run_gld.oracle_request(
-                net, paycrc, stimid, rate, ms, seed)
+            want_fp, want_rc, want_steps = expect[gid]
             got = decode_response(rec)
 
             if request_echo(rec) != request_echo(records[i]):
