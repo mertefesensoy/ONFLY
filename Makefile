@@ -684,6 +684,7 @@ eng: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c $(SF2CSRC) \
 req: eng
 	$(PYTHON) tests/run_req.py $(BUILD)/onflyeng_soft.exe \
 	  $(BUILD)/onflyeng_nat.exe $(BUILD)/onflyeng_2c.exe
+	$(PYTHON) tests/test_txcmp.py
 
 # --- Gate G4: ONFLYDRV through the GnuCOBOL IBM-dialect proxy (VL-02) ------
 # D-152 installs GnuCOBOL on this host; D-156 keeps this target OUT of
