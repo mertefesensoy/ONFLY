@@ -79,12 +79,14 @@ SUITE = [
     # and each picks a different branch of Appendix C step 0 -- the zero row
     # IR-NET-09 mandates, an exactly sampled row, the top row, a rate beyond
     # the table that clamps, and a rate equidistant between two rows, which
-    # D-191 resolves to the lower.
+    # D-191 resolves to the lower (at 100 Hz, not 30, per D-213:
+    # at 30 Hz the readouts gave one spike, too thin a margin to
+    # discriminate a wrongly selected row).
     ("G-15", "SUGR", 1,    0, STD_MS,        1, NET_SREXT),
     ("G-16", "SUGR", 1,   40, STD_MS,        1, NET_SREXT),
     ("G-17", "SUGR", 1,  200, STD_MS,        1, NET_SREXT),
     ("G-18", "SUGR", 1, 9999, STD_MS,        1, NET_SREXT),
-    ("G-19", "SUGR", 1,   30, STD_MS,        1, NET_SREXT),
+    ("G-19", "SUGR", 1,  100, STD_MS,        1, NET_SREXT),
 ]
 
 

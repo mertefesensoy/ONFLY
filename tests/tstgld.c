@@ -105,12 +105,13 @@ static const struct gold suite[] = {
        table, and each selects a different branch of Appendix C step 0:
        the mandatory zero row at rate 0, an exactly sampled row, the top
        row, a rate beyond the table that clamps, and a rate equidistant
-       between two rows that must resolve to the lower (D-191). */
+       between two rows that must resolve to the lower (D-191, and
+       D-213 for why that one is at 100 Hz). */
     { "G-15", "SUGR", ONF_STIM_SUGR,    0, STD_MS,        1, NET_SREXT },
     { "G-16", "SUGR", ONF_STIM_SUGR,   40, STD_MS,        1, NET_SREXT },
     { "G-17", "SUGR", ONF_STIM_SUGR,  200, STD_MS,        1, NET_SREXT },
     { "G-18", "SUGR", ONF_STIM_SUGR, 9999, STD_MS,        1, NET_SREXT },
-    { "G-19", "SUGR", ONF_STIM_SUGR,   30, STD_MS,        1, NET_SREXT }
+    { "G-19", "SUGR", ONF_STIM_SUGR,  100, STD_MS,        1, NET_SREXT }
 };
 #define NGOLD (int)(sizeof suite / sizeof suite[0])
 
