@@ -1,0 +1,32 @@
+DEC rc=0 need=3856 n=16 e=48 ns=4 nr=4 dtus=100
+HDR paycrc=CD0582B9 maxms=5000
+SYN q=0 stimid=1 rate=0 ms=20 seed=1 out=4 steps=200 fp=E0AC7342
+SOUT q=0 i=0 id=12 lat=-1 spk=0
+SOUT q=0 i=1 id=13 lat=-1 spk=0
+SOUT q=0 i=2 id=14 lat=-1 spk=0
+SOUT q=0 i=3 id=15 lat=-1 spk=0
+SYN q=1 stimid=1 rate=40 ms=20 seed=1 out=4 steps=200 fp=FBE8F7AE
+SOUT q=1 i=0 id=12 lat=-1 spk=0
+SOUT q=1 i=1 id=13 lat=-1 spk=0
+SOUT q=1 i=2 id=14 lat=-1 spk=0
+SOUT q=1 i=3 id=15 lat=-1 spk=0
+SYN q=2 stimid=1 rate=200 ms=20 seed=1 out=4 steps=200 fp=C3EBEEEB
+SOUT q=2 i=0 id=12 lat=-1 spk=0
+SOUT q=2 i=1 id=13 lat=-1 spk=0
+SOUT q=2 i=2 id=14 lat=-1 spk=0
+SOUT q=2 i=3 id=15 lat=-1 spk=0
+SYN q=3 stimid=1 rate=120 ms=20 seed=0 out=4 steps=200 fp=1864820A
+SOUT q=3 i=0 id=12 lat=-1 spk=0
+SOUT q=3 i=1 id=13 lat=-1 spk=0
+SOUT q=3 i=2 id=14 lat=-1 spk=0
+SOUT q=3 i=3 id=15 lat=-1 spk=0
+SYN q=4 stimid=1 rate=9999 ms=10 seed=7 out=4 steps=100 fp=0D311BF6
+SOUT q=4 i=0 id=12 lat=-1 spk=0
+SOUT q=4 i=1 id=13 lat=-1 spk=0
+SOUT q=4 i=2 id=14 lat=-1 spk=0
+SOUT q=4 i=3 id=15 lat=-1 spk=0
+SYN q=5 stimid=1 rate=200 ms=10 seed=999999999 out=4 steps=100 fp=F1EDF3B8
+SOUT q=5 i=0 id=12 lat=-1 spk=0
+SOUT q=5 i=1 id=13 lat=-1 spk=0
+SOUT q=5 i=2 id=14 lat=-1 spk=0
+SOUT q=5 i=3 id=15 lat=-1 spk=0
