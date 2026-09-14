@@ -10,9 +10,9 @@
     "D-200",
     "D-203"
   ],
-  "elapsed_s": 47,
-  "label": "F3-n500",
-  "network": "data/calibration/diag-F3-n500.bin",
+  "elapsed_s": 48,
+  "label": "srext-n500",
+  "network": "data/networks/onfnet-malecns-v1.0-srext.bin",
   "per_rate": {
     "10": {
       "applies": false,
