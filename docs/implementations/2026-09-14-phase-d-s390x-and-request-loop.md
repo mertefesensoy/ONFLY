@@ -437,6 +437,52 @@ onflyeng_2c:   IDENTICAL  85f4c5819f46e868
 The only difference in the compile lines is the `-o` path, and the output is
 byte-identical, so every recording came from the binaries the suite checked.
 
+**The whole suite, bottom-up, in one run (SRS Section 8.1).**
+
+```
+ssh ... 'cd /onfly && make ONFPLAT=s390x CC=gcc PYTHON=python3 \
+                          BUILD=/tmp/b390 test'
+  ...
+  cmpgld: SOFT3E, NATIVE, SOFT2C agree on all 19 golden requests
+          across 2 networks
+  lint_lic:   SKIP - git cannot read this tree (D-233)
+  test_signs: SKIP - pandas is not installed on this host (D-233)
+  test_gain:  SKIP - numpy is not installed on this host (D-233)
+  Ran 14 tests in 2.091s
+  OK
+S390X_MAKE_TEST_EXIT=0
+```
+
+Ordering matters here and is enforced by make rather than asserted: Section
+8.1 says "a level may start only when the level below it passes on the
+platform concerned", so TT-01 and TT-02 ran before any engine test. Every
+earlier s390x result in this session was exploratory; this run is the one
+Phase D rests on.
+
+**TX-01 and TX-02: 25 of 25 artifacts identical.**
+
+```
+python3 tests/run_tx.py --compare data/phase-d/x86w data/phase-d/s390x
+  ok   gold-path-{soft,nat,2c}.txt    identical, 2109 bytes
+  ok   gold-srext-{soft,nat,2c}.txt   identical, 823 bytes
+  ok   req-{path,srext,hop2,full}.bin identical
+  ok   rsp-path-*.bin                 identical, 5768 bytes
+  ok   rsp-srext-*.bin                identical, 2060 bytes
+  ok   rsp-hop2-*.bin                 identical, 1236 bytes
+  ok   rsp-full-*.bin                 identical, 1236 bytes
+  ok   syn-{soft,nat,2c}.txt          identical, 1255 bytes
+run_tx: 25 identical, 0 differing
+COMPARE_EXIT=0
+```
+
+The s390x recording's own manifest names the row it came from:
+
+```
+ONF002I   ENGINE VERSION  0.5.0      ONF002I   PLATFORM  S390X
+ONF002I   FLOAT BACKEND   SOFT3E     ONF002I   COMPILER  GCC
+ONF002I   NET FORMAT      1.1        ONF002I   DT BITS   3FB999999999999A
+```
+
 **FR-LNX-02 and NFR-PRT-01, by inspection.** Both s390x and x86 build from
 the same sources; nothing is forked. Searching the engine, the generated
 files, the ONFLY-owned SoftFloat sources and the test drivers for platform
