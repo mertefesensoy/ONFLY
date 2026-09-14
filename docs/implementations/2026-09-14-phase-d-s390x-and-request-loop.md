@@ -252,6 +252,23 @@ mingw32-make golden
           across 2 networks
 ```
 
+**The recording is reproducible, which is what makes a cross-platform
+difference mean something.** Two independent runs of
+`run_tx.py --record` on the same host produced byte-identical artifacts:
+
+```
+python tests/run_tx.py --record <fresh-dir> build
+python tests/run_tx.py --compare data/phase-d/x86w <fresh-dir>
+  run_tx: 17 identical, 8 differing
+```
+
+The 8 reported as differing are all "present in the committed recording
+only" — the `hop2` and `full` artifacts, which `--record` does not produce
+because they come from `--record-big`. Every one of the 17 files both runs
+produced is identical. Without this check, a difference between the x86 and
+s390x recordings could have been run-to-run noise rather than a statement
+about byte order.
+
 ### 6.2 Linux s390x, Ubuntu 24.04, gcc 13.3.0, under qemu-system-s390x (TCG)
 
 Invoked as
