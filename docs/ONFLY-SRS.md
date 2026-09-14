@@ -492,21 +492,31 @@ ACC-5 is satisfied when each golden request produces the same fingerprint in eve
 
 ### 8.4 Golden request suite
 
-| ID | Stimulus | Rate (Hz) | Duration | Seed | Purpose |
-|---|---|---|---|---|---|
-| G-01 | SUGR | 0 | Standard | 1 | Silence (ACC-2) |
-| G-02 | SUGR | 10 | Standard | 1 | Validation rate |
-| G-03 | SUGR | 40 | Standard | 1 | Validation rate |
-| G-04 | SUGR | 120 | Standard | 1 | Validation rate |
-| G-05 | SUGR | 200 | Standard | 1 | Validation rate |
-| G-06 | SUGR | 200 | Standard | 999999999 | Maximum seed |
-| G-07 | SUGR | 9999 | Short | 7 | Maximum rate; exercises the draw procedure's upper bound |
-| G-08 | SUGR | 120 | 1 ms | 7 | Minimum duration |
-| G-09 | SUGR | 120 | Header maximum | 7 | Maximum duration |
-| G-10 | SUGR | 120 | Standard | 0 | Seed-zero mapping (NR-13) |
-| G-11 | WATR | 120 | Standard | 1 | Reserved stimulus, ONF201W |
-| G-12 | XXXX | 120 | Standard | 1 | Unknown stimulus, ONF203E (corrected from ONF202E by D-41) |
-| G-13 | SUGR | −1 | Standard | 1 | Out-of-range rate, ONF202E |
+Every request names the network it runs against. The fingerprint carries the network's payload CRC (IR-COM-05), so the same request against a different network is a different golden entry, not a duplicate.
+
+| ID | Network | Stimulus | Rate (Hz) | Duration | Seed | Purpose |
+|---|---|---|---|---|---|---|
+| G-01 | path | SUGR | 0 | Standard | 1 | Silence (ACC-2) |
+| G-02 | path | SUGR | 10 | Standard | 1 | Validation rate |
+| G-03 | path | SUGR | 40 | Standard | 1 | Validation rate |
+| G-04 | path | SUGR | 120 | Standard | 1 | Validation rate |
+| G-05 | path | SUGR | 200 | Standard | 1 | Validation rate |
+| G-06 | path | SUGR | 200 | Standard | 999999999 | Maximum seed |
+| G-07 | path | SUGR | 9999 | Short | 7 | Maximum rate; exercises the draw procedure's upper bound |
+| G-08 | path | SUGR | 120 | 1 ms | 7 | Minimum duration |
+| G-09 | path | SUGR | 120 | Header maximum | 7 | Maximum duration |
+| G-10 | path | SUGR | 120 | Standard | 0 | Seed-zero mapping (NR-13) |
+| G-11 | path | WATR | 120 | Standard | 1 | Reserved stimulus, ONF201W |
+| G-12 | path | XXXX | 120 | Standard | 1 | Unknown stimulus, ONF203E (corrected from ONF202E by D-41) |
+| G-13 | path | SUGR | −1 | Standard | 1 | Out-of-range rate, ONF202E |
+| G-14 | path | SUGR | 60 | Standard | 1 | Validation rate. Added 2026-09-14 by D-212, closing proposal P-09: D-165 added 60 Hz to SR-CAL-02's validation set after this suite was drafted, and ACC-5 is evaluated on the suite, so without this the rate had no determinism evidence |
+| G-15 | **srext** | SUGR | 0 | Standard | 1 | Silence on the shipped network (ACC-2), and the compensating table's rate 0 row, which IR-NET-09 requires to be zero |
+| G-16 | **srext** | SUGR | 40 | Standard | 1 | A sampled rate: Appendix C step 0 selects that row exactly |
+| G-17 | **srext** | SUGR | 200 | Standard | 1 | The highest sampled rate, the top row of the table |
+| G-18 | **srext** | SUGR | 9999 | Standard | 1 | A rate beyond the table: selection clamps to the 200 Hz row (D-191) |
+| G-19 | **srext** | SUGR | 30 | Standard | 1 | Equidistant from the 20 and 40 Hz rows: exercises D-191's tie rule, which resolves to the lower rate |
+
+`path` is `data/networks/onfnet-malecns-v1.0-path.bin`, the 913-neuron pathway fixture of D-75. `srext` is `data/networks/onfnet-malecns-v1.0-srext.bin`, the MVP subcircuit admitted by D-205 — 501 neurons carrying a format v1.1 compensating-input table. G-15 to G-19 are the only golden requests that exercise that table, and they are what give the network the MVS engine will actually run a standing fingerprint for ACC-5.
 
 ### 8.5 Test catalog
 
@@ -808,6 +818,7 @@ Each decision below was made by the owner during the requirements question round
 | D-209 | **The SR-CAL search is re-run, now that D-208 makes it reproducible.** Same protocol throughout — D-171's coarse scan then golden-section, D-169's three seeds, SR-CAL-02's calibration rates, SR-CAL-03's objective against the D-164 Shiu reference — written to a **separate** log, `data/calibration/search-log-rerun.json`, so the original record survives as the evidence behind VL-63 and VL-79 | Record the caveat on SR-MOD-02's W_syn row and move on without re-measuring (recommended by the engineer); leave both questions open and record nothing further | Chosen by the owner through AskUserQuestion, with the risk stated before the choice: **if the search now chooses a W_syn other than 0.2969, the 240-run activity ranking (VL-66), the compensating-input measurement (VL-72), the admitted subcircuit and its ACC-1, ACC-2 and ACC-3 verdicts (VL-76…VL-78) are all built on 0.2969 and would have to be revisited.** The engineer's expectation, stated but not relied on: the search is deterministic given fixed seeds, so a faithful replay should retrace the same candidates and choose the same float — which would both confirm VL-63's result and finally record the value to full precision. If it does not, that is itself the finding. **A new `--log` option** is what makes the re-run real: `evaluate()` returns a cached candidate rather than measuring it, so a re-run against the existing log would have run nothing at all. **No protocol change is made** — changing the seed count to quiet the noise VL-79 found would be a different experiment and a separate owner decision |
 | D-210 | **The D-209 re-run was parked at 13 of 16 candidates when the owner had to move the development host, and then resumed at his instruction.** Parking was clean: `prep/calibrate.py` saves the log after every candidate and `evaluate()` skips candidates already present, so resuming re-measures only what is missing | Leave it parked until the owner said otherwise (recommended by the engineer, since the host was about to travel); abandon the re-run and treat VL-80 as the finding | Chosen by the owner through AskUserQuestion. The park itself produced VL-80, which **withdrew** VL-79's claim that the search could not be replayed and replaced it with the sharper statement that the *shipped network* differs from the *chosen candidate*. Everything was committed and pushed before the machine moved |
 | D-211 | **SR-MOD-02 keeps W_syn = 0.2969 mV, recorded as a deliberately adopted value rather than the raw search minimum.** Its row now states that the SR-CAL search chose `0.2968847050625473`, that `prep/emit.py` adopted the four-decimal label as a literal, and that the literal is kept because it is the better of the two by SR-CAL-03's objective (authorised SRS text change to SR-MOD-02's W_syn row only) | Adopt the exact chosen float `0.2968847050625473`, which is faithful to the search but is the worse-calibrated of the two and would invalidate the activity ranking, ACC-4, the compensating input and the admitted subcircuit; re-run the search with more seeds to resolve the minimum properly, a protocol change of roughly five times four hours with the same invalidation risk | Chosen by the owner through AskUserQuestion on the completed re-run (VL-81). The re-run reproduced the search **exactly** — 16 of 16 candidates, the same bracket, the objective identical to sixteen significant digits — so the question was never whether the search was sound, but which of two values a 0.00515% rounding separates. Measured against the D-164 reference, the adopted literal scores **0.0268** and the search's own choice **0.0691**: the rounding landed 2.6 times better than the minimum golden-section reported. That is not luck to be relied on, it is evidence that SR-CAL-03's objective is noise-dominated at the resolution the search refines to (0.005 mV convergence on a surface where 0.000015 mV changes the answer more), and the owner chose to record that rather than chase a minimum the data cannot resolve. **Nothing downstream changes**; every result already uses 0.2969 |
+| D-212 | **The golden suite gains six requests and a network column: G-14, a 60 Hz request on the `path` fixture that closes proposal P-09, and G-15 to G-19 on the admitted `srext` subcircuit.** The five srext requests are chosen to cover what that network adds rather than to mirror the existing thirteen: rate 0 (ACC-2 and the table's mandatory zero row), 40 Hz and 200 Hz (a sampled row selected exactly, and the top row), 9999 Hz (clamping beyond the table) and 30 Hz (D-191's tie rule, equidistant between the 20 and 40 Hz rows). Authorised SRS text change to Section 8.4 | Mirror all thirteen requests against srext, 26 in total; add a single request, enough for a fingerprint but leaving the compensating table with no golden coverage. **And on P-09:** leave it open; adopt it and put 60 Hz on both networks | Chosen by the owner through AskUserQuestion, in one call covering both. **Why five and not thirteen:** the path fixture's thirteen already exercise the engine's edge cases — silence, maximum seed, maximum rate, minimum and maximum duration, seed-zero mapping, reserved and unknown stimulus, out-of-range rate — and none of them touches a compensating table, because `path` has one but no request selects an interesting row. What `srext` uniquely adds is a standing ACC-5 fingerprint for **the network the MVS engine will actually run**, and coverage of every branch of Appendix C step 0. Runtime was not the deciding factor either way: srext is 501 neurons and these runs take seconds. **Why P-09 now:** Section 8.4 was open in front of us and the proposal's reason had never been answered |
 
 ### A.2 Design decisions proposed in this draft
 
@@ -823,7 +834,7 @@ These were introduced by the architect while writing the specification. They are
 | P-06 | Verify-only mode (IR-TRN-03) | Makes transport spikes and operational checks cheap |
 | ~~P-07~~ | Source line length on MVS | **CLOSED 2026-09-11 by D-93** — measured: the TK5 card reader truncates at 80 columns silently. ONFLY sources are held to 80 columns and linted; vendored `third_party/` is exempt and needs a different transport |
 | P-08 | Add an x86-64 / SOFT2C row to the Section 8.3 determinism matrix | D-124 renamed the matrix's backend values but did not add rows, so ACC-5 is unchanged. x86 can run both soft libraries, and the 2c backend's golden fingerprints on x86 are what make a later MVS fingerprint meaningful — an MVS-only 2c row would have nothing on the same library to be compared against. Proposed, not decided; ACC-5's row set is the owner's to change |
-| P-09 | Add a 60 Hz validation-rate request (SUGR, 60 Hz, standard duration, seed 1) to the golden suite of Section 8.4, so that every TBD-07 validation rate has a golden fingerprint | D-165 added 60 Hz to the validation set after the golden suite was drafted; ACC-5 is evaluated on the golden suite, so a validation rate without a golden request has no determinism evidence. Proposed, not decided |
+| ~~P-09~~ | Add a 60 Hz validation-rate request (SUGR, 60 Hz, standard duration, seed 1) to the golden suite of Section 8.4, so that every TBD-07 validation rate has a golden fingerprint | **CLOSED 2026-09-14 by D-212 — adopted as written and entered as G-14.** The reason stood unchanged: D-165 added 60 Hz to the validation set after the suite was drafted, and ACC-5 is evaluated on the suite, so the rate had no determinism evidence |
 | ~~P-10~~ | In SR-CAL-03's objective, the relative error at a calibration rate is `|onfly - ref| / max(ref, 2 Hz)`, 2 Hz being ACC-4's floor (D-166); `prep/calibrate.py` records at which rates the floor was applied | **WITHDRAWN 2026-09-12 by D-172** — the reference at 20 Hz turned out to be exactly zero, the owner chose to exclude zero-reference rates from the objective, and no divisor floor is used |
 | P-11 | ACC-4's shape clause, "does not decrease between successive validation rates by more than one standard error", is evaluated with the standard error of ONFLY's own mean at the earlier rate, `sd / sqrt(30)` over the D-135 seeds; `prep/acc4.py` implements this reading | ACC-4 does not say whose standard error. Proposed, not decided; the evaluation output labels every shape verdict with this interpretation |
 

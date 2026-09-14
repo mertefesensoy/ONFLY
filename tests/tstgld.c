@@ -69,23 +69,48 @@ struct gold {
     onf_i32 rate;
     onf_i32 ms;             /* -1 means "header maximum" */
     onf_i32 seed;
+    onf_i32 net;            /* D-212: 0 = path fixture, 1 = srext subcircuit */
 };
+
+/* D-212: the suite now spans two networks, and a fingerprint carries the
+   network's payload CRC (IR-COM-05), so a request is only meaningful against
+   the one it was written for.  The caller passes the network file AND which
+   set to run; entries for the other set are skipped rather than run against
+   the wrong file, which would produce a valid-looking fingerprint for a
+   request Section 8.4 does not define. */
+#define NET_PATH  0
+#define NET_SREXT 1
 
 /* SRS section 8.4, with D-37 and D-42 supplying the durations. */
 static const struct gold suite[] = {
-    { "G-01", "SUGR", ONF_STIM_SUGR,    0, STD_MS,        1 },
-    { "G-02", "SUGR", ONF_STIM_SUGR,   10, STD_MS,        1 },
-    { "G-03", "SUGR", ONF_STIM_SUGR,   40, STD_MS,        1 },
-    { "G-04", "SUGR", ONF_STIM_SUGR,  120, STD_MS,        1 },
-    { "G-05", "SUGR", ONF_STIM_SUGR,  200, STD_MS,        1 },
-    { "G-06", "SUGR", ONF_STIM_SUGR,  200, STD_MS, 999999999 },
-    { "G-07", "SUGR", ONF_STIM_SUGR, 9999, SHORT_MS,      7 },
-    { "G-08", "SUGR", ONF_STIM_SUGR,  120, 1,             7 },
-    { "G-09", "SUGR", ONF_STIM_SUGR,  120, -1,            7 },
-    { "G-10", "SUGR", ONF_STIM_SUGR,  120, STD_MS,        0 },
-    { "G-11", "WATR", ONF_STIM_WATR,  120, STD_MS,        1 },
-    { "G-12", "XXXX", ONF_STIM_UNKNOWN, 120, STD_MS,      1 },
-    { "G-13", "SUGR", ONF_STIM_SUGR,   -1, STD_MS,        1 }
+    { "G-01", "SUGR", ONF_STIM_SUGR,    0, STD_MS,        1, NET_PATH },
+    { "G-02", "SUGR", ONF_STIM_SUGR,   10, STD_MS,        1, NET_PATH },
+    { "G-03", "SUGR", ONF_STIM_SUGR,   40, STD_MS,        1, NET_PATH },
+    { "G-04", "SUGR", ONF_STIM_SUGR,  120, STD_MS,        1, NET_PATH },
+    { "G-05", "SUGR", ONF_STIM_SUGR,  200, STD_MS,        1, NET_PATH },
+    { "G-06", "SUGR", ONF_STIM_SUGR,  200, STD_MS, 999999999, NET_PATH },
+    { "G-07", "SUGR", ONF_STIM_SUGR, 9999, SHORT_MS,      7, NET_PATH },
+    { "G-08", "SUGR", ONF_STIM_SUGR,  120, 1,             7, NET_PATH },
+    { "G-09", "SUGR", ONF_STIM_SUGR,  120, -1,            7, NET_PATH },
+    { "G-10", "SUGR", ONF_STIM_SUGR,  120, STD_MS,        0, NET_PATH },
+    { "G-11", "WATR", ONF_STIM_WATR,  120, STD_MS,        1, NET_PATH },
+    { "G-12", "XXXX", ONF_STIM_UNKNOWN, 120, STD_MS,      1, NET_PATH },
+    { "G-13", "SUGR", ONF_STIM_SUGR,   -1, STD_MS,        1, NET_PATH },
+    /* D-212: G-14 closes proposal P-09 -- D-165 added 60 Hz to SR-CAL-02's
+       validation set after this suite was drafted, and ACC-5 is evaluated
+       on the suite, so the rate had no determinism evidence. */
+    { "G-14", "SUGR", ONF_STIM_SUGR,   60, STD_MS,        1, NET_PATH },
+    /* D-212: the MVP subcircuit admitted by D-205.  These five are the only
+       golden requests that exercise the format v1.1 compensating-input
+       table, and each selects a different branch of Appendix C step 0:
+       the mandatory zero row at rate 0, an exactly sampled row, the top
+       row, a rate beyond the table that clamps, and a rate equidistant
+       between two rows that must resolve to the lower (D-191). */
+    { "G-15", "SUGR", ONF_STIM_SUGR,    0, STD_MS,        1, NET_SREXT },
+    { "G-16", "SUGR", ONF_STIM_SUGR,   40, STD_MS,        1, NET_SREXT },
+    { "G-17", "SUGR", ONF_STIM_SUGR,  200, STD_MS,        1, NET_SREXT },
+    { "G-18", "SUGR", ONF_STIM_SUGR, 9999, STD_MS,        1, NET_SREXT },
+    { "G-19", "SUGR", ONF_STIM_SUGR,   30, STD_MS,        1, NET_SREXT }
 };
 #define NGOLD (int)(sizeof suite / sizeof suite[0])
 
@@ -94,14 +119,18 @@ int main(int argc, char **argv)
     FILE *f;
     struct onfnet net;
     struct onfsta st;
-    onf_i32 len, need, maxms, paycrc_i;
+    onf_i32 len, need, maxms, paycrc_i, want;
     onf_u32 paycrc;
     int rc, g;
 
     if (argc < 2) {
-        fprintf(stderr, "usage: tstgld <network file>\n");
+        fprintf(stderr, "usage: tstgld <network file> [suite]\n");
         return 2;
     }
+    /* Which half of Section 8.4's suite this network is for (D-212).  It
+       defaults to the path fixture, so an invocation written before the
+       suite spanned two networks still does what it did. */
+    want = (argc > 2) ? (onf_i32)atol(argv[2]) : (onf_i32)NET_PATH;
     f = fopen(argv[1], "rb");
     if (f == NULL) {
         fprintf(stderr, "cannot open %s\n", argv[1]);
@@ -177,6 +206,10 @@ int main(int argc, char **argv)
 
     for (g = 0; g < NGOLD; g++) {
         const struct gold *q = &suite[g];
+
+        if (q->net != want) {
+            continue;       /* belongs to the other network (D-212) */
+        }
         onf_i32 ms, steps, outcount, i, reqrc;
         onf_u32 fp;
 

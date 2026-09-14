@@ -40,26 +40,55 @@ RC_OK, RC_WARN, RC_ERR = 0, 4, 8      # Appendix E RC column, proposal P-08
 #: the artifact under test.
 NETWORK = os.path.join(ROOT, "data", "networks",
                        "onfnet-malecns-v1.0-path.bin")
+
+#: D-212: Section 8.4 now spans two networks.  ``NETWORK`` stays the path
+#: fixture so that anything holding a reference to it still means what it
+#: meant; ``NETWORKS`` is the suite's own list, indexed by the ``net`` tag
+#: each request carries.  The fingerprint includes the network's payload CRC
+#: (IR-COM-05), so a request is only meaningful against the network it was
+#: written for -- running one against the other would produce a valid-looking
+#: fingerprint for a request Section 8.4 does not define.
+NET_PATH, NET_SREXT = 0, 1
+NETWORKS = {
+    NET_PATH: ("path", NETWORK),
+    NET_SREXT: ("srext", os.path.join(ROOT, "data", "networks",
+                                      "onfnet-malecns-v1.0-srext.bin")),
+}
 MAX_MS = 1300                          # D-138; read back from the file and asserted
 
 SUITE = [
-    ("G-01", "SUGR", 1,    0, STD_MS,        1),
-    ("G-02", "SUGR", 1,   10, STD_MS,        1),
-    ("G-03", "SUGR", 1,   40, STD_MS,        1),
-    ("G-04", "SUGR", 1,  120, STD_MS,        1),
-    ("G-05", "SUGR", 1,  200, STD_MS,        1),
-    ("G-06", "SUGR", 1,  200, STD_MS, 999999999),
-    ("G-07", "SUGR", 1, 9999, SHORT_MS,      7),
-    ("G-08", "SUGR", 1,  120, 1,             7),
-    ("G-09", "SUGR", 1,  120, MAX_MS,        7),
-    ("G-10", "SUGR", 1,  120, STD_MS,        0),
-    ("G-11", "WATR", 2,  120, STD_MS,        1),
-    ("G-12", "XXXX", 0,  120, STD_MS,        1),
-    ("G-13", "SUGR", 1,   -1, STD_MS,        1),
+    ("G-01", "SUGR", 1,    0, STD_MS,        1, NET_PATH),
+    ("G-02", "SUGR", 1,   10, STD_MS,        1, NET_PATH),
+    ("G-03", "SUGR", 1,   40, STD_MS,        1, NET_PATH),
+    ("G-04", "SUGR", 1,  120, STD_MS,        1, NET_PATH),
+    ("G-05", "SUGR", 1,  200, STD_MS,        1, NET_PATH),
+    ("G-06", "SUGR", 1,  200, STD_MS, 999999999, NET_PATH),
+    ("G-07", "SUGR", 1, 9999, SHORT_MS,      7, NET_PATH),
+    ("G-08", "SUGR", 1,  120, 1,             7, NET_PATH),
+    ("G-09", "SUGR", 1,  120, MAX_MS,        7, NET_PATH),
+    ("G-10", "SUGR", 1,  120, STD_MS,        0, NET_PATH),
+    ("G-11", "WATR", 2,  120, STD_MS,        1, NET_PATH),
+    ("G-12", "XXXX", 0,  120, STD_MS,        1, NET_PATH),
+    ("G-13", "SUGR", 1,   -1, STD_MS,        1, NET_PATH),
+    # D-212: closes proposal P-09.  D-165 added 60 Hz to SR-CAL-02's
+    # validation set after this suite was drafted, and ACC-5 is evaluated on
+    # the suite, so until now that rate had no determinism evidence.
+    ("G-14", "SUGR", 1,   60, STD_MS,        1, NET_PATH),
+    # D-212: the MVP subcircuit admitted by D-205.  These five are the only
+    # golden requests that exercise the format v1.1 compensating-input table,
+    # and each picks a different branch of Appendix C step 0 -- the zero row
+    # IR-NET-09 mandates, an exactly sampled row, the top row, a rate beyond
+    # the table that clamps, and a rate equidistant between two rows, which
+    # D-191 resolves to the lower.
+    ("G-15", "SUGR", 1,    0, STD_MS,        1, NET_SREXT),
+    ("G-16", "SUGR", 1,   40, STD_MS,        1, NET_SREXT),
+    ("G-17", "SUGR", 1,  200, STD_MS,        1, NET_SREXT),
+    ("G-18", "SUGR", 1, 9999, STD_MS,        1, NET_SREXT),
+    ("G-19", "SUGR", 1,   30, STD_MS,        1, NET_SREXT),
 ]
 
 
-def make_network():
+def make_network(path=None):
     """Load the real path fixture: 913 MaleCNS neurons (D-70, D-74, D-75).
 
     Why this fixture and not the two earlier ones.
@@ -84,8 +113,14 @@ def make_network():
 
     Parameters are read from the file, not restated here, so this module cannot
     disagree with the artifact under test.
+
+    D-212 gave this a ``path`` argument: the suite now also runs against the
+    admitted srext subcircuit, whose compensating-input table no request on
+    the path fixture exercises.
     """
-    spec = netread.read(NETWORK)
+    if path is None:
+        path = NETWORK
+    spec = netread.read(path)
     return spec, netread.as_oracle_network(spec), spec["paycrc"]
 
 
@@ -118,35 +153,42 @@ def main():
         sys.stderr.write("not found: %s\n" % exe)
         return 2
 
-    if not os.path.exists(NETWORK):
-        sys.stderr.write("network not found: %s\n" % NETWORK)
-        sys.stderr.write("Emit it first:  python prep/emit.py path\n")
-        return 2
-    spec, net, paycrc = make_network()
-    assert spec["max_ms"] == MAX_MS, (
-        "the file's maximum duration is %d but this suite assumes %d"
-        % (spec["max_ms"], MAX_MS))
+    backend, cgold, oracles = "?", {}, {}
+    for tag, (label, path) in sorted(NETWORKS.items()):
+        if not os.path.exists(path):
+            sys.stderr.write("network not found: %s\n" % path)
+            sys.stderr.write("Emit it first:  python prep/emit.py path   "
+                             "(or prep/extract.py --admit for srext)\n")
+            return 2
+        spec, net, paycrc = make_network(path)
+        assert spec["max_ms"] == MAX_MS, (
+            "%s's maximum duration is %d but this suite assumes %d"
+            % (label, spec["max_ms"], MAX_MS))
+        oracles[tag] = (net, paycrc)
 
-    proc = subprocess.Popen([exe, NETWORK], stdout=subprocess.PIPE)
-    out, _ = proc.communicate()
-    if proc.returncode != 0:
-        sys.stderr.write("tstgld exited %d\n" % proc.returncode)
-        return 2
-
-    backend, cgold = "?", {}
-    for line in out.decode("ascii", "replace").splitlines():
-        if line.startswith("#"):
-            for tok in line.split():
-                if tok.startswith("backend="):
-                    backend = tok.split("=", 1)[1]
-            continue
-        if line.startswith("GOLD"):
-            f = dict(t.split("=", 1) for t in line.split()[1:])
-            cgold[f["id"]] = f
+        # One invocation per network, each running only its own half of the
+        # suite (D-212).  The C side skips the rest rather than running them
+        # against the wrong file.
+        proc = subprocess.Popen([exe, path, str(tag)], stdout=subprocess.PIPE)
+        out, _ = proc.communicate()
+        if proc.returncode != 0:
+            sys.stderr.write("tstgld exited %d on %s\n"
+                             % (proc.returncode, label))
+            return 2
+        for line in out.decode("ascii", "replace").splitlines():
+            if line.startswith("#"):
+                for tok in line.split():
+                    if tok.startswith("backend="):
+                        backend = tok.split("=", 1)[1]
+                continue
+            if line.startswith("GOLD"):
+                f = dict(t.split("=", 1) for t in line.split()[1:])
+                cgold[f["id"]] = f
 
     passed = failed = 0
     rows = []
-    for gid, code, stimid, rate, ms, seed in SUITE:
+    for gid, code, stimid, rate, ms, seed, tag in SUITE:
+        net, paycrc = oracles[tag]
         want_fp, want_rc, want_steps = oracle_request(
             net, paycrc, stimid, rate, ms, seed)
         got = cgold.get(gid)
@@ -159,10 +201,10 @@ def main():
               and int(got["steps"]) == want_steps)
         if ok:
             passed += 1
-            rows.append("  ok   %s %-4s rate=%-5d ms=%-5d seed=%-9d rc=%-2d "
-                        "steps=%-6d fp=%08X"
-                        % (gid, code, rate, ms, seed, want_rc, want_steps,
-                           want_fp))
+            rows.append("  ok   %s %-5s %-4s rate=%-5d ms=%-5d seed=%-9d "
+                        "rc=%-2d steps=%-6d fp=%08X"
+                        % (gid, NETWORKS[tag][0], code, rate, ms, seed,
+                           want_rc, want_steps, want_fp))
         else:
             failed += 1
             rows.append("  FAIL %s C fp=%s rc=%s steps=%s | oracle fp=%08X "

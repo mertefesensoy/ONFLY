@@ -28,8 +28,11 @@ sys.path.insert(0, os.path.join(ROOT, "tests"))
 import run_gld  # noqa: E402
 
 
-def run(exe, path):
-    proc = subprocess.Popen([os.path.abspath(exe), path], stdout=subprocess.PIPE)
+def run(exe, path, suite=None):
+    argv = [os.path.abspath(exe), path]
+    if suite is not None:
+        argv.append(suite)          # D-212: which half of Section 8.4 to run
+    proc = subprocess.Popen(argv, stdout=subprocess.PIPE)
     out, _ = proc.communicate()
     if proc.returncode != 0:
         sys.stderr.write("%s exited %d\n" % (exe, proc.returncode))
@@ -51,36 +54,43 @@ def main():
     if len(sys.argv) < 3:
         sys.stderr.write("usage: cmpgld.py <exe> <exe> [<exe> ...]\n")
         return 2
-    # Both backends run against the same emitted artifact (D-75), not a network
-    # rebuilt here: comparing two builds against two separately generated files
-    # would leave a difference in the file as a possible explanation for a
-    # difference in the output.
-    path = run_gld.NETWORK
-    if not os.path.exists(path):
-        sys.stderr.write("network not found: %s\n" % path)
-        sys.stderr.write("Emit it first:  python prep/emit.py path\n")
-        return 2
+    # Every backend runs against the same emitted artifacts (D-75), not
+    # networks rebuilt here: comparing two builds against two separately
+    # generated files would leave a difference in the file as a possible
+    # explanation for a difference in the output.
+    #
+    # D-212: the suite spans two networks, and each has to be compared on its
+    # own.  Concatenating them would still detect a disagreement, but it would
+    # report the wrong line number and hide which network produced it.
+    bad, total_golds, names = 0, 0, None
+    for tag, (label, path) in sorted(run_gld.NETWORKS.items()):
+        if not os.path.exists(path):
+            sys.stderr.write("network not found: %s\n" % path)
+            sys.stderr.write("Emit it first:  python prep/emit.py path   "
+                             "(or prep/extract.py --admit for srext)\n")
+            return 2
 
-    runs = [run(exe, path) for exe in sys.argv[1:]]
-    ref_name, ref = runs[0]
-    bad = 0
-    for name, got in runs[1:]:
-        if got == ref:
-            continue
-        bad += 1
-        print("cmpgld: FAIL - %s disagrees with %s" % (name, ref_name))
-        if len(got) != len(ref):
-            print("  %d output lines vs %d" % (len(got), len(ref)))
-        for i, (x, y) in enumerate(zip(ref, got)):
-            if x != y:
-                print("  line %d\n    %-8s %s\n    %-8s %s"
-                      % (i + 1, ref_name + ":", x, name + ":", y))
-                break
+        runs = [run(exe, path, str(tag)) for exe in sys.argv[1:]]
+        names = [n for n, _ in runs]
+        ref_name, ref = runs[0]
+        for name, got in runs[1:]:
+            if got == ref:
+                continue
+            bad += 1
+            print("cmpgld: FAIL - %s disagrees with %s on the %s network"
+                  % (name, ref_name, label))
+            if len(got) != len(ref):
+                print("  %d output lines vs %d" % (len(got), len(ref)))
+            for i, (x, y) in enumerate(zip(ref, got)):
+                if x != y:
+                    print("  line %d\n    %-8s %s\n    %-8s %s"
+                          % (i + 1, ref_name + ":", x, name + ":", y))
+                    break
+        total_golds += len([l for l in ref if l.startswith("GOLD")])
     if bad:
         return 1
-    golds = len([l for l in ref if l.startswith("GOLD")])
-    print("cmpgld: %s agree on all %d golden requests (%d output lines)"
-          % (", ".join(n for n, _ in runs), golds, len(ref)))
+    print("cmpgld: %s agree on all %d golden requests across %d networks"
+          % (", ".join(names), total_golds, len(run_gld.NETWORKS)))
     return 0
 
 
