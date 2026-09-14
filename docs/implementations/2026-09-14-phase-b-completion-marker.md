@@ -104,7 +104,27 @@ cobol`, not `docs`).
   This change marks one phase complete; it does not define the criterion by
   which any phase is judged complete.
 
-## 7. Related docs
+## 7. Follow-up: Phase C's marker moved to match (D-247)
+
+Adding B's marker exposed a second, smaller inconsistency. All three complete
+phases were now marked, but not alike: **B and D named the marker in the
+phase-name cell, while C carried it mid-sentence inside the content cell**, a
+few dozen words in. The leftmost column is what a reader scans to answer
+"which phases are done", and on that scan C looked unmarked.
+
+D-247 moved C's marker into the phase cell and removed it from the content
+cell. Presentation only — the status, the date and the decision id are
+unchanged, and `COMPLETE 2026-09-13 (D-206)` still says exactly what it said.
+The phase cell won over the content cell because two of the three rows already
+used it and because it is the column that gets scanned.
+
+| Phase | Marker now reads |
+|---|---|
+| B | `**B — Engine and oracle (x86) — COMPLETE 2026-09-10 (D-47)**` |
+| C | `**C — Science (x86) — COMPLETE 2026-09-13 (D-206)**` |
+| D | `**D — Big-endian — COMPLETE 2026-09-14 (D-234)**` |
+
+## 8. Related docs
 
 - `docs/ONFLY-SRS.md` — §9.2 Phase B, Appendix A.1 D-47, D-206, D-234, D-246.
 - `docs/implementations/2026-09-14-g3-row-maximum-duration-correction.md` — the other record defect found in the same pass.
