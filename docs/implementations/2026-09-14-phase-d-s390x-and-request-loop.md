@@ -292,6 +292,20 @@ The generator is built on s390x itself (D-225), so the operand stream, the
 reference results and the comparison all come from the machine whose
 arithmetic is in question.
 
+Building it once cost about 90 minutes under TCG — 237 SoftFloat objects and
+154 TestFloat objects. Building it *every* time would have been a defect, and
+briefly was: `tools/tfgprep.py` copied `platform.h` into the build
+directories unconditionally, and since that file is the first prerequisite of
+all 481 objects, its mtime alone invalidated the lot. With the content check
+in place, a later `make test` in the same build directory recompiled **zero**
+TestFloat sources and reused the generator:
+
+```
+grep -c 'TestFloat-3e/source/test_' <build log>   ->  0
+python3 tests/run_tt02.py .../tstflt_soft.exe .../tstflt_nat.exe \
+        .../tstflt_2c.exe /tmp/b390/tftf/testfloat_gen.exe
+```
+
 **L1 — layout, units, float API, kernel, decoder.**
 
 ```
