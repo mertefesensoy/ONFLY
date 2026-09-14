@@ -44,7 +44,11 @@ STEP2 forward (D-221).
 | `tests/tstgld.c` | Calls `onfrq1` instead of keeping its own copy of the sequence (D-224) |
 | `tests/run_eng.py` | TE-09 proved twice: structurally on the variant, observationally on the shipped engine (D-228) |
 | `tests/run_req.py` | New: the Section 8.4 suite through the loop, against the oracle, on every backend |
-| `tests/run_tx.py` | New: records TX-01 and TX-02 evidence per platform and compares two recordings |
+| `engine/include/onfplat.h` | `ONF_MAXPAY` moves here from `onflyeng.c` and becomes platform-dependent (D-231): 64 MB on MVS and CMS, 512 MB elsewhere |
+| `tests/run_tx.py` | New: records TX-01 and TX-02 evidence per platform and compares two recordings; `--record-big` covers the D-229 set on `hop2` and `full` |
+| `tests/test_txcmp.py` | New: proves the comparator detects a one-bit change in ONF-FPRINT and a changed return code in a gold line, so a PASS means something |
+| `tools/lint_lic.py` | Skips with a printed line when git cannot read the tree (D-233) |
+| `tests/test_signs.py`, `tests/test_gain.py` | Skip with a printed line when pandas or numpy is absent (D-233) |
 | `tools/mkreq.py` | New: IR-JCL-02 control cards into an ONFREQ dataset |
 | `tools/tfgprep.py` | New: prepares out-of-tree build directories for `testfloat_gen` |
 | `softfloat/tfgen/platform.h` | New: ONFLY-owned platform header for the stock SoftFloat/TestFloat reference build |
