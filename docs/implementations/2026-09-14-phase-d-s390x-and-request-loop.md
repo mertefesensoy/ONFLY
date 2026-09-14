@@ -310,6 +310,23 @@ gcc -std=c89 -pedantic -Wall -Wextra -Werror -O2 -ffp-contract=off \
 — no `-msse2`, no `-DONF_FP_LITTLE`. The guest build also reports
 `#define ONF_MAXPAY 536870912L`, confirming D-231's platform branch.
 
+**One new compiler diagnostic, and why it is not a defect.** gcc 13.3.0
+warns on `softfloat/onfrpk.c:100`, which mingw gcc 6.3.0 did not:
+
+```
+softfloat/onfrpk.c:100:12: note: did you mean to use logical not?
+  100 |     sig &= ~(uint_fast64_t) (! (roundBits ^ 0x200));
+```
+
+The construct is upstream's ties-to-even step, kept verbatim by D-35:
+`!(roundBits ^ 0x200)` is 1 exactly when the discarded bits are a half, and
+`~1` then clears the significand's low bit. gcc's heuristic reads `~!x` as a
+likely typo for `!x`. It is a warning, not an error — `SFFLAGS` deliberately
+omits `-Werror` for SoftFloat sources, because `third_party/` is not edited
+(D-28, D-35) — and the question it raises is settled by measurement rather
+than by argument: **TT-02 checked 781,524 cases on this compiler, including
+the rounding path this line implements, and all 18 operation runs passed.**
+
 **FR-LNX-02 and NFR-PRT-01, by inspection.** Both s390x and x86 build from
 the same sources; nothing is forked. Searching the engine, the generated
 files, the ONFLY-owned SoftFloat sources and the test drivers for platform
