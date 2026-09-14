@@ -27,8 +27,10 @@ knows two records came from different machines.  Comparing it would fail
 every time; omitting it from the comparison and printing it in the report
 is what makes the comparison meaningful.
 
-Run:  python tests/run_tx.py --record  <outdir> <builddir>
-      python tests/run_tx.py --compare <dir-a> <dir-b>
+Run:  python tests/run_tx.py --record     <outdir> <builddir>
+      python tests/run_tx.py --record-big <outdir> <builddir> <hop2-ms>
+                                          <full-ms>
+      python tests/run_tx.py --compare    <dir-a> <dir-b>
 """
 import os
 import subprocess
@@ -212,9 +214,77 @@ def compare(a, b):
     return 1 if failed else 0
 
 
+#: D-216 extends TX-01 and TX-02 to the two large networks, which Section 8.4
+#: defines no request against.  D-229 fixes the comparison set: SUGR at these
+#: rates, seed 1.  These are NOT additions to the golden suite.
+BIGNETS = ("hop2", "full")
+BIGRATES = (0, 40, 200)
+BIGSEED = 1
+
+
+def record_big(outdir, builddir, durations):
+    """The D-229 comparison set on hop2 and full.
+
+    Only response records are recorded, not GOLD lines: tests/tstgld.c carries
+    a compiled-in suite for the path and srext networks only.  That loses
+    nothing, because the IR-COM-05 fingerprint is a field INSIDE the response
+    record -- comparing the records compares the fingerprints and everything
+    around them at once.
+    """
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
+    made = []
+
+    for label in BIGNETS:
+        netpath = os.path.join(ROOT, "data", "networks",
+                               "onfnet-malecns-v1.0-%s.bin" % label)
+        if not os.path.exists(netpath):
+            sys.stderr.write("network not found: %s\n" % netpath)
+            return 2
+        ms = durations[label]
+
+        reqpath = os.path.join(outdir, "req-%s.bin" % label)
+        with open(reqpath, "wb") as f:
+            for rate in BIGRATES:
+                f.write(mkreq.pack("SUGR", rate, ms, BIGSEED))
+        made.append(reqpath)
+
+        for backend in BACKENDS:
+            eng = exe(builddir, "onflyeng", backend)
+            if eng is None:
+                sys.stderr.write("missing %s binary in %s\n"
+                                 % (backend, builddir))
+                return 2
+            rsp = os.path.join(outdir, "rsp-%s-%s.bin" % (label, backend))
+            proc = subprocess.Popen(
+                [os.path.abspath(eng), "", netpath, reqpath, rsp],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            out, _ = proc.communicate()
+            if not os.path.exists(rsp):
+                sys.stderr.write("no ONFRSP from %s on %s:\n%s\n"
+                                 % (eng, label,
+                                    out.decode("ascii", "replace")[-400:]))
+                return 2
+            print("run_tx: %s %s rc=%d -> %s (%d bytes, %d ms)"
+                  % (label, backend, proc.returncode,
+                     os.path.basename(rsp), os.path.getsize(rsp), ms))
+            made.append(rsp)
+
+    print("run_tx: %d artifacts in %s" % (len(made), outdir))
+    return 0
+
+
 def main(argv):
     if len(argv) == 3 and argv[0] == "--record":
         return record(argv[1], argv[2])
+    if len(argv) == 5 and argv[0] == "--record-big":
+        # Durations are positional and required.  No default: D-230 fixed
+        # hop2 at the standard duration but deliberately left full's short
+        # duration open, to be proposed from a measured per-step rate and
+        # decided separately.  A default here would quietly make that
+        # decision.
+        return record_big(argv[1], argv[2],
+                          {"hop2": int(argv[3]), "full": int(argv[4])})
     if len(argv) == 3 and argv[0] == "--compare":
         return compare(argv[1], argv[2])
     sys.stderr.write(__doc__.rsplit("Run:", 1)[-1])

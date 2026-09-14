@@ -100,18 +100,17 @@
 #define ONFM_RQDS 906           /* ONF906S, D-226 */
 
 /*
- * The largest payload onferead() will allocate for, in bytes.
+ * ONF_MAXPAY, the largest payload onferead() will allocate for, moved to
+ * engine/include/onfplat.h by D-231 and is platform-dependent there.
  *
- * D-147: the declared length is read from a header FR-LOD-02 has not
- * yet validated, so it cannot be handed to malloc unchecked.  64 MB is
- * far above anything ONFLY produces -- the full-brain network is
- * 299 MB but is never loaded whole on MVS, and the MVP path network is
- * 885 KB (data/networks/MANIFEST.json) -- and far below a value that
- * would exhaust a sensible region.  It is a sanity bound, not the
- * memory limit: FR-LOD-04's check against the configured region runs
- * afterwards and is what actually governs.
+ * D-147 set it at 64 MB on the reasoning that the declared length is read
+ * from a header FR-LOD-02 has not yet validated, so it cannot be handed to
+ * malloc unchecked.  That reasoning is unchanged and 64 MB still applies on
+ * MVS.  It moved because D-216 requires the full MaleCNS network -- about a
+ * 299 MB payload -- to be read on x86 and s390x, where the bound refused it
+ * outright, and because NFR-PRT-01 makes onfplat.h the only file allowed to
+ * vary by platform.
  */
-#define ONF_MAXPAY 67108864L
 
 /*
  * Engine version.  Reported by the manifest so that a recorded result names

@@ -76,4 +76,34 @@ typedef char onf_assert_twoc[(((onf_u32)-1) == 0xFFFFFFFFUL) ? 1 : -1];
 #define ONF_PLATID "UNKNOWN"
 #endif
 
+/* ------------------------------------------------------------------------
+ * Largest payload ONFLYENG will allocate for, in bytes (D-147, D-231).
+ *
+ * This is a SANITY bound, not the memory limit.  The declared payload length
+ * is read from a header FR-LOD-02 has not yet validated, so it cannot be
+ * handed to malloc unchecked; FR-LOD-04's check against the configured
+ * region runs afterwards and is what actually governs.
+ *
+ * It lives here, and not in engine/src/onflyeng.c, because it is the one
+ * quantity in the engine whose right value genuinely depends on the machine
+ * -- and NFR-PRT-01 makes this header the only file permitted to differ
+ * between platforms.  A #if in the engine source would have forked it.
+ *
+ * MVS and CMS keep D-147's 64 MB unchanged.  There the guard is real: C-01
+ * gives the region single-digit megabytes (TBD-14 measured 8M on TK5), so a
+ * declared length of any size is a transport accident and an unchecked
+ * allocation is the worst way to discover it.
+ *
+ * Elsewhere the bound is 512 MB.  D-216 requires TX-01 and TX-02 to run
+ * against the full MaleCNS network, whose payload is about 299 MB
+ * (data/networks/MANIFEST.json: 299,515,264 bytes on disk), and 64 MB
+ * refused to read it at all.  512 MB admits that network with room to spare
+ * while still being far below a value that would exhaust a development host.
+ * ------------------------------------------------------------------------ */
+#if defined(__MVS__) || defined(__CMS__)
+#define ONF_MAXPAY 67108864L
+#else
+#define ONF_MAXPAY 536870912L
+#endif
+
 #endif /* ONFPLAT_H */
