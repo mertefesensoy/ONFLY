@@ -39,11 +39,54 @@ CFLAGS  = -std=c89 -pedantic -Wall -Wextra -Werror -O2
 # read: five of the names are upstream's own #ifndef feature tests.
 SFFLAGS = -O2 -Wall -Wno-unused-function -include generated/onf3enm.h
 
+# --- Platform selection (D-218) --------------------------------------------
+# This is the ONLY part of the build that varies between platforms, which is
+# why Phase D parameterised this file rather than copying it.  Everything
+# below this block is shared, so an x86 rule change cannot drift from the
+# s390x one: there is only one copy of it.
+#
+# Select with ONFPLAT.  The default reproduces the x86 Windows build exactly
+# as it was before D-218, so an invocation that names no platform behaves
+# identically to every result already in the repository.
+#
+#   x86w    x86-64 Windows, 32-bit mingw gcc   (the development host, D-29)
+#   s390x   Linux on z/Architecture, native gcc (Phase D, D-215)
+#             invoke as: make ONFPLAT=s390x CC=gcc PYTHON=python3
+#
+# NR-09 admissibility of the native backend is what these flags encode, and
+# the two platforms need different spellings of the same three guarantees:
+# IEEE binary64 with round-to-nearest-even, no FMA contraction, no fast-math.
+ONFPLAT ?= x86w
+
+ifeq ($(ONFPLAT),x86w)
 # D-30: this host's gcc is 32-bit mingw32, where x87 extended precision is the
 # default.  NR-09 forbids it, so the native backend is built with SSE2 forced,
 # FMA contraction off and no fast-math.  A native build without these is not an
 # admitted backend.
+#
+# ONF_FP_LITTLE selects the byte swap in engine/src/onffpn.c: that file builds
+# the binary64 bit pattern in big-endian order first and swaps it into host
+# order, so the mapping is stated rather than inherited (IR-NET-01).
 NATFLAGS = -msse2 -mfpmath=sse -ffp-contract=off -DONF_FP_NATIVE -DONF_FP_LITTLE
+
+else ifeq ($(ONFPLAT),s390x)
+# z/Architecture has no x87 and no extended-precision accumulator, so there is
+# nothing corresponding to -msse2 -mfpmath=sse to force: gcc's `double` on
+# s390x is already IEEE binary64 in the BFP registers, not the S/360
+# hexadecimal format.  -ffp-contract=off is still required -- s390x has a
+# fused multiply-add (MADBR) that gcc will contract into without it, which
+# NR-09 forbids because the MVS and soft backends cannot reproduce it.
+#
+# ONF_FP_LITTLE is deliberately NOT defined.  s390x is big-endian, so the
+# big-endian byte array onffpn.c builds is already in host order and must not
+# be swapped.  This is the one behavioural difference between the two
+# platforms' native backends, and it is a compile-time switch rather than a
+# run-time test so that a wrong answer here fails TU-02 immediately.
+NATFLAGS = -ffp-contract=off -DONF_FP_NATIVE
+
+else
+$(error ONFPLAT is '$(ONFPLAT)'; expected one of: x86w s390x)
+endif
 
 # D-121, D-124: the SOFT2C backend, Berkeley SoftFloat 2c's bits32 build.
 # This is the library MVS uses (D-105, NR-03), so a golden fingerprint
@@ -115,7 +158,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint liclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng
+.PHONY: all test generate lint liclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req
 
 all: test
 
@@ -329,11 +372,61 @@ c04mvs: $(BUILD) $(GENERATED) generated/onf2cnm.h $(SF2CSRC)
 # build one (D-46); NaN cases are excluded and declared as VL-11.
 TFDIR = third_party/TestFloat-3e/build/Win32-MinGW
 SFLIBDIR = third_party/SoftFloat-3e/build/Win32-MinGW
+
+ifeq ($(ONFPLAT),x86w)
 TFGEN = $(TFDIR)/testfloat_gen.exe
+
+# Not a prerequisite of tt02 or c2c on this platform: testfloat_gen.exe is a
+# build output and therefore gitignored, so a bare checkout does not have one
+# and `make testfloat` is the documented step that produces it.  Naming it as
+# a prerequisite would turn a missing generator into "No rule to make target"
+# instead of the clear failure run_tt02.py already gives.
+TFPREREQ =
 
 testfloat:
 	cd $(SFLIBDIR) && mingw32-make
 	cd $(TFDIR) && mingw32-make testfloat_gen.exe
+
+else
+# D-225: the generator is built OUT OF TREE for this platform.
+#
+# third_party/ ships only a Win32-MinGW build, and D-28 and D-35 commit
+# third_party/ to byte-identity with the published archives, so a new build
+# directory cannot be added there.  Both vendored Makefiles declare
+# SOURCE_DIR, SPECIALIZE_TYPE and PLATFORM with `?=` and put -I. -- the build
+# directory -- first on the include path, which is upstream's own mechanism
+# for a new platform: a build directory containing nothing but a platform.h.
+# tools/tfgprep.py creates those two directories under $(BUILD) and supplies
+# softfloat/tfgen/platform.h; the vendored Makefiles are then run with -C
+# pointed at them and their variables overridden on the command line.  No
+# source list is copied out of third_party, so none can drift from upstream.
+#
+# SPECIALIZE_TYPE stays 8086 for the same reason as on x86 (D-46): the
+# ARM-VFPv2-defaultNaN specialization cannot build a complete library, NaN
+# cases are excluded, and VL-11 records that limit.  Using the same
+# specialization on both platforms is also what makes the two TT-02 runs
+# comparable rather than merely both green.
+TFROOT = $(CURDIR)/third_party
+TFSFB  = $(BUILD)/tfsf
+TFTFB  = $(BUILD)/tftf
+TFGEN  = $(TFTFB)/testfloat_gen.exe
+TFPREREQ = $(TFGEN)
+
+$(TFGEN):
+	$(PYTHON) tools/tfgprep.py $(TFSFB) $(TFTFB)
+	$(MAKE) -C $(TFSFB) \
+	  -f $(TFROOT)/SoftFloat-3e/build/Win32-MinGW/Makefile \
+	  SOURCE_DIR=$(TFROOT)/SoftFloat-3e/source \
+	  SPECIALIZE_TYPE=8086
+	$(MAKE) -C $(TFTFB) \
+	  -f $(TFROOT)/TestFloat-3e/build/Win32-MinGW/Makefile \
+	  SOURCE_DIR=$(TFROOT)/TestFloat-3e/source \
+	  SOFTFLOAT_DIR=$(TFROOT)/SoftFloat-3e \
+	  SOFTFLOAT_LIB=$(CURDIR)/$(TFSFB)/softfloat.a \
+	  testfloat_gen.exe
+
+testfloat: $(TFGEN)
+endif
 
 # --- TT-01: the 64-bit integer self-test (NR-04, NR-14, A-05) -------------
 # Level L0 of Section 8.1, and the earliest thing in the whole plan: every
@@ -355,7 +448,7 @@ tt01: $(BUILD) $(IVEC)
 	  -o $(BUILD)/tstint.exe tests/tstint.c softfloat/onfint.c
 	$(PYTHON) tests/run_tt01.py $(BUILD)/tstint.exe
 
-tt02: $(BUILD) softfloat/onfsub.c $(SF2CSRC) generated/onf2cnm.h
+tt02: $(BUILD) softfloat/onfsub.c $(SF2CSRC) generated/onf2cnm.h $(TFPREREQ)
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstflt_soft.exe \
 	  tests/tstflt.c engine/src/onffpc.c engine/src/onffps.c \
 	  $(SFSRCS) $(ONFSF)
@@ -414,7 +507,7 @@ generated/onftfv.h: tools/gentf2.py
 # editing it.  They are used on x86 as well as MVS deliberately: a
 # mechanism exercised only on the platform that is hard to test is a
 # mechanism nobody has tested.
-c2c: $(BUILD) generated/onf2cnm.h generated/onf2cv.h
+c2c: $(BUILD) generated/onf2cnm.h generated/onf2cv.h $(TFPREREQ)
 	$(PYTHON) softfloat/derive2c.py --check
 	$(PYTHON) tools/gen2cnm.py --check
 	$(PYTHON) tools/gen2cv.py --check
@@ -524,21 +617,66 @@ prep:
 # linked against the SoftFloat set, which SFFLAGS builds without -pedantic.
 # Compiling them in one invocation, as the golden target does, would quietly
 # relax -pedantic -Werror on ONFLY's own code as well.
-eng: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c
+# D-221 links the kernel, the PRNG, the stimulus draw and the shared request
+# module into ONFLYENG, because STEP2 now simulates.  D-228 therefore also
+# builds a second binary per backend with -DONF_NOREQ, the request loop
+# compiled out, so that TE-09's structural argument -- `nm` proves onfrun
+# absent, so it cannot have been called -- still has a binary it holds for.
+# That variant is also the only build that can emit ONF905S (D-227).
+ENGREQ = engine/src/onfdec.c engine/src/onfcrc.c engine/src/onffpc.c \
+         engine/src/onffpr.c engine/src/onfker.c engine/src/onfrnd.c \
+         engine/src/onfstm.c engine/src/onfreq.c generated/onfcom.c
+ENGVFY = engine/src/onfdec.c engine/src/onfcrc.c engine/src/onffpc.c \
+         engine/src/onffpr.c
+
+eng: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c $(SF2CSRC) \
+     generated/onf2cnm.h
 	$(CC) $(CFLAGS) $(INC) -Isoftfloat -c \
 	  -o $(BUILD)/onflyeng.o engine/src/onflyeng.c
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/onflyeng_soft.exe \
-	  $(BUILD)/onflyeng.o engine/src/onfdec.c engine/src/onfcrc.c \
-	  engine/src/onffpc.c engine/src/onffps.c engine/src/onffpr.c \
+	  $(BUILD)/onflyeng.o $(ENGREQ) engine/src/onffps.c \
 	  softfloat/onfint.c $(SFSRCS) $(ONFSF)
-	$(PYTHON) tests/run_eng.py $(BUILD)/onflyeng_soft.exe
+	$(CC) $(CFLAGS) -DONF_NOREQ $(INC) -Isoftfloat -c \
+	  -o $(BUILD)/onflyengv.o engine/src/onflyeng.c
+	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/onflyengv_soft.exe \
+	  $(BUILD)/onflyengv.o $(ENGVFY) engine/src/onffps.c \
+	  softfloat/onfint.c $(SFSRCS) $(ONFSF)
+	$(PYTHON) tests/run_eng.py $(BUILD)/onflyeng_soft.exe \
+	  $(BUILD)/onflyengv_soft.exe
 	$(CC) $(CFLAGS) $(NATFLAGS) $(INC) -Isoftfloat -c \
 	  -o $(BUILD)/onflyengn.o engine/src/onflyeng.c
 	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/onflyeng_nat.exe \
-	  $(BUILD)/onflyengn.o engine/src/onfdec.c engine/src/onfcrc.c \
-	  engine/src/onffpc.c engine/src/onffpn.c engine/src/onffpr.c \
+	  $(BUILD)/onflyengn.o $(ENGREQ) engine/src/onffpn.c \
 	  softfloat/onfint.c
-	$(PYTHON) tests/run_eng.py $(BUILD)/onflyeng_nat.exe
+	$(CC) $(CFLAGS) $(NATFLAGS) -DONF_NOREQ $(INC) -Isoftfloat -c \
+	  -o $(BUILD)/onflyengnv.o engine/src/onflyeng.c
+	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/onflyengv_nat.exe \
+	  $(BUILD)/onflyengnv.o $(ENGVFY) engine/src/onffpn.c \
+	  softfloat/onfint.c
+	$(PYTHON) tests/run_eng.py $(BUILD)/onflyeng_nat.exe \
+	  $(BUILD)/onflyengv_nat.exe
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -Isoftfloat -c \
+	  -o $(BUILD)/onflyeng2.o engine/src/onflyeng.c
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/onflyeng_2c.exe \
+	  $(BUILD)/onflyeng2.o $(ENGREQ) engine/src/onffp2.c \
+	  softfloat/onfi32.c $(SF2CSRC)
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) -DONF_NOREQ $(INC) -Isoftfloat -c \
+	  -o $(BUILD)/onflyeng2v.o engine/src/onflyeng.c
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/onflyengv_2c.exe \
+	  $(BUILD)/onflyeng2v.o $(ENGVFY) engine/src/onffp2.c \
+	  softfloat/onfi32.c $(SF2CSRC)
+	$(PYTHON) tests/run_eng.py $(BUILD)/onflyeng_2c.exe \
+	  $(BUILD)/onflyengv_2c.exe
+
+# --- FR-BAT-01 STEP2 and TX-01: the request/response loop (D-221) ----------
+# Drives the Section 8.4 suite through ONFREQ -> ONFLYENG -> ONFRSP on every
+# backend, checks each response record against the oracle, and requires the
+# three backends to produce byte-identical ONFRSP files.  D-220 puts SOFT2C
+# here as well as SOFT3E and NATIVE: it is the library MVS uses and had never
+# run the record path at all.
+req: eng
+	$(PYTHON) tests/run_req.py $(BUILD)/onflyeng_soft.exe \
+	  $(BUILD)/onflyeng_nat.exe $(BUILD)/onflyeng_2c.exe
 
 # --- Gate G4: ONFLYDRV through the GnuCOBOL IBM-dialect proxy (VL-02) ------
 # D-152 installs GnuCOBOL on this host; D-156 keeps this target OUT of
@@ -578,8 +716,8 @@ runners: $(BUILD) $(GENERATED) runner
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
 test: lint liclint col80 c04 c04mvs tt01 tt02 c2c sfs shim layout units fp kernel syn \
-      decode eng golden prep
-	@echo "ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-09, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE"
+      decode eng req golden prep
+	@echo "ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE"
 
 clean:
 	$(PYTHON) -c "import shutil,os; shutil.rmtree('$(BUILD)', ignore_errors=True)"

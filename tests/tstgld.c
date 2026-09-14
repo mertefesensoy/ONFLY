@@ -26,6 +26,7 @@
 #include "onfnhd.h"  /* header offsets, generated (NFR-MNT-01) */
 #include "onffpr.h"
 #include "onfker.h"
+#include "onfreq.h"   /* D-224: the shared request sequence */
 
 /*
  * Storage is sized from the file and its header, not fixed at compile time.
@@ -39,16 +40,13 @@
 #define STD_MS 1000
 #define SHORT_MS 100
 
-/* Appendix E return codes (RC column), per proposal P-08. */
-#define RC_OK 0
-#define RC_WARN 4
-#define RC_ERR 8
+/* Appendix E's return codes now live in engine/include/onfreq.h as
+   ONFR_OK, ONFR_WARN and ONFR_ERR, shared with ONFLYENG (D-224). */
 
 static onf_u8 *buf;
 static onf_u32 *rowptr, *target, *stim, *readout, *brate;
 static onf_f64 *weight, *su, *sg, *sring, *bias;
 static onf_i32 *srfr, *sspk, *sfst, *sfrc, *sstm;
-static onf_i32 oid[ONF_MAXOUT], olat[ONF_MAXOUT], ospk[ONF_MAXOUT];
 
 /* malloc that reports which array failed rather than a bare null. */
 static void *xalloc(size_t bytes, const char *what)
@@ -207,63 +205,36 @@ int main(int argc, char **argv)
 
     for (g = 0; g < NGOLD; g++) {
         const struct gold *q = &suite[g];
+        struct onfrq rq;
+        struct onfrz rz;
+        onf_i32 i;
 
         if (q->net != want) {
             continue;       /* belongs to the other network (D-212) */
         }
-        onf_i32 ms, steps, outcount, i, reqrc;
-        onf_u32 fp;
 
-        ms = (q->ms < 0) ? maxms : q->ms;
-        outcount = 0;
-        steps = 0;
-        reqrc = RC_OK;
+        /* Section 8.4's G-09 asks for "the header maximum" and the table
+           above spells that as a negative sentinel.  Resolving it is this
+           driver's business, not onfreq's: a negative duration arriving in
+           a real ONFREQ record is a malformed request that IR-JCL-03 and
+           FR-SIM-06 require to be REJECTED, not reinterpreted (see the
+           comment on struct onfrq). */
+        rq.stimid = q->stimid;
+        rq.rate   = q->rate;
+        rq.ms     = (q->ms < 0) ? maxms : q->ms;
+        rq.seed   = q->seed;
 
-        /* --- request validation, before any simulation ------------------ */
-        if (q->stimid == ONF_STIM_UNKNOWN) {
-            /* ONF203E UNKNOWN STIMULUS CODE.  Section 8.4 said ONF202E; D-41
-               settled that Appendix E governs and corrected the table. */
-            reqrc = RC_ERR;
-        } else if (q->stimid != ONF_STIM_SUGR) {
-            /* FR-BAT-05: WATR and BITR are reserved, ONF201W, not simulated. */
-            reqrc = RC_WARN;
-        } else if (q->rate < 0 || q->rate > 9999) {
-            reqrc = RC_ERR;                     /* ONF202E, G-13 */
-        } else if ((onf_u32)q->rate * (onf_u32)net.dtus > 1000000UL) {
-            reqrc = RC_ERR;                     /* NR-12's bound */
-        } else if (ms < 1 || ms > maxms) {
-            reqrc = RC_ERR;                     /* FR-SIM-06, ONF202E */
-        } else {
-            steps = ms * 1000 / net.dtus;
-            if (onfrun(&net, &st, (onf_u32)q->seed, q->rate, steps)
-                != ONFK_OK) {
-                reqrc = 16;                     /* ONF903S, FR-SIM-08 */
-                steps = 0;
-            } else {
-                outcount = net.nr;
-                if (outcount > ONF_MAXOUT) {
-                    outcount = ONF_MAXOUT;
-                }
-                for (i = 0; i < outcount; i++) {
-                    onf_i32 nix = (onf_i32)net.readout[i];
-                    oid[i] = nix;
-                    olat[i] = st.first[nix];
-                    ospk[i] = st.spikes[nix];
-                }
-            }
-        }
-
-        fp = onffpr(paycrc, q->stimid, q->seed, q->rate, ms, reqrc,
-                    outcount, steps, oid, olat, ospk);
+        onfrq1(&net, &st, paycrc, maxms, &rq, &rz);
 
         printf("GOLD id=%s code=%s stimid=%ld rate=%ld ms=%ld seed=%ld "
                "rc=%ld out=%ld steps=%ld fp=%08lX\n",
-               q->id, q->code, (long)q->stimid, (long)q->rate, (long)ms,
-               (long)q->seed, (long)reqrc, (long)outcount, (long)steps,
-               (unsigned long)fp);
-        for (i = 0; i < outcount; i++) {
+               q->id, q->code, (long)q->stimid, (long)q->rate, (long)rq.ms,
+               (long)q->seed, (long)rz.rc, (long)rz.outcount,
+               (long)rz.steps, (unsigned long)rz.fp);
+        for (i = 0; i < rz.outcount; i++) {
             printf("GOUT id=%s k=%ld n=%ld lat=%ld spk=%ld\n",
-                   q->id, (long)i, (long)oid[i], (long)olat[i], (long)ospk[i]);
+                   q->id, (long)i, (long)rz.oid[i], (long)rz.olat[i],
+                   (long)rz.ospk[i]);
         }
     }
 

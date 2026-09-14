@@ -88,6 +88,18 @@ def manifest(lines):
             for line in lines if line.startswith("ONF002I")]
 
 
+def sample_request():
+    """One valid 412-byte SUGR request, for the D-228 observational check.
+
+    Built through tools/mkreq.py so that it is the same shape ONFLYDRV will
+    produce, not a hand-rolled buffer that could be malformed in a way that
+    made ONFLYENG reject it before ever reaching the question under test.
+    """
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import mkreq
+    return mkreq.pack("SUGR", 120, 100, 1)
+
+
 def kernel_absent(exe):
     """True when the program contains no kernel entry point.
 
@@ -110,13 +122,23 @@ def kernel_absent(exe):
 
 
 def main():
-    if len(sys.argv) != 2:
-        sys.stderr.write("usage: run_eng.py <onflyeng executable>\n")
+    if len(sys.argv) not in (2, 3):
+        sys.stderr.write("usage: run_eng.py <onflyeng> [<onflyeng-noreq>]\n")
         return 2
     exe = os.path.abspath(sys.argv[1])
     if not os.path.exists(exe):
         sys.stderr.write("run_eng: not found: %s\n" % exe)
         return 2
+    # D-228: the -DONF_NOREQ variant, built with the request loop compiled
+    # out.  Optional so that an invocation written before D-221 still runs,
+    # but then the structural half reports itself as skipped rather than
+    # passing on a binary it no longer holds for.
+    vexe = None
+    if len(sys.argv) == 3:
+        vexe = os.path.abspath(sys.argv[2])
+        if not os.path.exists(vexe):
+            sys.stderr.write("run_eng: not found: %s\n" % vexe)
+            return 2
 
     good = run_dec.sample_network()
     tmp = tempfile.mkdtemp(prefix="onfly_eng_")
@@ -176,23 +198,73 @@ def main():
         ok += a
         bad += b
 
-        # --- without simulating, proved structurally ------------------------
-        absent = kernel_absent(exe)
-        if absent is None:
-            lines.append("  skip %-44s nm unavailable"
+        # --- without simulating, proved two ways (D-228) --------------------
+        #
+        # Structurally, on the -DONF_NOREQ variant.  D-221 links the kernel
+        # into the shipped engine, so this argument no longer holds for it;
+        # the variant is what keeps the argument available at all.
+        if vexe is None:
+            lines.append("  skip %-44s no -DONF_NOREQ variant given"
                          % "IR-TRN-03 contains no kernel entry point")
         else:
-            a, b = check("IR-TRN-03 contains no kernel entry point", absent,
-                         "onfrun is %s" % ("absent" if absent else "PRESENT"))
+            absent = kernel_absent(vexe)
+            if absent is None:
+                lines.append("  skip %-44s nm unavailable"
+                             % "IR-TRN-03 contains no kernel entry point")
+            else:
+                a, b = check("IR-TRN-03 variant has no kernel entry point",
+                             absent, "onfrun is %s"
+                             % ("absent" if absent else "PRESENT"))
+                ok += a
+                bad += b
+            # The variant is the one build that can still emit ONF905S
+            # (D-227), so the message is tested rather than only documented.
+            rc, out = run(vexe, ["", path])
+            a, b = check("D-227 variant emits ONF905S without VERIFY",
+                         message(out) == "ONF905S" and rc == RC_ENV,
+                         "msg=%s rc=%s" % (message(out), rc))
             ok += a
             bad += b
+
+        # Observationally, on the SHIPPED engine.  A valid request dataset is
+        # supplied on purpose: if verify-only simulated, it would have written
+        # response records, so the absence of the file is the evidence.  This
+        # is not a timing measurement, which is what the structural argument
+        # was originally preferred over.
+        reqp = os.path.join(tmp, "onfreq.bin")
+        rspp = os.path.join(tmp, "onfrsp.bin")
+        with open(reqp, "wb") as fh:
+            fh.write(sample_request())
+        rc, out = run(exe, ["VERIFY", path, reqp, rspp])
+        a, b = check("IR-TRN-03 VERIFY writes no ONFRSP",
+                     not os.path.exists(rspp),
+                     "ONFRSP %s" % ("absent"
+                                    if not os.path.exists(rspp)
+                                    else "WRITTEN"))
+        ok += a
+        bad += b
+        a, b = check("IR-TRN-03 VERIFY runs no request",
+                     not any(l.startswith("ONF301I")
+                             or l.startswith("ONF302I") for l in out),
+                     "ONF301I/ONF302I present" if any(
+                         l.startswith("ONF301I") or l.startswith("ONF302I")
+                         for l in out) else "")
+        ok += a
+        bad += b
+        a, b = check("IR-TRN-03 VERIFY still reports ONF003I rc 0",
+                     message(out) == "ONF003I" and rc == RC_OK,
+                     "msg=%s rc=%s" % (message(out), rc))
+        ok += a
+        bad += b
 
         # --- the PARM itself ------------------------------------------------
         for parm, wantmsg, wantrc, why in (
                 ("VERIFY", "ONF003I", RC_OK, "verify-only, IR-TRN-03"),
                 ("verify", "ONF003I", RC_OK, "PARM case is not significant"),
-                ("", "ONF905S", RC_ENV, "no request loop at this level, D-81"),
-                ("XYZZY", "ONF905S", RC_ENV, "an unknown PARM is not VERIFY")):
+                ("", "ONF906S", RC_ENV,
+                 "SIMULATE with no ONFREQ supplied, D-226"),
+                ("XYZZY", "ONF906S", RC_ENV,
+                 "an unknown PARM is not VERIFY, so SIMULATE")):
             rc, out = run(exe, [parm, path])
             msg = message(out)
             a, b = check("PARM=%-7r %s" % (parm, why),

@@ -15,11 +15,16 @@
  *   NFR-OBS-01    print the run manifest to SYSPRINT before any work
  *   IR-TRN-03     under PARM='VERIFY', stop there and report ONF003I
  *
- * The request/response loop is NOT here.  Section 9.2 puts ONFLYDRV, the JCL
- * and the BUZZ demonstration in Phase E, which depends on Phase C and Phase D,
- * and neither is finished.  D-78 therefore builds only what IR-TRN-03 and
- * NFR-OBS-01 name, and a run without PARM='VERIFY' ends with ONF905S and
- * return code 16 rather than quietly succeeding at nothing (NFR-REL-01, D-81).
+ *   FR-BAT-01     STEP2: read ONFREQ, run each request, write ONFRSP, and
+ *                 set the step return code of IR-JCL-04
+ *
+ * The request/response loop was NOT here until D-221.  Section 9.2 places
+ * ONFLYDRV, the JCL and the BUZZ demonstration in Phase E, so D-78 built only
+ * what IR-TRN-03 and NFR-OBS-01 name and a run without PARM='VERIFY' ended
+ * with ONF905S (NFR-REL-01, D-81).  Phase D needed TX-01 to compare real
+ * response records between x86 and s390x, and no build on any platform
+ * produced one, so the owner authorised bringing STEP2 forward (D-221).
+ * ONFLYDRV, the JCL and the report remain Phase E.
  *
  * ------------------------------------------------------------------------
  * Why verify-only is worth its own mode
@@ -33,14 +38,19 @@
  * ------------------------------------------------------------------------
  * Return codes, from IR-JCL-04
  * ------------------------------------------------------------------------
- *    0   the network verified; under VERIFY the step succeeded
- *   12   network integrity failure (ONF101E..ONF108E)
- *   16   environment or self-test failure (ONF901S, ONF905S)
+ *    0   the network verified; under VERIFY the step succeeded, and in
+ *        SIMULATE mode every request succeeded
+ *    4   at least one request warned (ONF201W)
+ *    8   at least one request was rejected (ONF202E, ONF203E)
+ *   12   network integrity failure (ONF101E..ONF109E)
+ *   16   environment or self-test failure (ONF901S, ONF903S, ONF906S)
  *
- * Invocation.  argv[1] is the PARM, argv[2] the network dataset.  D-86: when
- * argv[2] is absent the program opens "DD:ONFNET", which is how PDPCLIB names
- * the DD that IR-JCL-01 allocates, so the same source serves the JCL that
- * Phase E will write and the command line this host tests it with.
+ * Invocation.  argv[1] is the PARM, argv[2] the network dataset, argv[3] the
+ * request dataset and argv[4] the response dataset (D-223).  D-86: when an
+ * argument is absent the program opens the corresponding "DD:" name, which is
+ * how PDPCLIB spells the DDs IR-JCL-01 allocates, so the same source serves
+ * the JCL that Phase E will write and the command line this host tests it
+ * with.  FR-LNX-01's "ordinary files" are exactly those positional arguments.
  *
  * NR-05: no floating-point type and no floating-point literal appears here.
  * The manifest reports binary64 header values as their bit patterns, which is
@@ -55,6 +65,7 @@
 #include "onfker.h"
 #include "onffp.h"
 #include "onfnhd.h"
+#include "onfreq.h"   /* D-221, D-224: the request/response loop */
 /* D-142: only the width this platform's engine actually uses is
    compiled in.  On a 2c platform the 64-bit header must not be
    included at all -- VL-45 measured GCCMVS unable to compile its
@@ -67,11 +78,26 @@
 
 /* IR-JCL-04 return codes. */
 #define RC_OK       0
+#define RC_WARN     4
+#define RC_REQ      8
 #define RC_INTEG   12
 #define RC_ENV     16
 
 /* Appendix E, added by D-85: the dataset could not be read at all. */
 #define ONFD_READ 108
+
+/*
+ * Appendix E codes this program prints that are not load failures.
+ *
+ * They are numbered here rather than in onfdec.h because they belong to the
+ * request loop, not to the decoder: onfdec.h's ONFD_* values double as its
+ * return codes, and a request-level code has no meaning there.
+ */
+#define ONFM_RSVD 201           /* ONF201W, FR-BAT-05 */
+#define ONFM_FLD  202           /* ONF202E */
+#define ONFM_CODE 203           /* ONF203E */
+#define ONFM_NFIN 903           /* ONF903S, FR-SIM-08 */
+#define ONFM_RQDS 906           /* ONF906S, D-226 */
 
 /*
  * The largest payload onferead() will allocate for, in bytes.
@@ -112,8 +138,10 @@
 #define ONF_CCID "UNKNOWN"
 #endif
 
-/* The DD name IR-JCL-01 allocates for the network, in PDPCLIB's spelling. */
+/* The DD names IR-JCL-01 allocates, in PDPCLIB's spelling (D-86, D-223). */
 #define ONF_NETDD "DD:ONFNET"
+#define ONF_REQDD "DD:ONFREQ"
+#define ONF_RSPDD "DD:ONFRSP"
 
 /*
  * Map a decoder result to its Appendix E message text.  The decoder's result
@@ -132,6 +160,12 @@ static const char *onfemsg(int rc)
     case ONFD_PCRC:  return "PAYLOAD CRC MISMATCH";
     case ONFD_READ:  return "NETWORK DATASET UNREADABLE";
     case ONFD_BIAS:  return "COMPENSATION TABLE INVALID";
+    case ONFM_RSVD:  return "STIMULUS CODE RESERVED, NOT SIMULATED";
+    case ONFM_FLD:   return "REQUEST FIELD OUT OF RANGE";
+    case ONFM_CODE:  return "UNKNOWN STIMULUS CODE";
+    case ONFM_NFIN:  return "NON-FINITE STATE VALUE, REQUEST ABORTED";
+    case ONFM_RQDS:  return "REQUEST DATASET UNREADABLE OR NOT A "
+                            "MULTIPLE OF 412";
     default:         return "UNKNOWN LOAD FAILURE";
     }
 }
@@ -335,11 +369,222 @@ static onf_i32 onferead(const char *path, onf_u8 **out)
     return (onf_i32)ONF_NHDR_LEN + len;
 }
 
+#ifndef ONF_NOREQ
+/*
+ * onfefld - the field name ONF202E prints (Appendix E).
+ *
+ * The COBOL field names of Section 4.3 are used rather than C identifiers,
+ * because the operator reading SYSPRINT is looking at a control card and a
+ * copybook, not at this source.
+ */
+static const char *onfefld(onf_i32 bad)
+{
+    if (bad == ONFR_F_RATE) {
+        return "ONF-STIM-RATE";
+    }
+    if (bad == ONFR_F_MS) {
+        return "ONF-SIM-MS";
+    }
+    if (bad == ONFR_F_CODE) {
+        return "ONF-STIM-CODE";
+    }
+    return "UNKNOWN";
+}
+
+/*
+ * onferun - FR-BAT-01 STEP2: every request in ONFREQ, into ONFRSP.
+ *
+ * ------------------------------------------------------------------------
+ * Why the records are streamed one at a time
+ * ------------------------------------------------------------------------
+ * A request record is 412 bytes and the response is the same record with its
+ * response portion filled in (IR-JCL-03), so there is never a reason to hold
+ * more than one.  On MVS that matters: C-01 gives the region single-digit
+ * megabytes and the network already consumes most of it, so a design that
+ * read the whole request dataset first would work on x86 and fail on the
+ * platform the MVP targets.  Streaming also means ONFRSP is written in step
+ * with ONFREQ, which is what makes the two files record-for-record aligned
+ * for the report step.
+ *
+ * ------------------------------------------------------------------------
+ * Return code
+ * ------------------------------------------------------------------------
+ * IR-JCL-04: 0 if every request succeeded, 4 if any warned, 8 if any was
+ * rejected, 16 for an environment failure.  The worst outcome wins, and
+ * every request is attempted regardless -- a rejected request must not
+ * suppress the ones after it, because FR-BAT-04's report shows all of them.
+ */
+static int onferun(const onf_u8 *buf, struct onfnet *net,
+                   const char *reqpath, const char *rsppath)
+{
+    onf_u32 *rowptr, *target, *stim, *readout, *brate;
+    onf_f64 *weight, *su, *sg, *sring, *bias;
+    onf_i32 *srfr, *sspk, *sfst, *sfrc, *sstm;
+    struct onfsta st;
+    struct onfrq rq;
+    struct onfrz rz;
+    onf_u8 rec[ONF_RECLEN];
+    FILE *fq;
+    FILE *fs;
+    onf_u32 paycrc;
+    onf_i32 maxms;
+    long qlen, nreq, k;
+    int step, nok, nwarn, nerr, rc;
+
+    paycrc = onfehdr(buf, ONF_N_PAYCRC);
+    maxms  = (onf_i32)onfehdr(buf, ONF_N_MAXMS);
+
+    /* --- the request dataset, checked before anything is allocated ------ */
+    fq = fopen(reqpath, "rb");
+    if (fq == NULL) {
+        printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), reqpath);
+        return RC_ENV;
+    }
+    if (fseek(fq, 0L, SEEK_END) != 0) {
+        fclose(fq);
+        printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), reqpath);
+        return RC_ENV;
+    }
+    qlen = ftell(fq);
+    rewind(fq);
+    if (qlen <= 0 || (qlen % (long)ONF_RECLEN) != 0) {
+        fclose(fq);
+        printf("ONF906S %s: %s (%ld BYTES)\n",
+               onfemsg(ONFM_RQDS), reqpath, qlen);
+        return RC_ENV;
+    }
+    nreq = qlen / (long)ONF_RECLEN;
+
+    fs = fopen(rsppath, "wb");
+    if (fs == NULL) {
+        fclose(fq);
+        printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), rsppath);
+        return RC_ENV;
+    }
+
+    /* --- the payload, in host order (FR-LOD-05 via onfldp) -------------- */
+    rowptr  = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)(net->n + 1));
+    target  = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net->e);
+    weight  = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net->e);
+    stim    = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net->ns);
+    readout = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net->nr);
+    brate = NULL;
+    bias = NULL;
+    if (net->nbias > 0) {
+        brate = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net->nbias);
+        bias  = (onf_f64 *)malloc(sizeof(onf_f64)
+                                  * (size_t)net->nbias * (size_t)net->n);
+    }
+    su    = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net->n);
+    sg    = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net->n);
+    sring = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net->delay
+                              * (size_t)net->n);
+    srfr  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
+    sspk  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
+    sfst  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
+    sfrc  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
+    sstm  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
+
+    if (rowptr == NULL || target == NULL || weight == NULL || stim == NULL
+        || readout == NULL || su == NULL || sg == NULL || sring == NULL
+        || srfr == NULL || sspk == NULL || sfst == NULL || sfrc == NULL
+        || sstm == NULL || (net->nbias > 0 && (brate == NULL
+                                               || bias == NULL))) {
+        /* FR-LOD-04's limit check has already passed, so a failure here is
+           the region actually running out rather than a network too large
+           to have been accepted. */
+        printf("ONF105E %s\n", onfemsg(ONFD_MEM));
+        fclose(fq);
+        fclose(fs);
+        return RC_INTEG;
+    }
+
+    rc = onfldp(buf, net, rowptr, target, weight, stim, readout,
+                brate, bias);
+    if (rc != ONFD_OK) {
+        printf("ONF%03dE %s\n", rc, onfemsg(rc));
+        fclose(fq);
+        fclose(fs);
+        return RC_INTEG;
+    }
+
+    st.u = su; st.g = sg; st.rfr = srfr; st.spikes = sspk;
+    st.first = sfst; st.force = sfrc; st.isstim = sstm; st.ring = sring;
+
+    /* --- the loop ------------------------------------------------------- */
+    step = RC_OK;
+    nok = 0;
+    nwarn = 0;
+    nerr = 0;
+    for (k = 0; k < nreq; k++) {
+        if (fread(rec, 1, (size_t)ONF_RECLEN, fq)
+            != (size_t)ONF_RECLEN) {
+            printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), reqpath);
+            fclose(fq);
+            fclose(fs);
+            return RC_ENV;
+        }
+
+        onfrqg(rec, &rq);
+        onfrq1(net, &st, paycrc, maxms, &rq, &rz);
+        onfrqp(rec, &rz);
+
+        if (rz.rc == ONFR_OK) {
+            nok++;
+            printf("ONF301I REQUEST %ld COMPLETE FP=%08lX\n",
+                   k + 1, (unsigned long)rz.fp);
+        } else if (rz.rc == ONFR_WARN) {
+            nwarn++;
+            printf("ONF201W %s\n", onfemsg(ONFM_RSVD));
+            if (step < RC_WARN) {
+                step = RC_WARN;
+            }
+        } else if (rz.rc == ONFR_SEV) {
+            nerr++;
+            printf("ONF903S %s\n", onfemsg(ONFM_NFIN));
+            step = RC_ENV;
+        } else if (rq.stimid == ONF_STIM_UNKNOWN) {
+            nerr++;
+            printf("ONF203E %s\n", onfemsg(ONFM_CODE));
+            if (step < RC_REQ) {
+                step = RC_REQ;
+            }
+        } else {
+            nerr++;
+            printf("ONF202E %s: %s\n", onfemsg(ONFM_FLD), onfefld(rz.bad));
+            if (step < RC_REQ) {
+                step = RC_REQ;
+            }
+        }
+
+        if (fwrite(rec, 1, (size_t)ONF_RECLEN, fs)
+            != (size_t)ONF_RECLEN) {
+            printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), rsppath);
+            fclose(fq);
+            fclose(fs);
+            return RC_ENV;
+        }
+    }
+
+    printf("ONF302I STEP SUMMARY: %d OK, %d WARN, %d ERROR\n",
+           nok, nwarn, nerr);
+
+    if (fclose(fs) != 0) {
+        printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), rsppath);
+        return RC_ENV;
+    }
+    fclose(fq);
+    return step;
+}
+#endif /* ONF_NOREQ */
+
 int main(int argc, char **argv)
 {
     struct onfnet net;
     const char *parm;
     const char *path;
+    const char *reqpath;
+    const char *rsppath;
     onf_u8 *buf;
     onf_i32 len;
     onf_i32 need;
@@ -349,6 +594,8 @@ int main(int argc, char **argv)
 
     parm = (argc > 1) ? argv[1] : "";
     path = (argc > 2) ? argv[2] : ONF_NETDD;
+    reqpath = (argc > 3) ? argv[3] : ONF_REQDD;
+    rsppath = (argc > 4) ? argv[4] : ONF_RSPDD;
     verify = onfeisv(parm);
 
     /*
@@ -414,9 +661,24 @@ int main(int argc, char **argv)
         return RC_OK;
     }
 
-    /* D-78 and D-81: this engine level has no request loop, and NFR-REL-01
-       forbids ending a step successfully having done nothing. */
+    /* FR-BAT-01 STEP2.  D-221 brought this forward from Phase E so that
+       TX-01 has real response records to compare across platforms; before
+       that, D-78 and D-81 ended here with ONF905S, which D-227 keeps in
+       Appendix E as a historical entry no current build can emit. */
+#ifdef ONF_NOREQ
+    /* D-228: TE-09's structural half.  Built with the request loop compiled
+       out, so that `nm` can still prove onfrun absent -- the argument D-221
+       destroyed for the shipped engine.  This is the one build that can
+       still emit ONF905S (D-227), which is why that message is tested
+       rather than merely documented. */
+    (void)reqpath;
+    (void)rsppath;
     printf("ONF905S REQUEST PROCESSING NOT BUILT AT THIS ENGINE LEVEL\n");
     free(buf);
     return RC_ENV;
+#else
+    rc = onferun(buf, &net, reqpath, rsppath);
+    free(buf);
+    return rc;
+#endif
 }
