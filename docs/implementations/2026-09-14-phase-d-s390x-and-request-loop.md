@@ -286,7 +286,23 @@ tt02   gcc -o testfloat_gen.exe genLoops.o testfloat_gen.o testfloat.a \
            /tmp/b390/tfsf/softfloat.a -lm
        run_tt02: 18 of 18 operation runs passed, 781524 cases checked,
                  54828 NaN cases skipped (VL-11)
+
+c2c    run_c2c: SoftFloat 2c bits32 vs TestFloat -- 6 of 6 operations
+                passed, 260508 cases checked, 18276 NaN cases skipped
+                (VL-11)
+         ok  add  checked=43418  skipped_nan=3046
+         ok  sub  checked=43418  skipped_nan=3046
+         ok  mul  checked=43412  skipped_nan=3052
+         ok  lt   checked=43420  skipped_nan=3044
+         ok  le   checked=43420  skipped_nan=3044
+         ok  eq   checked=43420  skipped_nan=3044
 ```
+
+The `c2c` line is the one to read twice. **SoftFloat Release 2c is the
+library the MVS engine uses** (NR-03, D-105) and it reassembles binary64
+from 32-bit halves; until D-220 put it on this platform, every 2c result in
+the repository was little-endian. Here it is checked against TestFloat
+vectors the big-endian machine generated itself.
 
 The generator is built on s390x itself (D-225), so the operand stream, the
 reference results and the comparison all come from the machine whose
