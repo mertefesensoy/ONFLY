@@ -310,6 +310,23 @@ gcc -std=c89 -pedantic -Wall -Wextra -Werror -O2 -ffp-contract=off \
 — no `-msse2`, no `-DONF_FP_LITTLE`. The guest build also reports
 `#define ONF_MAXPAY 536870912L`, confirming D-231's platform branch.
 
+**FR-LNX-02 and NFR-PRT-01, by inspection.** Both s390x and x86 build from
+the same sources; nothing is forked. Searching the engine, the generated
+files, the ONFLY-owned SoftFloat sources and the test drivers for platform
+detection finds exactly one occurrence outside `engine/include/onfplat.h`:
+
+```
+grep -rn "__s390x__|__s390__|__MVS__|__CMS__|_WIN32|__WIN32__" \
+     engine/ generated/ softfloat/*.c tools/*.c tests/*.c
+engine/src/onflyeng.c:134:#elif defined(__CMS__) || defined(__MVS__)
+```
+
+and that one selects the `ONF_CCID` **string** the NFR-OBS-01 manifest
+prints, not any behaviour. Everything that varies by platform — the integer
+widths, `ONF_PLATID`, the byte order SoftFloat is told about, and now
+`ONF_MAXPAY` (D-231) — is in the platform header, which is what NFR-PRT-01
+permits.
+
 ### 6.3 What these results do **not** prove
 
 - **QEMU is not hardware.** VL-01 applies: `qemu-system-s390x` emulates
