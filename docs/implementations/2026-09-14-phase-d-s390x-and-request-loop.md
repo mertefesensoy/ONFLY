@@ -254,7 +254,61 @@ mingw32-make golden
 
 ### 6.2 Linux s390x, Ubuntu 24.04, gcc 13.3.0, under qemu-system-s390x (TCG)
 
-Results are recorded in Section 6.3 of this document as they were measured.
+Invoked as
+`make ONFPLAT=s390x CC=gcc PYTHON=python3 BUILD=<dir> <target>` inside the
+guest, against the worktree shared over 9p at `/onfly` (D-217).
+
+**L0 — the toolchain, before any engine test (Section 8.1, NR-14).**
+
+```
+tt01   run_tt01: 149 vectors in 9 groups, recomputed in Python
+       run_tt01: ok   table, compiler and oracle agree on all 149 vectors
+       run_tt01: ok   onfitst returned 0; no cross-check failure
+
+tt02   gcc -o testfloat_gen.exe genLoops.o testfloat_gen.o testfloat.a \
+           /tmp/b390/tfsf/softfloat.a -lm
+       run_tt02: 18 of 18 operation runs passed, 781524 cases checked,
+                 54828 NaN cases skipped (VL-11)
+```
+
+The generator is built on s390x itself (D-225), so the operand stream, the
+reference results and the comparison all come from the machine whose
+arithmetic is in question.
+
+**L1 — layout, units, float API, kernel, decoder.**
+
+```
+layout  tstcom: TU-01/TU-07 on platform S390X
+        tstcom: 170 checks, 0 failures
+units   run_units: 19 passed, 0 failed
+fp      run_fp [SOFT3E backend]:  2426 passed, 0 failed
+        run_fp [NATIVE backend]:  2426 passed, 0 failed
+        run_fp [SOFT2C backend]:  2426 passed, 0 failed
+        cmpback: SOFT3E, NATIVE, SOFT2C agree bit-for-bit on 2018 result lines
+kernel  run_ker [SOFT3E backend]: 449 passed, 0 failed
+        run_ker [NATIVE backend]: 449 passed, 0 failed
+        run_ker [SOFT2C backend]: 449 passed, 0 failed
+        cmpback: SOFT3E, NATIVE, SOFT2C agree bit-for-bit on 778 result lines
+decode  run_dec: 16 passed, 0 failed
+eng     run_eng: 29 passed, 0 failed   (each of SOFT3E, NATIVE, SOFT2C)
+```
+
+`tstcom` printing `platform S390X` is the first ONFLY code ever to run on a
+big-endian machine. The three-backend agreement includes **SOFT2C**, the
+library MVS uses, which had never executed on a big-endian host before
+(D-220) — and Release 2c reassembles binary64 from 32-bit halves, so it is
+precisely where a host-endianness assumption would have hidden.
+
+The native backend is compiled with the D-218 s390x flags, visible in the
+build log:
+
+```
+gcc -std=c89 -pedantic -Wall -Wextra -Werror -O2 -ffp-contract=off \
+    -DONF_FP_NATIVE -Iengine/include -Igenerated -o /tmp/b390x/tstdec.exe
+```
+
+— no `-msse2`, no `-DONF_FP_LITTLE`. The guest build also reports
+`#define ONF_MAXPAY 536870912L`, confirming D-231's platform branch.
 
 ### 6.3 What these results do **not** prove
 
