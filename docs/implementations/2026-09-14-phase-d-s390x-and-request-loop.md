@@ -421,6 +421,22 @@ omits `-Werror` for SoftFloat sources, because `third_party/` is not edited
 than by argument: **TT-02 checked 781,524 cases on this compiler, including
 the rounding path this line implements, and all 18 operation runs passed.**
 
+**Two build directories, one set of binaries.** The `hop2` and `full`
+recordings were made from `/tmp/b390x` so they could use the guest's second
+core while the TT-02 generator was still building in `/tmp/b390`; the
+`path`, `srext` and synthetic recordings come from `/tmp/b390`, the directory
+the authoritative `make test` verified. That would be a provenance caveat if
+the binaries differed. They do not:
+
+```
+onflyeng_soft: IDENTICAL  1a40f8923da4ea41
+onflyeng_nat:  IDENTICAL  6d04532a48e565e4
+onflyeng_2c:   IDENTICAL  85f4c5819f46e868
+```
+
+The only difference in the compile lines is the `-o` path, and the output is
+byte-identical, so every recording came from the binaries the suite checked.
+
 **FR-LNX-02 and NFR-PRT-01, by inspection.** Both s390x and x86 build from
 the same sources; nothing is forked. Searching the engine, the generated
 files, the ONFLY-owned SoftFloat sources and the test drivers for platform
