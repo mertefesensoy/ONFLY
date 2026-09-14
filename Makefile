@@ -291,18 +291,21 @@ decode: $(BUILD) $(GENERATED)
 # fingerprint, so these are not yet reference values.
 golden: $(BUILD) $(GENERATED) softfloat/onfsub.c $(SF2CSRC) generated/onf2cnm.h
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstgld_soft.exe \
-	  tests/tstgld.c engine/src/onfdec.c engine/src/onfcrc.c \
+	  tests/tstgld.c engine/src/onfreq.c generated/onfcom.c \
+	  engine/src/onfdec.c engine/src/onfcrc.c \
 	  engine/src/onffpc.c engine/src/onffps.c engine/src/onfker.c \
 	  engine/src/onfrnd.c engine/src/onfstm.c engine/src/onffpr.c \
 	  $(SFSRCS) $(ONFSF)
 	$(PYTHON) tests/run_gld.py $(BUILD)/tstgld_soft.exe
 	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/tstgld_nat.exe \
-	  tests/tstgld.c engine/src/onfdec.c engine/src/onfcrc.c \
+	  tests/tstgld.c engine/src/onfreq.c generated/onfcom.c \
+	  engine/src/onfdec.c engine/src/onfcrc.c \
 	  engine/src/onffpc.c engine/src/onffpn.c engine/src/onfker.c \
 	  engine/src/onfrnd.c engine/src/onfstm.c engine/src/onffpr.c
 	$(PYTHON) tests/run_gld.py $(BUILD)/tstgld_nat.exe
 	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/tstgld_2c.exe  \
-	  tests/tstgld.c engine/src/onfdec.c engine/src/onfcrc.c  \
+	  tests/tstgld.c engine/src/onfreq.c generated/onfcom.c \
+	  engine/src/onfdec.c engine/src/onfcrc.c  \
 	  engine/src/onffpc.c engine/src/onffp2.c engine/src/onfker.c  \
 	  engine/src/onfrnd.c engine/src/onfstm.c engine/src/onffpr.c  \
 	  $(SF2CSRC)
@@ -412,6 +415,10 @@ TFTFB  = $(BUILD)/tftf
 TFGEN  = $(TFTFB)/testfloat_gen.exe
 TFPREREQ = $(TFGEN)
 
+# $(abspath ...) rather than $(CURDIR)/...: BUILD may already be absolute --
+# the s390x runs pass BUILD=/tmp/b390 so that object files stay off the 9p
+# share -- and prefixing CURDIR onto an absolute path yields /onfly//tmp/...,
+# which make reports only as "No rule to make target" at the final link.
 $(TFGEN):
 	$(PYTHON) tools/tfgprep.py $(TFSFB) $(TFTFB)
 	$(MAKE) -C $(TFSFB) \
@@ -422,7 +429,7 @@ $(TFGEN):
 	  -f $(TFROOT)/TestFloat-3e/build/Win32-MinGW/Makefile \
 	  SOURCE_DIR=$(TFROOT)/TestFloat-3e/source \
 	  SOFTFLOAT_DIR=$(TFROOT)/SoftFloat-3e \
-	  SOFTFLOAT_LIB=$(CURDIR)/$(TFSFB)/softfloat.a \
+	  SOFTFLOAT_LIB=$(abspath $(TFSFB))/softfloat.a \
 	  testfloat_gen.exe
 
 testfloat: $(TFGEN)
