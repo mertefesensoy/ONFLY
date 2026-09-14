@@ -143,6 +143,44 @@ def check_network(exes, tag, label, netpath, tmp, rows):
         rows.append("  ok   %-28s step RC %d (IR-JCL-04)"
                     % ("%s %s" % (label, backend), rc))
 
+        # Appendix E's messages, which FR-BAT-04's report step will read.
+        # Checked as well as the records because they are a SECOND statement
+        # of the same result: ONF301I repeats the fingerprint that is in the
+        # record, and ONF302I counts the outcomes the return code summarises.
+        # Two statements that can disagree are worth comparing.
+        want_ok = sum(1 for q in requests if expect[q[0]][1] == 0)
+        want_warn = sum(1 for q in requests if expect[q[0]][1] == 4)
+        want_err = len(requests) - want_ok - want_warn
+        got_ok = [l for l in lines if l.startswith("ONF301I")]
+        summary = [l for l in lines if l.startswith("ONF302I")]
+        want_sum = ("ONF302I STEP SUMMARY: %d OK, %d WARN, %d ERROR"
+                    % (want_ok, want_warn, want_err))
+        if len(got_ok) == want_ok:
+            passed += 1
+            rows.append("  ok   %-28s %d ONF301I lines, one per success"
+                        % ("%s %s" % (label, backend), want_ok))
+        else:
+            failed += 1
+            rows.append("  FAIL %s %s: %d ONF301I lines, expected %d"
+                        % (label, backend, len(got_ok), want_ok))
+        if summary[-1:] == [want_sum]:
+            passed += 1
+            rows.append("  ok   %-28s %s"
+                        % ("%s %s" % (label, backend),
+                           want_sum.replace("ONF302I ", "")))
+        else:
+            failed += 1
+            rows.append("  FAIL %s %s: summary %r, expected %r"
+                        % (label, backend, summary[-1:], want_sum))
+
+        # Each ONF301I carries the fingerprint of its request (Appendix E),
+        # so the printed value and the recorded value must agree.
+        fps_printed = []
+        for line in got_ok:
+            tok = line.rsplit("FP=", 1)
+            if len(tok) == 2:
+                fps_printed.append(int(tok[1].strip(), 16))
+
         if not os.path.exists(rsppath):
             failed += 1
             rows.append("  FAIL %s %s: no ONFRSP written" % (label, backend))
@@ -169,6 +207,14 @@ def check_network(exes, tag, label, netpath, tmp, rows):
                 rows.append("  FAIL %s %s %s: request echo altered "
                             "(IR-JCL-03)" % (label, backend, gid))
                 continue
+            if got["rc"] == 0 and fps_printed:
+                expected_here = [expect[q[0]][0] for q in requests
+                                 if expect[q[0]][1] == 0]
+                if fps_printed != expected_here:
+                    failed += 1
+                    rows.append("  FAIL %s %s: ONF301I fingerprints differ "
+                                "from the recorded ones" % (label, backend))
+                    fps_printed = []
             if got["rc"] != want_rc or got["steps"] != want_steps \
                     or got["fp"] != want_fp:
                 failed += 1
