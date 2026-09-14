@@ -271,9 +271,36 @@ about byte order.
 
 ### 6.2 Linux s390x, Ubuntu 24.04, gcc 13.3.0, under qemu-system-s390x (TCG)
 
-Invoked as
-`make ONFPLAT=s390x CC=gcc PYTHON=python3 BUILD=<dir> <target>` inside the
-guest, against the worktree shared over 9p at `/onfly` (D-217).
+**How to reproduce.** The guest is built once by downloading the Ubuntu
+24.04 s390x cloud image, verifying it against Canonical's published
+`SHA256SUMS` (`741b7845b3d709ccd10f6a247ffea3c7ea68871279c6d8db361df2487237a953`),
+making a cloud-init NoCloud seed with `cloud-localds`, and booting:
+
+```
+qemu-system-s390x -machine s390-ccw-virtio -cpu max -m 4096 -smp 2 \
+  -display none \
+  -drive file=onfly-s390x.qcow2,if=none,id=d0,format=qcow2 \
+  -device virtio-blk-ccw,drive=d0,bootindex=1 \
+  -drive file=seed.img,if=none,id=d1,format=raw \
+  -device virtio-blk-ccw,drive=d1 \
+  -netdev user,id=n0,hostfwd=tcp::2222-:22 \
+  -device virtio-net-ccw,netdev=n0 \
+  -fsdev local,id=fs0,path=<worktree>,security_model=none \
+  -device virtio-9p-ccw,fsdev=fs0,mount_tag=onfly \
+  -serial file:console.log
+```
+
+Every result below then comes from one command shape:
+
+```
+ssh -i ~/onfly-s390x/id_ed25519 -p 2222 onfly@127.0.0.1 \
+  'cd /onfly && make ONFPLAT=s390x CC=gcc PYTHON=python3 \
+                     BUILD=/tmp/b390 <target>'
+```
+
+`BUILD` is guest-local on purpose: object writes then stay off the 9p share,
+and the x86 `build/` directory is never touched. `ONFPLAT=s390x` is the
+D-218 switch; everything else in the Makefile is shared with x86.
 
 **L0 — the toolchain, before any engine test (Section 8.1, NR-14).**
 
