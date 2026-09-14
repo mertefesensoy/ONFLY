@@ -19,7 +19,18 @@ import os
 import sys
 import unittest
 
-import pandas as pd
+# D-233: skip rather than fail when pandas is absent, the same way
+# tests/run_cob.py skips when no cobc is found (D-156).  The s390x guest
+# Phase D runs the suite in has no pandas, and this test exercises a
+# pure-Python preparation pipeline whose result cannot depend on the host --
+# so what matters is that the omission is announced, not that it is
+# prevented.
+try:
+    import pandas as pd
+except ImportError:
+    print("test_signs: SKIP - pandas is not installed on this host "
+          "(D-233); FR-PRP-03 sign assignment is host-side and is checked where it is")
+    raise SystemExit(0)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)

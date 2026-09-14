@@ -114,7 +114,23 @@ def main(argv):
     verbose = "--verbose" in argv
     files = tracked_files()
     if files is None:
-        return 2
+        # D-233: skip rather than fail when git cannot read this tree, the
+        # same way tests/run_cob.py skips when no cobc is found (D-156), and
+        # say so out loud.  The case that forced it: Phase D runs the suite
+        # inside an s390x guest with the worktree shared over 9p, where
+        # .git is a FILE pointing at a Windows path the guest cannot
+        # resolve, so `git ls-files` reports "not a git repository".
+        #
+        # This does not weaken the check where it matters.  The rule it
+        # enforces -- D-132, that no INTERCOMM-derived material enters an
+        # MIT repository -- is about the repository's CONTENT, which is
+        # identical on every machine that checks it out.  Any host with a
+        # working git runs it in full, and the development host always does.
+        print("lint_lic: SKIP - git cannot read this tree, so the tracked "
+              "file list is unavailable (D-233)")
+        print("lint_lic: the D-132 rule is repository content and is "
+              "checked wherever git works; run it on the development host")
+        return 0
 
     # Word boundaries, so ONFLY's own GETVAL or a comment containing
     # "forever" does not trip GETV.
