@@ -196,13 +196,80 @@ The other seventeen — including `__JCC__`, `__MVS__`, `__370__`,
 `__S370__`, `__EBCDIC__`, `__BIG_ENDIAN__`, `__IBMC__`, `__GNUC__` and
 `__STDC_VERSION__` — all report `-`.
 
-### 6.4 ACC-5 row 7 re-run
+### 6.4 ACC-5 row 7 re-run — the manifest, evidenced
 
-*(Filled from the run of 2026-09-15; see §6.5.)*
+Platform MVS 3.8j TK5 under Hercules 4.9.1.11612-SDL-gee86c4de, compiler
+**JCC 1.50.00**, backend **SOFT2C**, Hercules codepage 819/1047, network
+`srext` read from the installed dataset `HERC01.ONFLY.ENET` (D-286).
+
+    python tools/mvsjcc.py --run --out data/phase-e/jcc
+
+    mvsjcc: ONFJRUN, 8416 cards, 13 translation units, longest 80 columns,
+            network srext from HERC01.ONFLY.ENET
+    mvsjcc: ONFJRUN finished in 940.9 s
+    13.38.00 JOB 307 $HASP373 ONFJRUN STARTED - INIT 1 - CLASS A - SYS TK5R
+    13.53.40 JOB 307 $HASP395 ONFJRUN ENDED
+
+All 22 steps at `COND CODE 0000` (SCRATCH, ALLOC, WRITEH, WRITEC,
+COMP1…COMP13, PRELINK, LKED, SCRATCH2, GO, DUMP).
+
+**The result D-291 exists for**, read out of `data/phase-e/jcc/ONFJRUN.txt`:
+
+    ONF001I NETWORK LOADED N=501 E=10783 CRC=4577D74E
+    ONF002I RUN MANIFEST
+    ONF002I   ENGINE VERSION  0.5.0
+    ONF002I   FLOAT BACKEND   SOFT2C
+    ONF002I   COMPILER        JCC
+    ONF002I   PLATFORM        MVS38J
+
+Before this change those last two lines read `UNKNOWN` and `UNKNOWN`.
+
+And the fingerprints are unmoved — which is the other half of the claim,
+since a manifest fix that perturbed a result would be worse than the gap:
+
+    python tools/mvsjcc.py --compare data/phase-e/jcc data/phase-d/x86w
+
+    === ACC-5 row 7 vs the Section 8.4 fingerprints ===
+      ok   G-15  fp=6C3F7272  golden=6C3F7272
+      ok   G-16  fp=BAF81D91  golden=BAF81D91
+      ok   G-17  fp=F9C7EE77  golden=F9C7EE77
+      ok   G-18  fp=4FD0ED1E  golden=4FD0ED1E
+      ok   G-19  fp=C4C320BC  golden=C4C320BC
+    mvsjcc: ACC-5 row 7 PASS
+
+The same run re-evidences TX-01 for `srext` under D-261's rule — all five
+records `binary(8..411) yes` and `translated yes`, with `raw NO` on the
+one `'chr'` field alone:
+
+      note record 1: raw NO   binary(8..411) yes  translated yes
+             chr[0:8] got e2e4c7d940404040 ('SUGR    ' as EBCDIC),
+                      want 5355475220202020
+      raw=False  binary=True  translated=True
 
 ### 6.5 What this does **not** prove
 
-To be completed with the run.
+- **`ONF_CCID` = `"JCC"` is proven only where `JCC` is the sole macro
+  defined.** It is a statement about which branch the preprocessor took,
+  not about which binary ran. Nothing in the engine cross-checks the
+  manifest against the object code.
+- **No version is proven.** The manifest says `JCC`, not `JCC 1.50.00`.
+  The version in this document comes from Gate G0's inventory (A-04), not
+  from anything the engine observed.
+- **`ONF_PLATID` = `"MVS38J"` under JCC is an inference from a compiler
+  macro, not a platform measurement** (§3.4). It is correct for every
+  build ONFLY performs and would be wrong for a JCC build targeting
+  anything else. This is the one claim in this document that is true by
+  project convention rather than by measurement.
+- **Neutrality is measured on x86-64 only** (§6.2, gcc 6, Windows). That
+  the GCCMVS and s390x builds are unaffected follows from the branch
+  ordering and from `__GNUC__` being defined there, which Gate G0
+  measured (`GCCMVS 3.2.3`) — but no GCCMVS or s390x build was run in
+  this session to confirm it empirically.
+- **The 940.9 s elapsed is not a performance figure.** It is wall clock
+  on a host that was also building TestFloat; NFR-PERF-01 and ACC-6 are
+  measured by TX-04 on a quiet host (D-288), not by this job.
+- **Row 7 stands on the `srext` half of Section 8.4 only.** G-01…G-14
+  have no JCC counterpart; that remains true after this change.
 
 ## 7. Related docs
 
