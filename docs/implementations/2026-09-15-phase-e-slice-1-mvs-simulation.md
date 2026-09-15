@@ -151,6 +151,23 @@ thirteen GCCMVS compiles, the thirteen assemblies and the link together cost
 **16.69 s**. On this platform the compiler is free and the simulation is
 everything.
 
+**A caution on using 32.97 µs to predict another network.** "Per neuron-step"
+is a convenient unit, not a cost model. Appendix C's step does O(1) work per
+neuron *plus* work per out-edge of every neuron that fired, so the figure
+depends on edge density and on how hard the network is firing, neither of
+which is in the denominator:
+
+| Network | N | E | edges per neuron |
+|---|---|---|---|
+| `srext` | 501 | 10,783 | 21.5 |
+| `path` | 913 | 72,852 | 79.8 |
+
+`path` carries **3.7× the edges per neuron**, so 32.97 µs is a **lower bound**
+for it and any estimate built on that number is optimistic. This is the same
+class of mistake VL-41, VL-42 and VL-43 record three times over: a duration
+set from an estimate and refuted by measurement. The figure is reported here
+as what it is — one measurement, on one network, on one day.
+
 ## 5. Design decisions
 
 ### 5.1 The one thing that cannot be byte-identical (D-261)

@@ -46,9 +46,10 @@ THE TWO JOBS, AND WHY THERE ARE TWO
             IDCAMS PRINT DUMP of what it wrote.  This is FR-BAT-01's
             STEP1 performed for real.
   ONFERUN   GCCMVS compiles and links the SIMULATING engine, and runs it
-            with ONFNET on the card reader, ONFREQ=EREQ and ONFRSP a
-            passed temporary dataset, then IDCAMS PRINT DUMP of that.
-            This is FR-BAT-01's STEP2.
+            with ONFNET on the card reader, ONFREQ=EREQ and ONFRSP=ERSP,
+            then IDCAMS PRINT DUMP of what it wrote.  FR-BAT-01's STEP2.
+  ONFERPT   ONFLYDRV again, in MODE=RPT, over ERSP and an inline ONFNAM.
+            FR-BAT-01's STEP3, and FR-BAT-04's report on MVS.
 
 They are two jobs and not one because ONFREQ has to exist as a catalogued
 dataset before the engine's GO step allocates it, and because a C compile
@@ -60,15 +61,15 @@ BEFORE the engine ever reads the dataset, so a wrong byte in ONFREQ is
 attributed to the driver at the moment it happens rather than surfacing
 later as a wrong fingerprint.
 
-WHY ONFRSP IS A TEMPORARY DATASET AND ONFREQ IS NOT
----------------------------------------------------
-ONFREQ crosses a job boundary, so it must be catalogued; ONFEREQ deletes
-and reallocates it on every run, which is what makes the pair rerunnable.
-ONFRSP does not cross a boundary -- the DUMP step is in the same job --
-so it travels as `&&ONFRSP` with DISP=(,PASS).  A catalogued ONFRSP would
-have to be scratched first, and `mvsbld.build()` has no hook before its
-own SCRATCH step; a temporary dataset needs no such hook and cannot
-collide with a previous run's leftovers.
+BOTH DATASETS ARE CATALOGUED, AND BOTH ARE SCRATCHED FIRST
+----------------------------------------------------------
+ONFREQ and ONFRSP each cross a job boundary -- the engine reads what the
+driver wrote, and the report reads what the engine wrote -- so neither
+can be a passed temporary.  A catalogued dataset that already exists
+fails the NEXT run at allocation with NOT CATLGD 2, a JCL error reported
+nowhere near the DD that caused it, so each job's SCRATCH step deletes
+the one it is about to create.  `DISP=(MOD,DELETE)` is right for that on
+a first run too: it creates an empty dataset and then deletes it.
 
 THE NETWORK ARRIVES ON CARDS
 ----------------------------
@@ -95,6 +96,9 @@ Run:
     python tools/mvsrun.py [--net N] --req [--print] STEP1 via ONFLYDRV
     python tools/mvsrun.py [--net N] --run [--print] STEP2 via ONFLYENG
     python tools/mvsrun.py [--net N] --run --out DIR ... recovering ONFRSP
+    python tools/mvsrun.py [--net N] --recover --out DIR  from the
+                                                      printer alone
+    python tools/mvsrun.py [--net N] --report         STEP3 on MVS
     python tools/mvsrun.py [--net N] --compare A B   TX-01, ACC-5 row 6
 """
 import io
@@ -115,12 +119,10 @@ import mvscob                                         # noqa: E402
 import mvseng                                         # noqa: E402
 import mvsub                                          # noqa: E402
 
-#: The network this slice runs.  D-259: the `srext` half of the Section
-#: 8.4 suite and nothing else.  `srext` is the network the MVP ships
-#: (D-205) -- 501 neurons carrying the format v1.1 compensating-input
-#: table -- and G-15 to G-19 are the only golden requests that exercise
-#: that table.
-#: Both Section 8.4 networks, because D-264 asked for the `path` half
+#: Both Section 8.4 networks.  D-259 ran the `srext` half first -- it is
+#: the network the MVP ships (D-205), 501 neurons carrying the format
+#: v1.1 compensating-input table, and G-15 to G-19 are the only golden
+#: requests that exercise that table -- and D-264 then asked for `path`
 #: after `srext` was done.  Job names differ per network so that two
 #: runs can be told apart in JES2 output -- mvsub.collect() matches on
 #: the job name, and a shared name would let one run collect the
@@ -639,6 +641,42 @@ def run_run(argv):
     out = submit_and_collect(d, RUN_JOB, 7200)
     took = time.time() - t0
     sys.stdout.write("mvsrun: %s finished in %.1f s\n" % (RUN_JOB, took))
+    return process_run(out, argv)
+
+
+def recover(argv):
+    """Process a finished job's listing straight from the printer.
+
+    The engine job can outlive the process that submitted it -- an
+    `srext` run is about fourteen minutes and `path` is hours -- and a
+    submitter that is killed takes nothing with it: MVS has the job and
+    JES2 has the output.  This reads the printer, finds the LAST
+    complete START/END pair for the job, and does everything
+    `run_run()` would have done with it.
+
+    Without this the only recovery is to run the job again.
+    """
+    text = mvsub.read_printer()
+    upper = RUN_JOB.upper()
+    starts = [m.start() for m in
+              re.finditer(r"START\s+JOB\s+\d+\s+" + re.escape(upper)
+                          + r"\b", text)]
+    ends = [m.end() for m in
+            re.finditer(r"END\s+JOB\s+\d+\s+" + re.escape(upper) + r"\b",
+                        text)]
+    if not starts or not ends or ends[-1] < starts[-1]:
+        sys.stderr.write("mvsrun: no completed %s in the printer "
+                         "(%d start(s), %d end(s))\n"
+                         % (RUN_JOB, len(starts), len(ends)))
+        return 1
+    out = text[starts[-1]:ends[-1]]
+    sys.stdout.write("mvsrun: recovered %d characters of %s listing from "
+                     "the printer\n" % (len(out), RUN_JOB))
+    return process_run(out, argv)
+
+
+def process_run(out, argv):
+    """Everything an engine job's listing is read for."""
     sys.stdout.write("\n".join(mvsub.summarise(out)) + "\n")
 
     for n, fp in fingerprints(out):
@@ -682,7 +720,11 @@ def run_run(argv):
         with open(reqpath, "wb") as f:
             for r in expected_records():
                 f.write(r)
-        lst = os.path.join(outdir, "ONFERUN.txt")
+        # Named for the JOB, not for a literal.  Hardcoding "ONFERUN"
+        # meant the `path` run overwrote the `srext` listing -- the one
+        # piece of evidence that cannot be regenerated without another
+        # fourteen minutes of mainframe time.
+        lst = os.path.join(outdir, "%s.txt" % RUN_JOB)
         io.open(lst, "w", encoding="ascii", errors="replace",
                 newline="").write(out.replace("\r\n", "\n"))
         sys.stdout.write("mvsrun: wrote %s (%d bytes), %s and %s\n"
@@ -713,6 +755,8 @@ def main(argv):
         return run_req(argv)
     if "--run" in argv:
         return run_run(argv)
+    if "--recover" in argv:
+        return recover(argv)
     if "--report" in argv:
         return run_rpt(argv)
     if "--compare" in argv:
