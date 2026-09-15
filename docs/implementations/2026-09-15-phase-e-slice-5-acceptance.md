@@ -150,6 +150,21 @@ exclude list. It was removed guest-side, leaving 303 MB against 21 GB
 free. An exclude list written from what a tree *should* contain will
 miss what a tool put there an hour ago.
 
+**And the copy was then checked rather than assumed.** A copy is exactly
+the step at which "the guest is building this session's source" can
+quietly stop being true, so both ends were digested:
+
+```
+guest  276b1e7d7d29b72e...  softfloat/c2c/softfloat.c
+host   276b1e7d7d29b72e...  softfloat/c2c/softfloat.c
+guest  bf09a3ad18a82b8e...  data/networks/onfnet-malecns-v1.0-srext.bin
+host   bf09a3ad18a82b8e...  data/networks/onfnet-malecns-v1.0-srext.bin
+```
+
+with D-285's cast present at line 2023 of the guest's copy. Rows 4 and
+5 are therefore about the same bytes as rows 1–3 and 6–7, which is the
+only thing that makes comparing them meaningful.
+
 ### 3.6 Why row 6 is run again at all
 
 D-285 changed the text every platform compiles. Row 6's nineteen
