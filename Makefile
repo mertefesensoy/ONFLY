@@ -723,7 +723,7 @@ runners: $(BUILD) $(GENERATED) runner
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint liclint col80 c04 c04mvs sub mvsrun names tt01 tt02 c2c sfs shim layout units fp kernel syn \
+test: lint liclint col80 c04 c04mvs sub mvsrun mvsjcc names tt01 tt02 c2c sfs shim layout units fp kernel syn \
       decode eng req golden prep
 	@echo "ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE; plus IR-NAM-01..03 over the emitted names files, and the Phase E MVS decks and recordings -- TX-01 under D-261 and ACC-5 row 6 for all nineteen Section 8.4 requests"
 
@@ -747,6 +747,18 @@ sub:
 # existing caller's deck.  Pure Python; no cobc, no Hercules.
 mvsrun:
 	$(PYTHON) tests/run_mvsrun.py
+
+# Phase E slice 4 (D-281 ... D-286).  ACC-5's row 7 is the same platform
+# and backend as row 6 through a DIFFERENT compiler, and it is only
+# evidence if it links the same thirteen translation units in the same
+# order and reads the same network.  Both are properties of a deck, so
+# both are checked here rather than discovered after an 8,390-card
+# submission.  It also pins D-286's consequence: if row 6's ONFNET DD
+# ever drifted back to the card reader, the two rows would differ in
+# transport as well as compiler and nothing would say so.  Pure Python;
+# no Hercules.
+mvsjcc:
+	$(PYTHON) tests/run_mvsjcc.py
 
 # D-267 ... D-269.  FR-PRP-07 has always required the pipeline to emit
 # a names file (IR-NAM) and none existed until 2026-09-15, which is

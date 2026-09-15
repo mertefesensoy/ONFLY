@@ -257,6 +257,25 @@ EDITS_C = [
     ("float_rounding_mode == float_round_down",
      "0 /* D-123: never round-down, NR-01 */",
      2),
+    # D-285.  float64_rem declares `sbits32 sigMean0` and then passes its
+    # address to add64, whose fifth parameter is `bits32 *`.  GCCMVS, gcc
+    # and clang all accept it -- which is why the vendor unit is compiled
+    # without -pedantic-errors -- but JCC 1.50 rejects it and, having
+    # rejected it, writes NO OBJECT AT ALL for the translation unit.  The
+    # whole float API disappears with it: F64ADD, F64SUB, F64MUL, F64LT
+    # and F64LE were all unresolved at link, over one dead function ONFLY
+    # never calls.  The cast is semantically null on a two's-complement
+    # host -- same address, same width -- and the datum is read back
+    # through the signed lvalue two lines later exactly as before.
+    # Measured on TK5 2026-09-15 by `tools/mvsjcc.py --mini`: the same
+    # code shape without the cast gives JCC-RC:1 and no object, with it
+    # gives JCC-RC:0 and a program that runs.
+    ("alternateASig0, alternateASig1, &sigMean0, &sigMean1 );",
+     "alternateASig0, alternateASig1,\n"
+     "        (bits32 *) &sigMean0, /* D-285: JCC writes no object\n"
+     "                                 without this cast */\n"
+     "        &sigMean1 );",
+     1),
 ]
 
 

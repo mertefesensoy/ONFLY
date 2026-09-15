@@ -135,21 +135,32 @@ import mvsub                                          # noqa: E402
 #: the job name, and a shared name would let one run collect the
 #: other's listing.
 USER = "HERC01"
+#:
+#: `net` is where D-286 installs the network: a catalogued FB/80 dataset
+#: holding the same card images the reader would deliver, copied once by
+#: `--install-net`.  ACC-5's rows 6 and 7 both read it from there, so the
+#: two rows differ only in the compiler -- which they could not, because
+#: JCC's fopen returns NULL on a unit-record DD in every mode (measured
+#: 2026-09-15, `tools/mvsjcc.py --rdrprobe`).  The raw card reader is
+#: still the transport Gate G2 selected (D-150); this is an INSTALL of
+#: what it delivered, like ONFNAM and the two load modules in slice 3.
 NETS = {
     "srext": {"req_job": "ONFEREQ", "run_job": "ONFERUN",
-              "rpt_job": "ONFERPT", "dsn": "EREQ", "rsp": "ERSP"},
+              "rpt_job": "ONFERPT", "dsn": "EREQ", "rsp": "ERSP",
+              "net": "ENET", "net_job": "ONFENET"},
     "path": {"req_job": "ONFPREQ", "run_job": "ONFPRUN",
-             "rpt_job": "ONFPRPT", "dsn": "PREQ", "rsp": "PRSP"},
+             "rpt_job": "ONFPRPT", "dsn": "PREQ", "rsp": "PRSP",
+             "net": "PNET", "net_job": "ONFPNET"},
 }
 
 NETNAME = NETFILE = CARDFILE = REQ_JOB = RUN_JOB = REQ_DSN = None
-RPT_JOB = RSP_DSN = None
+RPT_JOB = RSP_DSN = NET_DSN = NET_JOB = None
 
 
 def select(name):
     """Point this module at one of the two Section 8.4 networks."""
     global NETNAME, NETFILE, CARDFILE, REQ_JOB, RUN_JOB, REQ_DSN
-    global RPT_JOB, RSP_DSN
+    global RPT_JOB, RSP_DSN, NET_DSN, NET_JOB
     if name not in NETS:
         raise RunError("unknown network %r; expected one of %s"
                        % (name, sorted(NETS)))
@@ -164,6 +175,8 @@ def select(name):
     RPT_JOB = spec["rpt_job"]
     REQ_DSN = "%s.ONFLY.%s" % (USER, spec["dsn"])
     RSP_DSN = "%s.ONFLY.%s" % (USER, spec["rsp"])
+    NET_DSN = "%s.ONFLY.%s" % (USER, spec["net"])
+    NET_JOB = spec["net_job"]
 
 #: Members for the units mvseng.py does not link.  Eight characters,
 #: unique ignoring case (C-04).  The mapping is copied from
@@ -311,8 +324,10 @@ def run_deck(opt=mvsbld.OPT):
     # treats anything that is not VERIFY as SIMULATE, and an absent PARM
     # is the plainest spelling of "not VERIFY" available.
     go_dd = [
-        "//ONFNET   DD UNIT=%s," % mvseng.READER_UNIT,
-        "//            DCB=(RECFM=F,LRECL=80,BLKSIZE=80)",
+        # D-286: the INSTALLED network, not the reader.  Row 7 cannot
+        # read a unit-record DD at all under JCC, so row 6 reads what
+        # row 7 must read and the two rows differ only in compiler.
+        "//ONFNET   DD DSN=%s,DISP=SHR" % NET_DSN,
         "//ONFREQ   DD DSN=%s,DISP=SHR" % REQ_DSN,
         # CATALOGUED, not temporary.  FR-BAT-01's STEP3 is a separate
         # job until slice 3 folds the three together, and a report has
@@ -576,6 +591,85 @@ DEMOS = {
 BUZZ_JOB = "BUZZ"
 BUZZ_REQ = DEMOS["BUZZ"]["req"]
 BUZZ_RSP = DEMOS["BUZZ"]["rsp"]
+
+
+def install_net_deck():
+    """Copy the network off the card reader into a catalogued dataset.
+
+    D-286.  One IEBGENER: SYSUT1 is the reader device, delivering the
+    same F/80 card images Gate G2's transport put there, and SYSUT2 is
+    an FB/80 PS dataset.  Nothing is reformatted and nothing is checked
+    here on purpose -- the engine itself verifies magic, sentinel,
+    version, header CRC, declared length and payload CRC before it
+    simulates (FR-LOD-02), so a copy that lost or reordered a card ends
+    the next run at ONF104E or ONF107E rather than producing a wrong
+    answer quietly.  A check here would be a second, weaker copy of a
+    gate the product already has.
+
+    The SPACE is sized for the larger of the two networks: `path` is
+    951,200 bytes, about 11,890 card images, and an FB/80 BLKSIZE=3200
+    dataset holds roughly five blocks to a 3350 track.
+    """
+    d = []
+
+    def a(card):
+        if card.startswith("//") and len(card) > mvsbld.JCL_FIELD:
+            raise RunError("JCL card exceeds column %d: %s"
+                           % (mvsbld.JCL_FIELD, card))
+        d.append(card)
+
+    a("//%-8s JOB (001),'ONFLY INSTALL NET',CLASS=A,MSGCLASS=A,"
+      % NET_JOB)
+    a("//             USER=%s,PASSWORD=CUL8TR," % USER)
+    a("//             REGION=8M,TIME=1440,MSGLEVEL=(1,1)")
+    a("//*")
+    a("//SCRATCH  EXEC PGM=IEFBR14")
+    a("//D1       DD DSN=%s,DISP=(MOD,DELETE)," % NET_DSN)
+    a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
+    a("//*")
+    a("//COPY     EXEC PGM=IEBGENER")
+    a("//SYSPRINT DD SYSOUT=*")
+    a("//SYSIN    DD DUMMY")
+    a("//SYSUT1   DD UNIT=%s," % mvseng.READER_UNIT)
+    a("//            DCB=(RECFM=F,LRECL=80,BLKSIZE=80)")
+    a("//SYSUT2   DD DSN=%s,DISP=(,CATLG,DELETE)," % NET_DSN)
+    a("//            UNIT=SYSDA,SPACE=(TRK,(150,60)),")
+    a("//            DCB=(RECFM=FB,LRECL=80,BLKSIZE=3200)")
+    a("//*")
+    a("//LIST     EXEC PGM=IDCAMS,COND=(4,LT)")
+    a("//SYSPRINT DD SYSOUT=*")
+    a("//SYSIN    DD *")
+    a("  LISTCAT ENTRIES(%s) ALL" % NET_DSN)
+    a("/*")
+    a("//")
+    return d
+
+
+def run_install_net(argv):
+    """Stage the reader, submit the copy, and say how many cards moved."""
+    d = install_net_deck()
+    mvsub.check_cards(d)
+    if "--print" in argv:
+        sys.stdout.write("\n".join(d) + "\n")
+        return 0
+    if not os.path.isfile(CARDFILE):
+        sys.stderr.write("mvsrun: no card file; run --cards first\n")
+        return 2
+    mvseng.console("devinit %s *" % mvseng.READER_DEV)
+    staged = mvseng.stage(CARDFILE)
+    mvseng.console("devinit %s %s eof"
+                   % (mvseng.READER_DEV, staged.replace("\\", "/")))
+    sys.stdout.write("mvsrun: %s, %d cards of JCL, reader %s loaded "
+                     "with %s\n"
+                     % (NET_JOB, len(d), mvseng.READER_DEV, staged))
+    out = submit_and_collect(d, NET_JOB, 900)
+    sys.stdout.write("\n".join(mvsub.summarise(out)) + "\n")
+    for line in out.splitlines():
+        s = line.rstrip()
+        if ("IEB1014I" in s or "RECORDS" in s.upper()[:40]
+                or "DATA SET" in s.upper() and NET_DSN in s.upper()):
+            sys.stdout.write("  %s\n" % s.strip())
+    return 0
 
 
 def install_eng_deck(opt=mvsbld.OPT):
@@ -901,24 +995,17 @@ def run_run(argv):
         sys.stdout.write("\n".join(d) + "\n")
         return 0
 
-    if not os.path.isfile(CARDFILE):
-        sys.stderr.write("mvsrun: no card file; run --cards first\n")
-        return 2
-
     sys.stdout.write("mvsrun: %s, %d cards, %d translation units, "
-                     "longest %d columns, GCCMVS %s\n"
+                     "longest %d columns, GCCMVS %s, ONFNET %s\n"
                      % (RUN_JOB, len(d), len(UNIT_MEMBERS),
-                        max(len(c) for c in d), opt))
+                        max(len(c) for c in d), opt, NET_DSN))
 
-    # Release the reader before staging: Hercules holds the card file
-    # open while it is loaded and Windows will not overwrite an open
-    # file (the PermissionError tools/mvseng.py documents).
-    mvseng.console("devinit %s *" % mvseng.READER_DEV)
-    staged = mvseng.stage(CARDFILE)
-    mvseng.console("devinit %s %s eof"
-                   % (mvseng.READER_DEV, staged.replace("\\", "/")))
-    sys.stdout.write("mvsrun: reader %s loaded with %s\n"
-                     % (mvseng.READER_DEV, staged))
+    # No reader staging any more: D-286 made ONFNET the INSTALLED
+    # dataset, so the network is already on the system and this job
+    # touches no unit-record device.  `--install-net` is what loads the
+    # reader, once.  A job that still staged it would leave the reader
+    # holding a file nothing reads, and would fail on a host where the
+    # card file had been cleaned up.
 
     t0 = time.time()
     out = submit_and_collect(d, RUN_JOB, 7200)
@@ -1227,6 +1314,8 @@ def main(argv):
         return run_req(argv)
     if "--run" in argv:
         return run_run(argv)
+    if "--install-net" in argv:
+        return run_install_net(argv)
     if "--install-eng" in argv or "--install-drv" in argv:
         return run_install(argv)
     if "--buzz" in argv:

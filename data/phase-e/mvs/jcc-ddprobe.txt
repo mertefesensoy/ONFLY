@@ -1,0 +1,1491 @@
+****A  START  JOB  290  ONFJDDP   ONFLY JCC ROW7        ROOM        8.32.27 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  290  START  A****
+****A  START  JOB  290  ONFJDDP   ONFLY JCC ROW7        ROOM        8.32.27 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  290  START  A****
+****A  START  JOB  290  ONFJDDP   ONFLY JCC ROW7        ROOM        8.32.27 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  290  START  A****
+****A  START  JOB  290  ONFJDDP   ONFLY JCC ROW7        ROOM        8.32.27 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  290  START  A****
+
+                                                J E S 2   J O B   L O G
+
+
+ 8.32.26 JOB  290  $HASP373 ONFJDDP  STARTED - INIT  1 - CLASS A - SYS TK5R
+ 8.32.26 JOB  290  IEF403I ONFJDDP - STARTED - TIME=08.32.26
+ 8.32.26 JOB  290  IEFACTRT - Stepname  Procstep  Program   Retcode
+ 8.32.26 JOB  290  ONFJDDP    SCRATCH             IEFBR14   RC= 0000
+ 8.32.26 JOB  290  ONFJDDP    ALLOC               IEFBR14   RC= 0000
+ 8.32.26 JOB  290  ONFJDDP    WRITEC              IEBUPDTE  RC= 0000
+ 8.32.26 JOB  290  ONFJDDP    COMP1               JCC       RC= 0000
+ 8.32.27 JOB  290  ONFJDDP    PRELINK             PRELINK   RC= 0000
+ 8.32.27 JOB  290  ONFJDDP    LKED                IEWL      RC= 0000
+ 8.32.27 JOB  290  ONFJDDP    GO                  PGM=*.DD  RC= 0000
+ 8.32.27 JOB  290  IEF404I ONFJDDP - ENDED - TIME=08.32.27
+ 8.32.27 JOB  290  $HASP395 ONFJDDP  ENDED
+
+
+------ JES2 JOB STATISTICS ------
+
+
+ 15 SEP 26 JOB EXECUTION DATE
+
+
+       100 CARDS READ
+
+
+     1,401 SYSOUT PRINT RECORDS
+
+
+         0 SYSOUT PUNCH RECORDS
+
+
+      0.02 MINUTES EXECUTION TIME
+
+    1     //ONFJDDP  JOB (001),'ONFLY JCC ROW7',CLASS=A,MSGCLASS=A,               JOB  290
+          //             USER=HERC01,PASSWORD=,
+          //             REGION=8M,TIME=1440,MSGLEVEL=(1,1)
+          ***
+    2     //SCRATCH  EXEC PGM=IEFBR14
+    3     //D1       DD DSN=HERC01.ONFLY.H,DISP=(MOD,DELETE),
+          //            UNIT=SYSDA,SPACE=(TRK,(1,1))
+    4     //D2       DD DSN=HERC01.ONFLY.C,DISP=(MOD,DELETE),
+          //            UNIT=SYSDA,SPACE=(TRK,(1,1))
+          ***
+    5     //ALLOC    EXEC PGM=IEFBR14
+    6     //M1       DD DSN=HERC01.ONFLY.H,DISP=(,CATLG,DELETE),
+          //            UNIT=SYSDA,SPACE=(TRK,(90,30,40)),
+          //            DCB=(RECFM=FB,LRECL=80,BLKSIZE=3200)
+    7     //M2       DD DSN=HERC01.ONFLY.C,DISP=(,CATLG,DELETE),
+          //            UNIT=SYSDA,SPACE=(TRK,(90,30,40)),
+          //            DCB=(RECFM=FB,LRECL=80,BLKSIZE=3200)
+          ***
+    8     //WRITEC   EXEC PGM=IEBUPDTE,PARM=NEW
+    9     //SYSPRINT DD SYSOUT=*
+   10     //SYSUT2   DD DSN=HERC01.ONFLY.C,DISP=OLD
+   11     //SYSIN    DD DATA,DLM='ZZ'
+          ***
+   12     //COMP1    EXEC PGM=JCC,
+          //  PARM='-I//DDN:JCCINCL -I//DDN:ONFH //DDN:SYSIN -o -list=//DDN:LST'
+   13     //STEPLIB  DD DSN=JCC.LINKLIB,DISP=SHR
+   14     //JCCINCL  DD DSN=JCC.INCLUDE,DISP=SHR
+   15     //JCCINCS  DD DSN=JCC.INCLUDE,DISP=SHR
+   16     //ONFH     DD DSN=HERC01.ONFLY.H,DISP=SHR
+   17     //JCCOUTPT DD UNIT=SYSDA,SPACE=(TRK,(50,20))
+   18     //STDOUT   DD SYSOUT=*
+   19     //LST      DD SYSOUT=*
+   20     //JCCOASM  DD DSN=&&OBJ1,UNIT=SYSALLDA,
+          //            SPACE=(3200,(200,100),RLSE),DISP=(,PASS),
+          //            DCB=(RECFM=FB,LRECL=80,BLKSIZE=3200)
+   21     //SYSIN    DD DSN=HERC01.ONFLY.C(DDPROBE),DISP=SHR
+          ***
+   22     //PRELINK  EXEC PGM=PRELINK,COND=(4,LT),
+          //            PARM='-r //DDN:L //DDN:O //DDN:I'
+   23     //STEPLIB  DD DSN=JCC.LINKLIB,DISP=SHR
+   24     //STDOUT   DD SYSOUT=*
+   25     //L        DD DSN=JCC.OBJ,DISP=SHR
+   26     //I        DD DSN=&&OBJ1,DISP=(OLD,DELETE)
+   27     //O        DD DSN=&&OBJMOD,UNIT=SYSALLDA,
+          //            SPACE=(3200,(200,100),RLSE),DISP=(,PASS),
+          //            DCB=(RECFM=FB,LRECL=80,BLKSIZE=3200)
+          ***
+   28     //LKED     EXEC PGM=IEWL,COND=(4,LT),
+          //            PARM='NCAL,MAP,LIST,XREF,NORENT'
+   29     //SYSLIN   DD DSN=&&OBJMOD,DISP=(OLD,DELETE)
+   30     //SYSUT1   DD UNIT=SYSDA,SPACE=(CYL,(5,2))
+   31     //SYSPRINT DD SYSOUT=*
+   32     //SYSLMOD  DD DSN=&&GOSET(GO),UNIT=SYSDA,
+          //            SPACE=(4096,(100,20,1)),DISP=(,PASS),
+          //            DCB=(RECFM=U,BLKSIZE=4096)
+          ***
+   33     //GO       EXEC PGM=*.LKED.SYSLMOD,COND=(4,LT),
+          //   PARM='RUN //DDN:ONFNET //DDN:ONFREQ //DDN:ONFRSP'
+   34     //STDOUT   DD SYSOUT=*
+   35     //STDERR   DD SYSOUT=*
+   36     //SYSPRINT DD SYSOUT=*
+   37     //ONFNET   DD DSN=HERC01.ONFLY.C(DDPROBE),DISP=SHR
+          //
+
+IEF236I ALLOC. FOR ONFJDDP SCRATCH
+IEF237I 191  ALLOCATED TO D1
+IEF237I 190  ALLOCATED TO SYS00531
+IEF237I 192  ALLOCATED TO D2
+IEF142I ONFJDDP SCRATCH - STEP WAS EXECUTED - COND CODE 0000
+IEF285I   HERC01.ONFLY.H                               UNCATALOGED   *--------0
+IEF285I   VOL SER NOS= TSO002.
+IEF285I   HERC01.ONFLY.H                               DELETED       *--------0
+IEF285I   VOL SER NOS= TSO002.
+IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
+IEF285I   VOL SER NOS= TSO001.
+IEF285I   HERC01.ONFLY.C                               UNCATALOGED   *--------0
+IEF285I   VOL SER NOS= TSO003.
+IEF285I   HERC01.ONFLY.C                               DELETED       *--------0
+IEF285I   VOL SER NOS= TSO003.
+IEF373I STEP /SCRATCH / START 26258.0832
+IEF374I STEP /SCRATCH / STOP  26258.0832 CPU    0MIN 00.00SEC SRB    0MIN 00.00SEC VIRT     4K SYS   156K
+IEF236I ALLOC. FOR ONFJDDP ALLOC
+IEF237I 191  ALLOCATED TO M1
+IEF237I 190  ALLOCATED TO SYS00532
+IEF237I 192  ALLOCATED TO M2
+IEF142I ONFJDDP ALLOC - STEP WAS EXECUTED - COND CODE 0000
+IEF285I   HERC01.ONFLY.H                               CATALOGED     *--------0
+IEF285I   VOL SER NOS= TSO002.
+IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
+IEF285I   VOL SER NOS= TSO001.
+IEF285I   HERC01.ONFLY.C                               CATALOGED     *--------0
+IEF285I   VOL SER NOS= TSO003.
+IEF373I STEP /ALLOC   / START 26258.0832
+IEF374I STEP /ALLOC   / STOP  26258.0832 CPU    0MIN 00.00SEC SRB    0MIN 00.00SEC VIRT     4K SYS   164K
+IEF236I ALLOC. FOR ONFJDDP WRITEC
+IEF237I JES2 ALLOCATED TO SYSPRINT
+IEF237I 192  ALLOCATED TO SYSUT2
+IEF237I 190  ALLOCATED TO SYS00534
+IEF237I JES2 ALLOCATED TO SYSIN
+IEF142I ONFJDDP WRITEC - STEP WAS EXECUTED - COND CODE 0000
+IEF285I   JES2.JOB00290.SO0102                         SYSOUT
+IEF285I   HERC01.ONFLY.C                               KEPT          *--------4
+IEF285I   VOL SER NOS= TSO003.
+IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
+IEF285I   VOL SER NOS= TSO001.
+IEF285I   JES2.JOB00290.SI0101                         SYSIN
+IEF373I STEP /WRITEC  / START 26258.0832
+IEF374I STEP /WRITEC  / STOP  26258.0832 CPU    0MIN 00.01SEC SRB    0MIN 00.00SEC VIRT    32K SYS   192K
+************************************************************************************************************************************
+*     3. Jobstep of job: ONFJDDP     Stepname: WRITEC      Program name: IEBUPDTE   Executed on 15.09.26 from 08.32.26 to 08.32.26 *
+*         elapsed time  00:00:00,04                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,01               Virtual Storage used:     32K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,01   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*                                                                                                                                  *
+*     I/O Operation                                                                                                                *
+*     Number of records read via DD * or DD DATA:     36                                                                           *
+*     DMY.......0 192.......4 190.......0 DMY.......0                                                                              *
+*                                                                                                                                  *
+*                                          Charge for step (w/o SYSOUT):          0,01                                             *
+************************************************************************************************************************************
+IEF236I ALLOC. FOR ONFJDDP COMP1
+IEF237I 299  ALLOCATED TO STEPLIB
+IEF237I 298  ALLOCATED TO SYS00536
+IEF237I 299  ALLOCATED TO JCCINCL
+IEF237I 299  ALLOCATED TO JCCINCS
+IEF237I 191  ALLOCATED TO ONFH
+IEF237I 190  ALLOCATED TO SYS00538
+IEF237I 291  ALLOCATED TO JCCOUTPT
+IEF237I JES2 ALLOCATED TO STDOUT
+IEF237I JES2 ALLOCATED TO LST
+IEF237I 293  ALLOCATED TO JCCOASM
+IEF237I 192  ALLOCATED TO SYSIN
+IEF142I ONFJDDP COMP1 - STEP WAS EXECUTED - COND CODE 0000
+IEF285I   JCC.LINKLIB                                  KEPT          *--------0
+IEF285I   VOL SER NOS= TK5002.
+IEF285I   SYS1.UCAT.TK5                                KEPT          *--------0
+IEF285I   VOL SER NOS= TK5001.
+IEF285I   JCC.INCLUDE                                  KEPT          *--------9
+IEF285I   VOL SER NOS= TK5002.
+IEF285I   JCC.INCLUDE                                  KEPT          *--------0
+IEF285I   VOL SER NOS= TK5002.
+IEF285I   HERC01.ONFLY.H                               KEPT          *--------0
+IEF285I   VOL SER NOS= TSO002.
+IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
+IEF285I   VOL SER NOS= TSO001.
+IEF285I   SYS26258.T083226.RA000.ONFJDDP.R0000001      DELETED       *--------0
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   JES2.JOB00290.SO0103                         SYSOUT
+IEF285I   JES2.JOB00290.SO0104                         SYSOUT
+IEF285I   SYS26258.T083226.RA000.ONFJDDP.OBJ1          PASSED        *--------1
+IEF285I   VOL SER NOS= WORK04.
+IEF285I   HERC01.ONFLY.C                               KEPT          *--------2
+IEF285I   VOL SER NOS= TSO003.
+IEF373I STEP /COMP1   / START 26258.0832
+IEF374I STEP /COMP1   / STOP  26258.0832 CPU    0MIN 00.06SEC SRB    0MIN 00.01SEC VIRT  1336K SYS   200K
+************************************************************************************************************************************
+*     4. Jobstep of job: ONFJDDP     Stepname: COMP1       Program name: JCC        Executed on 15.09.26 from 08.32.26 to 08.32.26 *
+*         elapsed time  00:00:00,16                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,07               Virtual Storage used:   1336K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,07   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*                                                                                                                                  *
+*     I/O Operation                                                                                                                *
+*     Number of records read via DD * or DD DATA:      0                                                                           *
+*     299.......0 298.......0 299.......9 299.......0 191.......0 190.......0 291.......0 DMY.......0 DMY.......0 293.......1      *
+*     192.......2                                                                                                                  *
+*                                                                                                                                  *
+*                                          Charge for step (w/o SYSOUT):          0,11                                             *
+************************************************************************************************************************************
+IEF236I ALLOC. FOR ONFJDDP PRELINK
+IEF237I 299  ALLOCATED TO STEPLIB
+IEF237I 298  ALLOCATED TO SYS00540
+IEF237I JES2 ALLOCATED TO STDOUT
+IEF237I 299  ALLOCATED TO L
+IEF237I 293  ALLOCATED TO I
+IEF237I 291  ALLOCATED TO O
+IEF142I ONFJDDP PRELINK - STEP WAS EXECUTED - COND CODE 0000
+IEF285I   JCC.LINKLIB                                  KEPT          *--------0
+IEF285I   VOL SER NOS= TK5002.
+IEF285I   SYS1.UCAT.TK5                                KEPT          *--------0
+IEF285I   VOL SER NOS= TK5001.
+IEF285I   JES2.JOB00290.SO0105                         SYSOUT
+IEF285I   JCC.OBJ                                      KEPT          *------561
+IEF285I   VOL SER NOS= TK5002.
+IEF285I   SYS26258.T083226.RA000.ONFJDDP.OBJ1          DELETED       *--------4
+IEF285I   VOL SER NOS= WORK04.
+IEF285I   SYS26258.T083226.RA000.ONFJDDP.OBJMOD        PASSED        *-------68
+IEF285I   VOL SER NOS= WORK02.
+IEF373I STEP /PRELINK / START 26258.0832
+IEF374I STEP /PRELINK / STOP  26258.0832 CPU    0MIN 00.58SEC SRB    0MIN 00.04SEC VIRT   528K SYS   200K
+************************************************************************************************************************************
+*     5. Jobstep of job: ONFJDDP     Stepname: PRELINK     Program name: PRELINK    Executed on 15.09.26 from 08.32.26 to 08.32.27 *
+*         elapsed time  00:00:00,80                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,62               Virtual Storage used:    528K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,62   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*                                                                                                                                  *
+*     I/O Operation                                                                                                                *
+*     Number of records read via DD * or DD DATA:      0                                                                           *
+*     299.......0 298.......0 DMY.......0 299.....561 293.......4 291......68                                                      *
+*                                                                                                                                  *
+*                                          Charge for step (w/o SYSOUT):          1,03                                             *
+************************************************************************************************************************************
+IEF236I ALLOC. FOR ONFJDDP LKED
+IEF237I 291  ALLOCATED TO SYSLIN
+IEF237I 293  ALLOCATED TO SYSUT1
+IEF237I JES2 ALLOCATED TO SYSPRINT
+IEF237I 290  ALLOCATED TO SYSLMOD
+IEF142I ONFJDDP LKED - STEP WAS EXECUTED - COND CODE 0000
+IEF285I   SYS26258.T083226.RA000.ONFJDDP.OBJMOD        DELETED       *-------69
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   SYS26258.T083226.RA000.ONFJDDP.R0000002      DELETED       *-------64
+IEF285I   VOL SER NOS= WORK04.
+IEF285I   JES2.JOB00290.SO0106                         SYSOUT
+IEF285I   SYS26258.T083226.RA000.ONFJDDP.GOSET         PASSED        *-------47
+IEF285I   VOL SER NOS= WORK01.
+IEF373I STEP /LKED    / START 26258.0832
+IEF374I STEP /LKED    / STOP  26258.0832 CPU    0MIN 00.04SEC SRB    0MIN 00.01SEC VIRT   260K SYS   200K
+************************************************************************************************************************************
+*     6. Jobstep of job: ONFJDDP     Stepname: LKED        Program name: IEWL       Executed on 15.09.26 from 08.32.27 to 08.32.27 *
+*         elapsed time  00:00:00,07                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,05               Virtual Storage used:    260K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,05   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*                                                                                                                                  *
+*     I/O Operation                                                                                                                *
+*     Number of records read via DD * or DD DATA:      0                                                                           *
+*     291......69 293......64 DMY.......0 290......47                                                                              *
+*                                                                                                                                  *
+*                                          Charge for step (w/o SYSOUT):          0,08                                             *
+************************************************************************************************************************************
+IEF236I ALLOC. FOR ONFJDDP GO
+IEF237I 290  ALLOCATED TO PGM=*.DD
+IEF237I JES2 ALLOCATED TO STDOUT
+IEF237I JES2 ALLOCATED TO STDERR
+IEF237I JES2 ALLOCATED TO SYSPRINT
+IEF237I 192  ALLOCATED TO ONFNET
+IEF237I 190  ALLOCATED TO SYS00542
+IEF142I ONFJDDP GO - STEP WAS EXECUTED - COND CODE 0000
+IEF285I   SYS26258.T083226.RA000.ONFJDDP.GOSET         KEPT          *--------0
+IEF285I   VOL SER NOS= WORK01.
+IEF285I   JES2.JOB00290.SO0107                         SYSOUT
+IEF285I   JES2.JOB00290.SO0108                         SYSOUT
+IEF285I   JES2.JOB00290.SO0109                         SYSOUT
+IEF285I   HERC01.ONFLY.C                               KEPT          *--------1
+IEF285I   VOL SER NOS= TSO003.
+IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
+IEF285I   VOL SER NOS= TSO001.
+IEF373I STEP /GO      / START 26258.0832
+IEF374I STEP /GO      / STOP  26258.0832 CPU    0MIN 00.01SEC SRB    0MIN 00.00SEC VIRT   424K SYS   244K
+************************************************************************************************************************************
+*     7. Jobstep of job: ONFJDDP     Stepname: GO          Program name: PGM=*.DD   Executed on 15.09.26 from 08.32.27 to 08.32.27 *
+*         elapsed time  00:00:00,05                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,01               Virtual Storage used:    424K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,01   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*                                                                                                                                  *
+*     I/O Operation                                                                                                                *
+*     Number of records read via DD * or DD DATA:      0                                                                           *
+*     290.......0 DMY.......0 DMY.......0 DMY.......0 192.......1 190.......0                                                      *
+*                                                                                                                                  *
+*                                          Charge for step (w/o SYSOUT):          0,01                                             *
+************************************************************************************************************************************
+IEF237I 290  ALLOCATED TO SYS00001
+IEF285I   SYS26258.T083227.RA000.ONFJDDP.R0000001      KEPT          *--------0
+IEF285I   VOL SER NOS= WORK01.
+IEF285I   SYS26258.T083226.RA000.ONFJDDP.GOSET         DELETED
+IEF285I   VOL SER NOS= WORK01.
+IEF375I  JOB /ONFJDDP / START 26258.0832
+IEF376I  JOB /ONFJDDP / STOP  26258.0832 CPU    0MIN 00.70SEC SRB    0MIN 00.06SEC
+
+       SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0001
+
+
+       ./ ADD NAME=DDPROBE
+       #include <stdio.h>
+
+       int main(int argc, char **argv)
+       {
+           static char *names[] = {
+               "DD:ONFNET",
+               "//DDN:ONFNET",
+               "DDN:ONFNET",
+               "dd:onfnet",
+               0
+           };
+           int i;
+           FILE *f;
+           unsigned char b[4];
+           size_t n;
+
+           for (i = 0; names[i] != 0; i++) {
+               f = fopen(names[i], "rb");
+               if (f == 0) {
+                   printf("DDPROBE %-14s FOPEN-NULL\n", names[i]);
+                   continue;
+               }
+               n = fread(b, 1, 4, f);
+               printf("DDPROBE %-14s OPEN read=%d %02X%02X%02X%02X\n",
+                      names[i], (int)n, b[0], b[1], b[2], b[3]);
+               fclose(f);
+           }
+
+
+           printf("ARGVPROBE argc=%d\n", argc);
+           for (i = 0; i < argc; i++) {
+               printf("ARGVPROBE argv[%d]=<%s>\n", i, argv[i]);
+           }
+           return 0;
+       }
+       ./ ENDUP
+IEB817I MEMBER NAME (DDPROBE ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
+IEB818I HIGHEST CONDITION CODE WAS 00000000
+IEB819I END OF JOB IEBUPDTE.
+
+
+Page Option Hint -z8096 (396 max. used of 4096)
+JCC-RC:0, 376832 heap bytes used, 266240 stack bytes used, Total Time:55ms
+
+00000000 *
+00000000 * Compiled by JCC - version 1.50.00
+00000000 *          on Tue Sep 15 08:32:26 2026
+00000000 *
+00000000 @CODE    ALIAS C'DDPROBE'
+00000000 @CODE    CSECT
+00000000 @CODE    AMODE ANY
+00000000 @CODE    RMODE ANY
+00000000 *
+00000000 printf   ALIAS C'printf'
+00000000          EXTRN printf
+00000000 fread    ALIAS C'fread'
+00000000          EXTRN fread
+00000000 fopen    ALIAS C'fopen'
+00000000          EXTRN fopen
+00000000 fclose   ALIAS C'fclose'
+00000000          EXTRN fclose
+00000000 @CRT0    ALIAS C'@crt0'
+00000000          EXTRN @CRT0
+00000000 *
+00000000 ***************
+00000000 *
+00000000 * ****
+00000000 * *****         main
+00000000 * ****
+00000000 *
+00000000 ***************
+00000000 main     ALIAS C'main'
+00000000          ENTRY main
+00000000 main     DS    0D
+00000000 @REGION_1_1 DS    0H
+00000000          STM   14,12,12(13)
+00000004          L     2,8(0,13)
+00000008          LA    14,136(0,2)
+0000000C          L     12,0(0,13)
+00000010          CL    14,4(0,12)
+00000014          BL    @F1-@REGION_1_1+4(0,15)
+00000018          L     10,0(0,12)
+0000001C          BALR  11,10
+0000001E          CNOP  0,4
+00000020 @F1      DS    0H
+00000020          DC    F'136'
+00000024          STM   12,14,0(2)
+00000028          LR    13,2
+0000002A          LR    12,15
+0000002C          USING @REGION_1_1,12
+0000002C *
+0000002C          LR    11,1
+0000002E *
+0000002E          L     10,@dnx_1_1
+00000032          USING @dnx_1,10
+00000032 *
+00000032 *
+00000032 * ***          //DDN:SYSIN:17 [main]
+00000032 *
+00000032          XR    4,4
+00000034          B     @lit_81
+00000038 @lit_78  DS    0H
+00000038 *
+00000038 * ***          //DDN:SYSIN:18 [main]
+00000038 *
+00000038          LR    2,4
+0000003A          SLL   2,2(0)
+0000003E          LA    3,@stl_73
+00000042          L     2,0(3,2)
+00000046          ST    2,108(0,13)
+0000004A          LA    2,@lit_82
+0000004E          ST    2,112(0,13)
+00000052          L     15,@ext_39
+00000056          LA    1,108(0,13)
+0000005A          BALR  14,15
+0000005C          LR    5,15
+0000005E *
+0000005E * ***          //DDN:SYSIN:19 [main]
+0000005E *
+0000005E          LTR   5,5
+00000060          BNZ   @lit_83
+00000064 *
+00000064 * ***          //DDN:SYSIN:20 [main]
+00000064 *
+00000064          LA    2,@lit_85
+00000068          ST    2,108(0,13)
+0000006C          LR    2,4
+0000006E          SLL   2,2(0)
+00000072          LA    3,@stl_73
+00000076          L     2,0(3,2)
+0000007A          ST    2,112(0,13)
+0000007E          L     15,@ext_59
+00000082          LA    1,108(0,13)
+00000086          BALR  14,15
+00000088 *
+00000088 * ***          //DDN:SYSIN:21 [main]
+00000088 *
+00000088          B     @lit_79
+0000008C @lit_83  DS    0H
+0000008C *
+0000008C * ***          //DDN:SYSIN:23 [main]
+0000008C *
+0000008C          LA    2,88(0,13)
+00000090          ST    2,108(0,13)
+00000094          LA    2,1(0,0)
+00000098          ST    2,112(0,13)
+0000009C          LA    2,4(0,0)
+000000A0          ST    2,116(0,13)
+000000A4          ST    5,120(0,13)
+000000A8          L     15,@ext_40
+000000AC          LA    1,108(0,13)
+000000B0          BALR  14,15
+000000B2          LR    6,15
+000000B4 *
+000000B4 * ***          //DDN:SYSIN:24 [main]
+000000B4 *
+000000B4          LA    2,@lit_86
+000000B8          ST    2,108(0,13)
+000000BC          LR    2,4
+000000BE          SLL   2,2(0)
+000000C2          LA    3,@stl_73
+000000C6          L     2,0(3,2)
+000000CA          ST    2,112(0,13)
+000000CE          ST    6,116(0,13)
+000000D2          XR    2,2
+000000D4          ICM   2,1,88(13)
+000000D8          ST    2,120(0,13)
+000000DC          XR    2,2
+000000DE          ICM   2,1,89(13)
+000000E2          ST    2,124(0,13)
+000000E6          XR    2,2
+000000E8          ICM   2,1,90(13)
+000000EC          ST    2,128(0,13)
+000000F0          XR    2,2
+000000F2          ICM   2,1,91(13)
+000000F6          ST    2,132(0,13)
+000000FA          L     15,@ext_59
+000000FE          LA    1,108(0,13)
+00000102          BALR  14,15
+00000104 *
+00000104 * ***          //DDN:SYSIN:26 [main]
+00000104 *
+00000104          ST    5,108(0,13)
+00000108          L     15,@ext_32
+0000010C          LA    1,108(0,13)
+00000110          BALR  14,15
+00000112 *
+00000112 * ***          //DDN:SYSIN:27 [main]
+00000112 *
+00000112 @lit_79  DS    0H
+00000112 *
+00000112 * ***          //DDN:SYSIN:17 [main]
+00000112 *
+00000112          A     4,@cst_1
+00000116 @lit_81  DS    0H
+00000116          LR    2,4
+00000118          SLL   2,2(0)
+0000011C          LA    3,@stl_73
+00000120          L     2,0(3,2)
+00000124          LTR   2,2
+00000126          BNZ   @lit_78
+0000012A *
+0000012A * ***          //DDN:SYSIN:29 [main]
+0000012A *
+0000012A          LA    2,@lit_90
+0000012E          ST    2,108(0,13)
+00000132          MVC   112(4,13),0(11)
+00000138          L     15,@ext_59
+0000013C          LA    1,108(0,13)
+00000140          BALR  14,15
+00000142 *
+00000142 * ***          //DDN:SYSIN:30 [main]
+00000142 *
+00000142          XR    4,4
+00000144          B     @lit_94
+00000148 @lit_91  DS    0H
+00000148 *
+00000148 * ***          //DDN:SYSIN:31 [main]
+00000148 *
+00000148          LA    2,@lit_95
+0000014C          ST    2,108(0,13)
+00000150          ST    4,112(0,13)
+00000154          LR    2,4
+00000156          SLL   2,2(0)
+0000015A          L     3,4(0,11)
+0000015E          L     2,0(3,2)
+00000162          ST    2,116(0,13)
+00000166          L     15,@ext_59
+0000016A          LA    1,108(0,13)
+0000016E          BALR  14,15
+00000170 *
+00000170 * ***          //DDN:SYSIN:32 [main]
+00000170 *
+00000170 @lit_92  DS    0H
+00000170 *
+00000170 * ***          //DDN:SYSIN:30 [main]
+00000170 *
+00000170          A     4,@cst_1
+00000174 @lit_94  DS    0H
+00000174          C     4,0(0,11)
+00000178          BL    @lit_91
+0000017C *
+0000017C * ***          //DDN:SYSIN:33 [main]
+0000017C *
+0000017C          XR    15,15
+0000017E @lit_72  DS    0H
+0000017E          L     13,4(0,13)
+00000182          L     14,12(0,13)
+00000186          LM    1,12,24(13)
+0000018A          BR    14
+0000018C *
+0000018C          DROP
+0000018C *
+0000018C          DS    0E
+0000018C @dnx_1_1 DC    A(@dnx_1)
+00000190 @dnx_1   DS    0E
+00000190 *
+00000190 @ext_32  DC    V(fclose)
+00000194 @ext_39  DC    V(fopen)
+00000198 @ext_40  DC    V(fread)
+0000019C @ext_59  DC    V(printf)
+000001A0 @cst_0   DC    X'00000000'
+000001A4 @cst_1   DC    X'00000001'
+000001A8 @cst_2   DC    X'00000002'
+000001AC @cst_4   DC    X'00000004'
+000001B0 @stl_73  DS    0E
+000001B0          DC    A(@lit_74)
+000001B4          DC    A(@lit_75)
+000001B8          DC    A(@lit_76)
+000001BC          DC    A(@lit_77)
+000001C0          DC    X'00000000'
+000001C4 @lit_95  DS    0E
+000001C4          DC    X'C1D9C7E5D7D9D6C2'  ARGVPROB
+000001CC          DC    X'C540819987A5AD6C'  E argv[%
+000001D4          DC    X'84BD7E4C6CA26E15'  d]=<%s>.
+000001DC          DC    X'00'                .
+000001DD          DC    3X'00'
+000001E0 @lit_90  DS    0E
+000001E0          DC    X'C1D9C7E5D7D9D6C2'  ARGVPROB
+000001E8          DC    X'C540819987837E6C'  E argc=%
+000001F0          DC    X'841500'            d..
+000001F3          DC    1X'00'
+000001F4 @lit_86  DS    0E
+000001F4          DC    X'C4C4D7D9D6C2C540'  DDPROBE
+000001FC          DC    X'6C60F1F4A240D6D7'  %-14s OP
+00000204          DC    X'C5D540998581847E'  EN read=
+0000020C          DC    X'6C84406CF0F2E76C'  %d %02X%
+00000214          DC    X'F0F2E76CF0F2E76C'  02X%02X%
+0000021C          DC    X'F0F2E71500'        02X..
+00000221          DC    3X'00'
+00000224 @lit_85  DS    0E
+00000224          DC    X'C4C4D7D9D6C2C540'  DDPROBE
+0000022C          DC    X'6C60F1F4A240C6D6'  %-14s FO
+00000234          DC    X'D7C5D560D5E4D3D3'  PEN-NULL
+0000023C          DC    X'1500'              ..
+0000023E          DC    2X'00'
+00000240 @lit_82  DS    0E
+00000240          DC    X'998200'            rb.
+00000243          DC    1X'00'
+00000244 @lit_77  DS    0E
+00000244          DC    X'84847A9695869585'  dd:onfne
+0000024C          DC    X'A300'              t.
+0000024E          DC    2X'00'
+00000250 @lit_76  DS    0E
+00000250          DC    X'C4C4D57AD6D5C6D5'  DDN:ONFN
+00000258          DC    X'C5E300'            ET.
+0000025B          DC    1X'00'
+0000025C @lit_75  DS    0E
+0000025C          DC    X'6161C4C4D57AD6D5'  //DDN:ON
+00000264          DC    X'C6D5C5E300'        FNET.
+00000269          DC    3X'00'
+0000026C @lit_74  DS    0E
+0000026C          DC    X'C4C47AD6D5C6D5C5'  DD:ONFNE
+00000274          DC    X'E300'              T.
+00000276          DC    2X'00'
+00000278 *
+00000278          END
+
+Mapping @@CRT0                                   ST000000
+Mapping @crt0                                    ST000001
+Mapping athreadid                                ST000002
+Mapping atexit                                   ST000003
+Mapping alloca                                   ST000004
+Mapping _exit                                    ST000005
+Mapping exit                                     ST000006
+Mapping _exec_vector                             ST000007
+Mapping _xlate                                   ST000008
+Mapping __libc_amode                             ST000009
+Mapping __libc_noexp                             ST000010
+Mapping __init_stack_size                        ST000011
+Mapping malloc                                   ST000012
+Mapping __load_args                              ST000013
+Mapping __stdio_init                             ST000014
+Mapping __initio                                 ST000015
+Mapping __load_env                               ST000016
+Mapping __init_threads                           ST000017
+Mapping EnterCriticalSection                     ST000018
+Mapping LeaveCriticalSection                     ST000019
+Mapping __socks_thread_term                      ST000020
+Mapping debug_server                             ST000021
+Mapping start_debug                              ST000022
+Mapping main                                     ST000023
+Mapping write                                    ST000024
+Mapping endthread                                ST000025
+Mapping __term_threads                           ST000026
+Mapping __fcloseall                              ST000027
+Mapping __termio                                 ST000028
+Mapping stop_debug                               ST000029
+Mapping __libc_free_all                          ST000030
+Mapping __StartClock                             ST000031
+Mapping __libc_ECS                               ST000032
+Mapping __libc_LCS                               ST000033
+Mapping __libc_STT                               ST000034
+Mapping __libc_expmem                            ST000035
+Mapping __debug_server                           ST000036
+Mapping __environ                                ST000037
+Mapping __progname                               ST000038
+Mapping __libc_arch                              ST000039
+Mapping __libc_oarch                             ST000040
+Mapping __libc_mode                              ST000041
+Mapping __libc_osvm                              ST000042
+Mapping __libc_heap_used                         ST000043
+Mapping __libc_heap_max                          ST000044
+Mapping __libc_stack_used                        ST000045
+Mapping __libc_stack_max                         ST000046
+Mapping __libc_tso_status                        ST000047
+Mapping __libc_stack_start                       ST000048
+Mapping entry_R13                                ST000049
+Mapping estspie2                                 ST000050
+Mapping a_estspie2                               ST000051
+Mapping rstspie2                                 ST000052
+Mapping a_rstspie2                               ST000053
+Mapping DDPROBE                                  ST000054
+Mapping printf                                   ST000055
+Mapping fread                                    ST000056
+Mapping fopen                                    ST000057
+Mapping fclose                                   ST000058
+Mapping @_DIV64                                  ST000059
+Mapping __udivdi3                                ST000060
+Mapping __divdi3                                 ST000061
+Mapping @@DIVI64                                 ST000062
+Mapping @@DIVU64                                 ST000063
+Mapping abs                                      ST000064
+Mapping labs                                     ST000065
+Mapping @ACOS                                    ST000066
+Mapping sqrt                                     ST000067
+Mapping atan2                                    ST000068
+Mapping acos                                     ST000069
+Mapping estspie                                  ST000070
+Mapping rstspie                                  ST000071
+Mapping amalloc                                  ST000072
+Mapping afree                                    ST000073
+Mapping @ARGS                                    ST000074
+Mapping __stdin                                  ST000075
+Mapping __stdout                                 ST000076
+Mapping __stderr                                 ST000077
+Mapping __errno                                  ST000078
+Mapping @ASCTIME                                 ST000079
+Mapping asctime                                  ST000080
+Mapping @ASIN                                    ST000081
+Mapping asin                                     ST000082
+Mapping ASOCKET                                  ST000083
+Mapping _L_Sockets                               ST000084
+Mapping _C_Sockets                               ST000085
+Mapping _U_Sockets                               ST000086
+Mapping @ASSERT                                  ST000087
+Mapping fprintf                                  ST000088
+Mapping stderr                                   ST000089
+Mapping __assert                                 ST000090
+Mapping @ATAN                                    ST000091
+Mapping atan                                     ST000092
+Mapping @ATAN2                                   ST000093
+Mapping fabs                                     ST000094
+Mapping athreadlock                              ST000095
+Mapping athreadpost                              ST000096
+Mapping athreadwait                              ST000097
+Mapping athreaddtch                              ST000098
+Mapping athreadstatus                            ST000099
+Mapping athreadpri                               ST000100
+Mapping athreadstart                             ST000101
+Mapping Sleep                                    ST000102
+Mapping setSleep                                 ST000103
+Mapping asystem                                  ST000104
+Mapping threadstart                              ST000105
+Mapping @AUX3270                                 ST000106
+Mapping strstr                                   ST000107
+Mapping closesocket                              ST000108
+Mapping ioctlsocket                              ST000109
+Mapping select                                   ST000110
+Mapping recv                                     ST000111
+Mapping send                                     ST000112
+Mapping accept                                   ST000113
+Mapping listen                                   ST000114
+Mapping bind                                     ST000115
+Mapping socket                                   ST000116
+Mapping SetNative                                ST000117
+Mapping MYTERMON                                 ST000118
+Mapping MYTERMFF                                 ST000119
+Mapping MYTERMO                                  ST000120
+Mapping MYTERMI                                  ST000121
+Mapping MYTERMONi                                ST000122
+Mapping MYTERMFFi                                ST000123
+Mapping MYTERMOi                                 ST000124
+Mapping MYTERMIi                                 ST000125
+Mapping panel_port                               ST000126
+Mapping panel_running                            ST000127
+Mapping @BSEARCH                                 ST000128
+Mapping bsearch                                  ST000129
+Mapping bzero                                    ST000130
+Mapping @CEIL                                    ST000131
+Mapping ceil                                     ST000132
+Mapping @COS                                     ST000133
+Mapping sincos                                   ST000134
+Mapping cos                                      ST000135
+Mapping @COSH                                    ST000136
+Mapping exp                                      ST000137
+Mapping cosh                                     ST000138
+Mapping @COT                                     ST000139
+Mapping tancot                                   ST000140
+Mapping cot                                      ST000141
+Warning, <@@CRT0> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <@crt0> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <athreadid> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <atexit> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <alloca> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <_exit> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <exit> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <_exec_vector> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <_xlate> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_amode> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__StartClock> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_ECS> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_LCS> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_STT> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_expmem> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__debug_server> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__environ> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__progname> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_arch> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_oarch> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_mode> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_osvm> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_heap_used> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_heap_max> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_stack_used> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_stack_max> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_tso_status> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <__libc_stack_start> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <entry_R13> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <a_estspie2> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Warning, <a_rstspie2> is defined in multiple places,
+ symbol in //DDN:L(CRT0) will be used,
+ symbol in //DDN:L(CRT0) will be discarded
+Mapping @CSIGN                                   ST000142
+Mapping _copysign                                ST000143
+Mapping _chgsign                                 ST000144
+Mapping @CTIME                                   ST000145
+Mapping localtime                                ST000146
+Mapping ctime                                    ST000147
+Mapping __ctype                                  ST000148
+Mapping isupper                                  ST000149
+Mapping islower                                  ST000150
+Mapping isalpha                                  ST000151
+Mapping isdigit                                  ST000152
+Mapping isxdigit                                 ST000153
+Mapping isspace                                  ST000154
+Mapping isprint                                  ST000155
+Mapping isgraph                                  ST000156
+Mapping isblank                                  ST000157
+Mapping iscntrl                                  ST000158
+Mapping ispunct                                  ST000159
+Mapping isalnum                                  ST000160
+Mapping @CUSERID                                 ST000161
+Mapping cuserid                                  ST000162
+Mapping getlogin                                 ST000163
+Mapping @DEBUG                                   ST000164
+Mapping _setjmp_canc                             ST000165
+Mapping _setjmp_stae                             ST000166
+Mapping gethostbyname                            ST000167
+Mapping inet_addr                                ST000168
+Mapping connect                                  ST000169
+Mapping __malloc24                               ST000170
+Mapping free                                     ST000171
+Mapping atol                                     ST000172
+Mapping div                                      ST000173
+Mapping ldiv                                     ST000174
+Mapping udiv                                     ST000175
+Mapping EXDYN76                                  ST000176
+Mapping @EXP                                     ST000177
+Mapping ldexp                                    ST000178
+Mapping __infinity                               ST000179
+Mapping EZASOKET                                 ST000180
+Mapping @FABS                                    ST000181
+Mapping @FLOAT                                   ST000182
+Mapping fltdigit                                 ST000183
+Mapping strcat                                   ST000184
+Mapping gcvt                                     ST000185
+Mapping ecvt                                     ST000186
+Mapping fcvt                                     ST000187
+Mapping strtod                                   ST000188
+Mapping atof                                     ST000189
+Mapping @FLOOR                                   ST000190
+Mapping floor                                    ST000191
+Mapping @FMOD                                    ST000192
+Mapping frexp                                    ST000193
+Mapping fmod                                     ST000194
+Mapping @FPRINTF                                 ST000195
+Mapping vfprintf                                 ST000196
+Mapping @FREXP                                   ST000197
+Mapping @FSCANF                                  ST000198
+Mapping vfscanf                                  ST000199
+Mapping fscanf                                   ST000200
+Mapping fstrstr                                  ST000201
+Mapping @GETENV                                  ST000202
+Mapping getenv                                   ST000203
+Mapping @GETS                                    ST000204
+Mapping y_lseek                                  ST000205
+Mapping z_complete_write                         ST000206
+Mapping w_term                                   ST000207
+Mapping __int_handles                            ST000208
+Mapping __uss_generic                            ST000209
+Mapping LOWLEVIO                                 ST000210
+Mapping __gets                                   ST000211
+Mapping pushbackc                                ST000212
+Mapping @GMTIME                                  ST000213
+Mapping __gettz                                  ST000214
+Mapping gmtime                                   ST000215
+Mapping gmtime_r                                 ST000216
+Mapping localtime_r                              ST000217
+Mapping @IO                                      ST000218
+Mapping strupr                                   ST000219
+Mapping strcmp                                   ST000220
+Mapping __get_tmpddn                             ST000221
+Mapping __get_ddndsnmemb                         ST000222
+Mapping close                                    ST000223
+Mapping commit                                   ST000224
+Mapping dup                                      ST000225
+Mapping dup2                                     ST000226
+Mapping eof                                      ST000227
+Mapping open                                     ST000228
+Mapping read                                     ST000229
+Mapping _style                                   ST000230
+Mapping _fmode                                   ST000231
+Mapping _vmode                                   ST000232
+Mapping _umode                                   ST000233
+Mapping __dd_name                                ST000234
+Mapping __libc_ussok                             ST000235
+Mapping @IOMODE                                  ST000236
+Mapping isatty                                   ST000237
+Mapping setmode                                  ST000238
+Mapping @IOMVS                                   ST000239
+Mapping __getdcb                                 ST000240
+Mapping __getdcba                                ST000241
+Mapping __bldl                                   ST000242
+Mapping __note                                   ST000243
+Mapping __setstow                                ST000244
+Mapping @LDEXP                                   ST000245
+Mapping llabs                                    ST000246
+Mapping @LLDIV                                   ST000247
+Mapping lldiv                                    ST000248
+Mapping @LOG                                     ST000249
+Mapping log                                      ST000250
+Mapping @LOG10                                   ST000251
+Mapping log10                                    ST000252
+Mapping @LSEARCH                                 ST000253
+Mapping lfind                                    ST000254
+Mapping lsearch                                  ST000255
+Mapping @LSEEK                                   ST000256
+Mapping _truncate                                ST000257
+Mapping tell                                     ST000258
+Mapping lseek                                    ST000259
+Mapping filelength                               ST000260
+Mapping @LTOA                                    ST000261
+Mapping ltoa                                     ST000262
+Mapping _ultoa                                   ST000263
+Mapping @MALLOC                                  ST000264
+Mapping __malloc31                               ST000265
+Mapping calloc                                   ST000266
+Mapping _msize                                   ST000267
+Mapping __libc_memvm                             ST000268
+Mapping memccpy                                  ST000269
+Mapping memchr                                   ST000270
+Mapping rawmemchr                                ST000271
+Mapping __rawmemchr                              ST000272
+Mapping memcmp                                   ST000273
+Mapping memcpy                                   ST000274
+Mapping memicmp                                  ST000275
+Mapping __upper1                                 ST000276
+Mapping memmove                                  ST000277
+Mapping bcopy                                    ST000278
+Mapping __bcopy                                  ST000279
+Mapping memset                                   ST000280
+Mapping @MKTIME                                  ST000281
+Mapping mktime                                   ST000282
+Mapping @MODF                                    ST000283
+Mapping modf                                     ST000284
+Mapping @MVSUTIL                                 ST000285
+Mapping _wri2dom                                 ST000286
+Mapping _wri2op                                  ST000287
+Mapping _wri2log                                 ST000288
+Mapping _getlnf                                  ST000289
+Mapping _getln                                   ST000290
+Mapping _putln                                   ST000291
+Mapping _putline                                 ST000292
+Mapping _getline                                 ST000293
+Mapping _CIB_STOP                                ST000294
+Mapping _write2log                               ST000295
+Mapping _write2op                                ST000296
+Mapping _write2opr                               ST000297
+Mapping @@MVSUT                                  ST000298
+Mapping _setstax                                 ST000299
+Mapping _setstax_canc                            ST000300
+Mapping _testauth                                ST000301
+Mapping _modeset                                 ST000302
+Mapping _wri2opr                                 ST000303
+Mapping @PERROR                                  ST000304
+Mapping __strerror_r                             ST000305
+Mapping perror                                   ST000306
+Mapping @POW                                     ST000307
+Mapping pow                                      ST000308
+Mapping @PRINTF                                  ST000309
+Mapping stdout                                   ST000310
+Mapping @PUTENV                                  ST000311
+Mapping realloc                                  ST000312
+Mapping strchr                                   ST000313
+Mapping putenv                                   ST000314
+Mapping @QSORT                                   ST000315
+Mapping qsort                                    ST000316
+Mapping @RAND                                    ST000317
+Mapping rand                                     ST000318
+Mapping srand                                    ST000319
+Mapping @REALLOC                                 ST000320
+Mapping @RENAME                                  ST000321
+Mapping rename                                   ST000322
+Mapping _rotl                                    ST000323
+Mapping _lrotl                                   ST000324
+Mapping _rotr                                    ST000325
+Mapping _lrotr                                   ST000326
+Mapping @SCANF                                   ST000327
+Mapping stdin                                    ST000328
+Mapping scanf                                    ST000329
+Mapping setjmp                                   ST000330
+Mapping longjmp                                  ST000331
+Mapping @SIGNAL                                  ST000332
+Mapping raise                                    ST000333
+Mapping signal                                   ST000334
+Mapping @SIN                                     ST000335
+Mapping sin                                      ST000336
+Mapping @SINCOS                                  ST000337
+Mapping @SINH                                    ST000338
+Mapping sinh                                     ST000339
+Mapping @SNPRINT                                 ST000340
+Mapping vsnprintf                                ST000341
+Mapping snprintf                                 ST000342
+Mapping @SOCKET                                  ST000343
+Mapping __subtask                                ST000344
+Mapping WSAGetLastError                          ST000345
+Mapping ascii2ebcdic                             ST000346
+Mapping ebcdic2ascii                             ST000347
+Mapping inet_aton                                ST000348
+Mapping fcntl                                    ST000349
+Mapping gethostid                                ST000350
+Mapping gethostname                              ST000351
+Mapping getpeername                              ST000352
+Mapping getsockname                              ST000353
+Mapping getsockopt                               ST000354
+Mapping ioctl                                    ST000355
+Mapping readsocket                               ST000356
+Mapping readv                                    ST000357
+Mapping recvfrom                                 ST000358
+Mapping recvmsg                                  ST000359
+Mapping sendmsg                                  ST000360
+Mapping sendto                                   ST000361
+Mapping setsockopt                               ST000362
+Mapping shutdown                                 ST000363
+Mapping writesocket                              ST000364
+Mapping writev                                   ST000365
+Mapping getclientid                              ST000366
+Mapping givesocket                               ST000367
+Mapping takesocket                               ST000368
+Mapping selectex                                 ST000369
+Mapping getibmopt                                ST000370
+Mapping gethostbyaddr                            ST000371
+Mapping give_task                                ST000372
+Mapping give_easy                                ST000373
+Mapping take_easy                                ST000374
+Mapping __jcc_FD_SETSIZE                         ST000375
+Mapping @SPRINTF                                 ST000376
+Mapping vsprintf                                 ST000377
+Mapping sprintf                                  ST000378
+Mapping @SQRT                                    ST000379
+Mapping @SSCANF                                  ST000380
+Mapping sscanf                                   ST000381
+Mapping sstrstr                                  ST000382
+Mapping @STDIO                                   ST000383
+Mapping strlwr                                   ST000384
+Mapping fflush                                   ST000385
+Mapping _fflushall                               ST000386
+Mapping freopen                                  ST000387
+Mapping fdopen                                   ST000388
+Mapping setvbuf                                  ST000389
+Mapping setbuf                                   ST000390
+Mapping fcloseall                                ST000391
+Mapping fileno                                   ST000392
+Mapping feof                                     ST000393
+Mapping ferror                                   ST000394
+Mapping clearerr                                 ST000395
+Mapping fseek                                    ST000396
+Mapping rewind                                   ST000397
+Mapping ftell                                    ST000398
+Mapping fgetpos                                  ST000399
+Mapping fsetpos                                  ST000400
+Mapping _getw                                    ST000401
+Mapping ungetc                                   ST000402
+Mapping fgetc                                    ST000403
+Mapping fgets                                    ST000404
+Mapping gets                                     ST000405
+Mapping fwrite                                   ST000406
+Mapping _putw                                    ST000407
+Mapping fputc                                    ST000408
+Mapping putchar                                  ST000409
+Mapping fputs                                    ST000410
+Mapping puts                                     ST000411
+Mapping @STRCASE                                 ST000412
+Mapping __upper2                                 ST000413
+Mapping strcasecmp                               ST000414
+Mapping strcpy                                   ST000415
+Mapping @STRCSPN                                 ST000416
+Mapping strcspn                                  ST000417
+Mapping @STRDUP                                  ST000418
+Mapping strdup                                   ST000419
+Mapping @STRERRO                                 ST000420
+Mapping strerror                                 ST000421
+Mapping @STRFTIM                                 ST000422
+Mapping strftime                                 ST000423
+Mapping strlen                                   ST000424
+Mapping @STRLWR                                  ST000425
+Mapping __lower1                                 ST000426
+Mapping @STRNCAS                                 ST000427
+Mapping strncasecmp                              ST000428
+Mapping strncat                                  ST000429
+Mapping strncmp                                  ST000430
+Mapping strncpy                                  ST000431
+Mapping @STRNSET                                 ST000432
+Mapping strnset                                  ST000433
+Mapping @STRPBRK                                 ST000434
+Mapping strpbrk                                  ST000435
+Mapping strrchr                                  ST000436
+Mapping memrchr                                  ST000437
+Mapping @STRREV                                  ST000438
+Mapping strrev                                   ST000439
+Mapping @STRSPN                                  ST000440
+Mapping strspn                                   ST000441
+Mapping strspnp                                  ST000442
+Mapping @STRSTR                                  ST000443
+Mapping @STRTOK                                  ST000444
+Mapping strtok                                   ST000445
+Mapping @STRTOL                                  ST000446
+Mapping strtol                                   ST000447
+Mapping @STRTOLL                                 ST000448
+Mapping strtoll                                  ST000449
+Mapping atoll                                    ST000450
+Mapping @STRTOUL                                 ST000451
+Mapping strtoul                                  ST000452
+Mapping @STRTULL                                 ST000453
+Mapping strtoull                                 ST000454
+Mapping @STRUPR                                  ST000455
+Mapping _swab                                    ST000456
+Mapping @TAN                                     ST000457
+Mapping tan                                      ST000458
+Mapping @TANCOT                                  ST000459
+Mapping @TANH                                    ST000460
+Mapping tanh                                     ST000461
+Mapping @THREADS                                 ST000462
+Mapping InitialiseCriticalSection                ST000463
+Mapping beginthread                              ST000464
+Mapping threadstatus                             ST000465
+Mapping threadpriority                           ST000466
+Mapping syncthread                               ST000467
+Mapping systemTSO                                ST000468
+Mapping system                                   ST000469
+Mapping spawn                                    ST000470
+Mapping spawnc                                   ST000471
+Mapping CreateEvent                              ST000472
+Mapping ResetEvent                               ST000473
+Mapping SetEvent                                 ST000474
+Mapping EventStatus                              ST000475
+Mapping WaitForSingleEvent                       ST000476
+Mapping WaitForMultipleEvents                    ST000477
+Mapping CloseEvent                               ST000478
+Mapping time                                     ST000479
+Mapping gettimeofday                             ST000480
+Mapping difftime                                 ST000481
+Mapping clock                                    ST000482
+Mapping tolower                                  ST000483
+Mapping _tolower                                 ST000484
+Mapping __lower2                                 ST000485
+Mapping toupper                                  ST000486
+Mapping _toupper                                 ST000487
+Mapping @UNLINK                                  ST000488
+Mapping _unlink                                  ST000489
+Mapping remove                                   ST000490
+Mapping @VFPRINT                                 ST000491
+Mapping @VFSCANF                                 ST000492
+Mapping @VPRINTF                                 ST000493
+Mapping vprintf                                  ST000494
+Mapping @VSNPRIN                                 ST000495
+Mapping @VSPRINT                                 ST000496
+
+Linking <//DDN:L(CRT0)>
+Linking <//DDN:I>
+Linking <//DDN:L(@DIV64)>
+Linking <//DDN:L(AMALLOC)>
+Linking <//DDN:L(ARGS)>
+Linking <//DDN:L(CTYPE)>
+Linking <//DDN:L(DIV)>
+Linking <//DDN:L(DIV64)>
+Linking <//DDN:L(EXDYN76)>
+Linking <//DDN:L(FLOAT)>
+Linking <//DDN:L(FLTDIGIT)>
+Linking <//DDN:L(FSTRSTR)>
+Linking <//DDN:L(GETS)>
+Linking <//DDN:L(IO)>
+Linking <//DDN:L(LOWLEVIO)>
+Linking <//DDN:L(LSEEK)>
+Linking <//DDN:L(MALLOC)>
+Linking <//DDN:L(PRINTF)>
+Linking <//DDN:L(SSTRSTR)>
+Linking <//DDN:L(STDIO)>
+Linking <//DDN:L(STRCAT)>
+Linking <//DDN:L(STRCHR)>
+Linking <//DDN:L(STRCMP)>
+Linking <//DDN:L(STRLWR)>
+Linking <//DDN:L(STRSTR)>
+Linking <//DDN:L(STRTOL)>
+Linking <//DDN:L(STRUPR)>
+Linking <//DDN:L(VFPRINTF)>
+Linking <//DDN:L(USSIO)>
+PLK-RC:0, Total Time:749ms
+
+
+
+ F64-LEVEL LINKAGE EDITOR OPTIONS SPECIFIED NCAL,MAP,LIST,XREF,NORENT
+          DEFAULT OPTION(S) USED -  SIZE=(231424,55296)
+IEW0000     ENTRY ST000000
+
+
+
+                                                CROSS REFERENCE TABLE
+
+
+  CONTROL SECTION                       ENTRY
+
+    NAME    ORIGIN  LENGTH                NAME   LOCATION     NAME   LOCATION     NAME   LOCATION     NAME   LOCATION
+  ST000000      00     B24
+                                        ST000001      00    ST000002     2B8    ST000003     2D0    ST000004     300
+                                        ST000005     428    ST000006     440    ST000007     558    ST000008     568
+                                        ST000009     5C0    ST000031     688    ST000032     690    ST000033     694
+                                        ST000034     698    ST000035     69C    ST000036     6A0    ST000037     6A4
+                                        ST000038     6A8    ST000039     6AC    ST000040     6B0    ST000041     6B4
+                                        ST000042     6B8    ST000043     6BC    ST000044     6C0    ST000045     6C4
+                                        ST000046     6C8    ST000047     6CC    ST000048     6D0    ST000049     AD0
+                                        ST000051     B1C    ST000053     B20
+  ST000054     B28     278
+                                        ST000023     B28
+  ST000059     DA0     140
+                                        ST000062     DA0    ST000063     E38
+  ST000072     EE0     168
+                                        ST000073     FB0
+  ST000074    1048    1370
+                                        ST000013    10F8    ST000075    1D18    ST000076    1D58    ST000077    1D98
+                                        ST000078    1DD8
+  ST000148    23B8     404
+                                        ST000149    26BC    ST000150    26CC    ST000151    26DC    ST000152    26EC
+                                        ST000153    26FC    ST000154    270C    ST000155    271C    ST000156    272C
+
+                                        ST000157    273C    ST000158    274C    ST000159    275C    ST000160    276C
+  ST000173    27C0      6C
+                                        ST000174    27C0    ST000175    27E0
+  ST000061    2830     214
+                                        ST000060    28D8
+  ST000176    2A48      28
+  ST000182    2A70    1FBC
+                                        ST000185    3140    ST000186    35D0    ST000187    36A0    ST000188    3778
+                                        ST000189    3E90    ST000179    3FA4
+  ST000183    4A30      68
+  ST000201    4A98      58
+  ST000204    4AF0    1564
+                                        ST000211    4AF0    ST000212    5C90
+  ST000218    6058    DB68
+                                        ST000221    6058    ST000222    6108    ST000015    6848    ST000223    7B38
+                                        ST000224    8228    ST000225    83D0    ST000226    8708    ST000227    8B50
+                                        ST000205    8C10    ST000228    9820    ST000229    EDB0    ST000206   10018
+                                        ST000024   10BA0    ST000028   12C88    ST000230   13334    ST000231   13338
+                                        ST000232   1333C    ST000233   13340    ST000234   13344    ST000207   13348
+                                        ST000235   13350    ST000208   13558
+  ST000210   13BC0     290
+  ST000256   13E50    1160
+
+
+
+    NAME    ORIGIN  LENGTH                NAME   LOCATION     NAME   LOCATION     NAME   LOCATION     NAME   LOCATION
+                                        ST000257   13E50    ST000258   141B8    ST000259   14430    ST000260   14A30
+  ST000264   14FB0    2004
+                                        ST000012   15828    ST000265   158C8    ST000170   15968    ST000266   15A10
+                                        ST000171   15FD8    ST000030   16208    ST000267   16340    ST000268   16674
+  ST000309   16FB8      6C
+
+                                        ST000055   16FB8
+  ST000382   17028      48
+  ST000383   17070    2E2C
+                                        ST000057   17268    ST000385   172E0    ST000386   17378    ST000387   173E0
+                                        ST000388   17510    ST000389   175B0    ST000390   17688    ST000014   176F0
+                                        ST000058   178C8    ST000027   17978    ST000391   179F0    ST000392   17A78
+                                        ST000393   17B18    ST000394   17B98    ST000395   17C18    ST000396   17CA0
+                                        ST000397   17D40    ST000398   17DD0    ST000399   17E50    ST000400   17ED8
+                                        ST000056   17F58    ST000401   180F0    ST000402   18168    ST000403   182A8
+                                        ST000404   183C0    ST000405   18608    ST000406   18818    ST000407   18998
+                                        ST000408   18A10    ST000409   18A88    ST000410   18B00    ST000411   18BA8
+                                        ST000328   19E50    ST000310   19E54    ST000089   19E58
+  ST000184   19EA0      64
+  ST000313   19F08      6C
+  ST000220   19F78      6C
+  ST000425   19FE8     1A0
+                                        ST000384   19FE8    ST000426   1A084
+  ST000443   1A188     110
+                                        ST000107   1A188
+  ST000446   1A298     564
+                                        ST000447   1A6A8    ST000172   1A700
+  ST000455   1A800     1A0
+                                        ST000219   1A800    ST000276   1A89C
+  ST000491   1A9A0    3968
+                                        ST000196   1DE80
+  ST000209   1E308      40
+
+
+
+
+  LOCATION  REFERS TO SYMBOL  IN CONTROL SECTION             LOCATION  REFERS TO SYMBOL  IN CONTROL SECTION
+
+      5D8            ST000010       $UNRESOLVED(W)                5DC            ST000011       $UNRESOLVED(W)
+      5E0            ST000012        ST000264                     5E4            ST000013        ST000074
+      5E8            ST000014        ST000383                     5EC            ST000015        ST000218
+      5F0            ST000016       $UNRESOLVED(W)                5F4            ST000017       $UNRESOLVED(W)
+      5F8            ST000018       $UNRESOLVED(W)                5FC            ST000019       $UNRESOLVED(W)
+      600            ST000020       $UNRESOLVED(W)                604            ST000021       $UNRESOLVED(W)
+
+      608            ST000022       $UNRESOLVED(W)                60C            ST000023        ST000054
+      610            ST000024        ST000218                     614            ST000025       $UNRESOLVED(W)
+      618            ST000026       $UNRESOLVED(W)                61C            ST000027        ST000383
+      620            ST000028        ST000218                     624            ST000029       $UNRESOLVED(W)
+      628            ST000030        ST000264                     B1C            ST000050       $UNRESOLVED(W)
+      B20            ST000052       $UNRESOLVED(W)                CC4            ST000055        ST000309
+      CC0            ST000056        ST000383                     CBC            ST000057        ST000383
+      CB8            ST000058        ST000383                     ED0            ST000060        ST000061
+      ECC            ST000061        ST000061                    1038            ST000043        ST000000
+     103C            ST000044        ST000000                    1040            ST000041        ST000000
+
+
+
+  LOCATION  REFERS TO SYMBOL  IN CONTROL SECTION             LOCATION  REFERS TO SYMBOL  IN CONTROL SECTION
+     1044            ST000035        ST000000                    1CC4            ST000042        ST000000
+     1CC0            ST000038        ST000000                    1CBC            ST000039        ST000000
+     3EF8            ST000183        ST000183                    3EF4            ST000078        ST000074
+     3EF0            ST000002        ST000000                    3EEC            ST000012        ST000264
+     3EE8            ST000175        ST000173                    3EE4            ST000107        ST000443
+     3EE0            ST000184        ST000184                    3EDC            ST000039        ST000000
+     5F4C            ST000176        ST000176                    5F48            ST000009        ST000000
+     5F44            ST000035        ST000000                    5F40            ST000205        ST000218
+     5F3C            ST000206        ST000218                    5F38            ST000207        ST000218
+     5F34            ST000208        ST000218                    5F30            ST000033        ST000000
+     5F2C            ST000032        ST000000                    5F28            ST000209        ST000209
+     5F24            ST000210        ST000210                    5F20            ST000078        ST000074
+     5F1C            ST000002        ST000000                    5F18            ST000039        ST000000
+    12E98            ST000176        ST000176                   12E94            ST000077        ST000074
+    12E90            ST000076        ST000074                   12E8C            ST000075        ST000074
+    12E88            ST000009        ST000000                   12E84            ST000035        ST000000
+    12E80            ST000041        ST000000                   12E7C            ST000042        ST000000
+
+    12E78            ST000040        ST000000                   12E74            ST000033        ST000000
+    12E70            ST000032        ST000000                   12E6C            ST000209        ST000209
+    12E68            ST000210        ST000210                   12E64            ST000078        ST000074
+    12E60            ST000002        ST000000                   12E5C            ST000219        ST000455
+    12E58            ST000107        ST000443                   12E54            ST000220        ST000220
+    12E50            ST000170        ST000264                   12E4C            ST000012        ST000264
+    12E48            ST000171        ST000264                   12E44            ST000172        ST000446
+    12E40            ST000039        ST000000                   14F04            ST000033        ST000000
+    14F00            ST000032        ST000000                   14EFC            ST000176        ST000176
+    14EF8            ST000009        ST000000                   14EF4            ST000035        ST000000
+    14EF0            ST000205        ST000218                   14EEC            ST000206        ST000218
+    14EE8            ST000208        ST000218                   14EE4            ST000209        ST000209
+    14EE0            ST000210        ST000210                   14EDC            ST000078        ST000074
+    14ED8            ST000002        ST000000                   14ED4            ST000171        ST000264
+    14ED0            ST000229        ST000218                   165D0            ST000033        ST000000
+    165CC            ST000032        ST000000                   165C8            ST000073        ST000072
+    165C4            ST000072        ST000072                   165C0            ST000041        ST000000
+    165BC            ST000042        ST000000                   17018            ST000196        ST000491
+    17014            ST000310        ST000383                   19CFC            ST000033        ST000000
+    19CF8            ST000032        ST000000                   19CF4            ST000028        ST000218
+    19CF0            ST000015        ST000218                   19CEC            ST000211        ST000204
+    19CE8            ST000212        ST000204                   19CE4            ST000208        ST000218
+    19CE0            ST000012        ST000264                   19CDC            ST000171        ST000264
+    19CD8            ST000384        ST000425                   19CD4            ST000107        ST000443
+    19CD0            ST000220        ST000220                   19CCC            ST000078        ST000074
+    19CC8            ST000002        ST000000                   19CC4            ST000024        ST000218
+    19CC0            ST000258        ST000256                   19CBC            ST000229        ST000218
+    19CB8            ST000228        ST000218                   19CB4            ST000259        ST000256
+    19CB0            ST000227        ST000218                   19CAC            ST000226        ST000218
+
+    19CA8            ST000225        ST000218                   19CA4            ST000224        ST000218
+    19CA0            ST000223        ST000218                   19C9C            ST000231        ST000218
+    19C98            ST000039        ST000000                   19F00            ST000039        ST000000
+    19F70            ST000039        ST000000                   19FE0            ST000039        ST000000
+    1A07C            ST000008        ST000000                   1A078            ST000039        ST000000
+    1A288            ST000201        ST000201                   1A284            ST000382        ST000382
+
+
+
+  LOCATION  REFERS TO SYMBOL  IN CONTROL SECTION             LOCATION  REFERS TO SYMBOL  IN CONTROL SECTION
+    1A27C            ST000313        ST000313                   1A278            ST000039        ST000000
+    1A280            ST000039        ST000000                   1A760            ST000078        ST000074
+    1A75C            ST000002        ST000000                   1A758            ST000154        ST000148
+    1A754            ST000039        ST000000                   1A894            ST000008        ST000000
+    1A890            ST000039        ST000000                   1E0CC            ST000063        ST000059
+    1E0C8            ST000187        ST000182                   1E0C4            ST000186        ST000182
+    1E0C0            ST000175        ST000173                   1E0BC            ST000313        ST000313
+    1E0B8            ST000078        ST000074                   1E0B4            ST000002        ST000000
+    1E0B0            ST000152        ST000148                   1E0AC            ST000039        ST000000
+
+ ENTRY ADDRESS       00
+
+ TOTAL LENGTH     1E348
+****GO        DOES NOT EXIST BUT HAS BEEN ADDED TO DATA SET
+AUTHORIZATION CODE IS         0.
+
+
+
+DDPROBE DD:ONFNET      FOPEN-NULL
+DDPROBE //DDN:ONFNET   OPEN read=4 7B899583
+DDPROBE DDN:ONFNET     FOPEN-NULL
+DDPROBE dd:onfnet      FOPEN-NULL
+ARGVPROBE argc=5
+ARGVPROBE argv[0]=<GO>
+ARGVPROBE argv[1]=<RUN>
+ARGVPROBE argv[2]=<//DDN:ONFNET>
+ARGVPROBE argv[3]=<//DDN:ONFREQ>
+ARGVPROBE argv[4]=<//DDN:ONFRSP>
+
+                        OOOOOOOOOOOO  NN        NN  FFFFFFFFFFFF    JJJJJJJJJJ  DDDDDDDDD     DDDDDDDDD     PPPPPPPPPPP
+                       OOOOOOOOOOOO  NNN       NN  FFFFFFFFFFFF    JJJJJJJJJJ  DDDDDDDDDD    DDDDDDDDDD    PPPPPPPPPPPP
+                      OO        OO  NNNN      NN  FF                  JJ      DD       DD   DD       DD   PP        PP
+                     OO        OO  NN NN     NN  FF                  JJ      DD        DD  DD        DD  PP        PP
+                    OO        OO  NN  NN    NN  FF                  JJ      DD        DD  DD        DD  PP        PP
+                   OO        OO  NN   NN   NN  FFFFFFFF            JJ      DD        DD  DD        DD  PPPPPPPPPPPP
+                  OO        OO  NN    NN  NN  FFFFFFFF            JJ      DD        DD  DD        DD  PPPPPPPPPPP
+                 OO        OO  NN     NN NN  FF                  JJ      DD        DD  DD        DD  PP
+                OO        OO  NN      NNNN  FF            JJ    JJ      DD        DD  DD        DD  PP
+               OO        OO  NN       NNN  FF            JJ    JJ      DD       DD   DD       DD   PP
+              OOOOOOOOOOOO  NN        NN  FF            JJJJJJJJ      DDDDDDDDDD    DDDDDDDDDD    PP
+             OOOOOOOOOOOO  NN         N  FF             JJJJJJ       DDDDDDDDD     DDDDDDDDD     PP
+
+
+
+                    JJJJJJJJJJ   2222222222    9999999999     00000000                                 AAAAAAAAAA
+                    JJJJJJJJJJ  222222222222  999999999999   0000000000                               AAAAAAAAAAAA
+                        JJ      22        22  99        99  00      0000                              AA        AA
+                        JJ                22  99        99  00     00 00                              AA        AA
+                        JJ                22  99        99  00    00  00                              AA        AA
+                        JJ               22   999999999999  00   00   00                              AAAAAAAAAAAA
+                        JJ             22     999999999999  00  00    00                              AAAAAAAAAAAA
+                        JJ           22                 99  00 00     00                              AA        AA
+                  JJ    JJ         22                   99  0000      00                              AA        AA
+                  JJ    JJ       22           99        99  000       00                              AA        AA
+                  JJJJJJJJ      222222222222  999999999999   0000000000                               AA        AA
+                   JJJJJJ       222222222222   9999999999     00000000                                AA        AA
+
+
+****A   END   JOB  290  ONFJDDP   ONFLY JCC ROW7        ROOM        8.32.27 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  290   END   A****
+****A   END   JOB  290  ONFJDDP   ONFLY JCC ROW7        ROOM        8.32.27 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  290   END   A****
+****A   END   JOB  290  ONFJDDP   ONFLY JCC ROW7        ROOM        8.32.27 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  290   END   A****
+****A   END   JOB  290  ONFJDDP   ONFLY JCC ROW7        ROOM        8.32.27 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  290   END   A****

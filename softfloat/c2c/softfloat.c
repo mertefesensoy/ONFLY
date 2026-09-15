@@ -2019,7 +2019,10 @@ float64 float64_rem( float64 a, float64 b )
         sub64( aSig0, aSig1, bSig0, bSig1, &aSig0, &aSig1 );
     } while ( 0 <= (sbits32) aSig0 );
     add64(
-        aSig0, aSig1, alternateASig0, alternateASig1, &sigMean0, &sigMean1 );
+        aSig0, aSig1, alternateASig0, alternateASig1,
+        (bits32 *) &sigMean0, /* D-285: JCC writes no object
+                                 without this cast */
+        &sigMean1 );
     if (    ( sigMean0 < 0 )
          || ( ( ( sigMean0 | sigMean1 ) == 0 ) && ( q & 1 ) ) ) {
         aSig0 = alternateASig0;
