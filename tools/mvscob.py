@@ -102,9 +102,9 @@ def cards_of(relpath):
     return out
 
 
-def expected_records():
+def expected_records(cards=None):
     recs = []
-    for text, exp in CARDS:
+    for text, exp in (CARDS if cards is None else cards):
         if isinstance(exp, tuple):
             code, rate, ms, seed = exp
             head = struct.pack(L.HEAD_FMT, code.ljust(8).encode("cp037"),
@@ -113,7 +113,25 @@ def expected_records():
     return recs
 
 
-def deck(parm=DEFAULT_PARM, with_rpt=True):
+def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
+         job=None, title="ONFLY G4 COBOL"):
+    """Gate G4's COBOL job, or the same job over different control cards.
+
+    The four keyword arguments exist for Phase E slice 1 (D-260), which
+    needs exactly this job -- compile ONFLYDRV, run it in MODE=REQ,
+    hex-dump what it wrote -- over the Section 8.4 `srext` cards and
+    into a dataset the engine job can then read.  They default to Gate
+    G4's own values, so a caller that passes none of them gets the deck
+    this function has always produced, card for card.
+
+    Copying the function instead was the obvious alternative and is the
+    one tools/mvsbld.py's own docstring argues against: every line of
+    this deck was paid for by a failure, and two copies of that would
+    drift.
+    """
+    cards = CARDS if cards is None else cards
+    req_dsn = REQ_DSN if req_dsn is None else req_dsn
+    job = JOB if job is None else job
     d = []
 
     def a(card):
@@ -121,12 +139,12 @@ def deck(parm=DEFAULT_PARM, with_rpt=True):
             raise DeckError("JCL card exceeds column %d: %s" % (JCL_FIELD, card))
         d.append(card)
 
-    a("//%-8s JOB (001),'ONFLY G4 COBOL',CLASS=A,MSGCLASS=A," % JOB)
+    a("//%-8s JOB (001),'%s',CLASS=A,MSGCLASS=A," % (job, title))
     a("//             USER=%s,PASSWORD=CUL8TR," % USER)
     a("//             REGION=4M,TIME=1440,MSGLEVEL=(1,1)")
     a("//*")
     a("//SCRATCH  EXEC PGM=IEFBR14")
-    for n, dsn in enumerate((LIB_DSN, SRC_DSN, REQ_DSN), 1):
+    for n, dsn in enumerate((LIB_DSN, SRC_DSN, req_dsn), 1):
         a("//D%d       DD DSN=%s,DISP=(MOD,DELETE)," % (n, dsn))
         a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
     a("//*")
@@ -178,18 +196,18 @@ def deck(parm=DEFAULT_PARM, with_rpt=True):
     a("//GO       EXEC PGM=*.LKED.SYSLMOD,COND=((5,LT,COB),(5,LT,LKED))")
     a("//SYSOUT   DD SYSOUT=*")
     a("//SYSPRINT DD SYSOUT=*")
-    a("//ONFREQ   DD DSN=%s,DISP=(,CATLG,DELETE)," % REQ_DSN)
+    a("//ONFREQ   DD DSN=%s,DISP=(,CATLG,DELETE)," % req_dsn)
     a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
     a("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
     a("//ONFCTL   DD *")
-    for text, _ in CARDS:
+    for text, _ in cards:
         a(text)
     a("/*")
     a("//*")
     # --- hex dump of what was written --------------------------------
     a("//DUMP     EXEC PGM=IDCAMS,COND=((5,LT,COB),(5,LT,LKED))")
     a("//SYSPRINT DD SYSOUT=*")
-    a("//ONFREQ   DD DSN=%s,DISP=SHR" % REQ_DSN)
+    a("//ONFREQ   DD DSN=%s,DISP=SHR" % req_dsn)
     a("//SYSIN    DD *")
     a("  PRINT INFILE(ONFREQ) DUMP")
     a("/*")
@@ -198,7 +216,7 @@ def deck(parm=DEFAULT_PARM, with_rpt=True):
         a("//GO2      EXEC PGM=*.LKED.SYSLMOD,COND=((5,LT,COB),(5,LT,LKED))")
         a("//SYSOUT   DD SYSOUT=*")
         a("//SYSPRINT DD SYSOUT=*")
-        a("//ONFRSP   DD DSN=%s,DISP=SHR" % REQ_DSN)
+        a("//ONFRSP   DD DSN=%s,DISP=SHR" % req_dsn)
         a("//ONFRPT   DD SYSOUT=*,DCB=(RECFM=FBA,LRECL=133,BLKSIZE=133)")
         a("//ONFCTL   DD *")
         a("MODE=RPT")

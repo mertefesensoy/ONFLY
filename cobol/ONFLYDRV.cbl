@@ -153,6 +153,11 @@
            05  W-CARD-OK              PIC X VALUE 'Y'.
            05  W-NUM-OK               PIC X VALUE 'Y'.
            05  W-LEAD                 PIC X VALUE 'Y'.
+      *A leading minus was seen in the field CONV4 just read (D-265).
+      *CONV4 only REPORTS it; whether a sign is legal is the caller's
+      *business, because it is legal in the rate column and not in
+      *the duration column.
+           05  W-NUM-NEG              PIC X VALUE 'N'.
        01  W-COUNTS.
            05  W-CARD-NO              PIC 9(4) VALUE 0.
            05  W-REQ-COUNT            PIC 9(4) VALUE 0.
@@ -164,6 +169,9 @@
        01  W-VALUES.
            05  W-I                    PIC S9(4) COMP VALUE +0.
            05  W-K                    PIC S9(4) COMP VALUE +0.
+      *Which column the minus stood in, so that a field holding a
+      *sign and no digits at all is rejected (D-265).
+           05  W-NUM-SGN              PIC S9(4) COMP VALUE +0.
            05  W-RATE                 PIC S9(4) COMP VALUE +0.
            05  W-MS                   PIC S9(4) COMP VALUE +0.
            05  W-SEED                 PIC S9(9) COMP VALUE +0.
@@ -258,13 +266,24 @@
            MOVE 'Y' TO W-CARD-OK.
            IF W-CARD-CODE = SPACES
                MOVE 'N' TO W-CARD-OK.
+      *The rate is the one signed column (D-265).  Section 8.4's
+      *G-13 is a rate of -1, and FR-SIM-06 makes it the ENGINE's job
+      *to answer ONF202E; a driver that rejected the card would
+      *answer ONF401E instead and the engine would never see it.
            MOVE W-CARD-RATE TO W-NUM4-X.
            PERFORM CONV4.
            IF W-NUM-OK = 'Y'
                MOVE W-NUM4 TO W-RATE.
+           IF W-NUM-OK = 'Y' AND W-NUM-NEG = 'Y'
+               SUBTRACT W-NUM4 FROM ZERO GIVING W-RATE.
+      *The duration is NOT signed.  CONV4 now accepts a leading
+      *minus in any field, so this refuses one here and the column
+      *behaves exactly as it did before D-265.
            MOVE W-CARD-MS TO W-NUM4-X.
            PERFORM CONV4.
-           IF W-NUM-OK = 'Y'
+           IF W-NUM-NEG = 'Y'
+               MOVE 'N' TO W-CARD-OK.
+           IF W-NUM-OK = 'Y' AND W-NUM-NEG = 'N'
                MOVE W-NUM4 TO W-MS.
            MOVE W-CARD-SEED TO W-NUM9-X.
            PERFORM CONV9.
@@ -277,20 +296,44 @@
       *
       *Leading blanks become zeros; then the field must be all
       *digits and must have held at least one non-blank (D-159).
+      *
+      *D-265 adds one case: a minus may stand where the first
+      *non-blank character goes.  It is replaced by a zero so the
+      *class test still sees four digits, and the fact is reported in
+      *W-NUM-NEG for the caller to accept or refuse.  The magnitude
+      *is therefore converted by exactly the code that converted it
+      *before, which is the point -- a second conversion path for
+      *negative numbers would be a second place for S0C7 to live.
+      *
+      *A minus in column 4 leaves no digits behind it, so "   -"
+      *would otherwise convert to 0000 and pass.  W-NUM-SGN records
+      *the column and the test below refuses that one case.  A minus
+      *anywhere but the leading position is already refused, because
+      *W-LEAD is 'N' by then and the character survives into the
+      *class test.
        CONV4.
            MOVE 'Y' TO W-LEAD.
+           MOVE 'N' TO W-NUM-NEG.
+           MOVE ZERO TO W-NUM-SGN.
            PERFORM CONV4-CHAR VARYING W-I FROM 1 BY 1
                UNTIL W-I IS GREATER THAN 4.
            MOVE 'Y' TO W-NUM-OK.
            IF W-LEAD = 'Y'
                MOVE 'N' TO W-NUM-OK
            ELSE IF W-NUM4 IS NOT NUMERIC
+               MOVE 'N' TO W-NUM-OK
+           ELSE IF W-NUM-SGN = 4
                MOVE 'N' TO W-NUM-OK.
            IF W-NUM-OK = 'N'
                MOVE 'N' TO W-CARD-OK.
        CONV4-CHAR.
            IF W-LEAD = 'Y' AND W-NUM4-C (W-I) = SPACE
                MOVE '0' TO W-NUM4-C (W-I)
+           ELSE IF W-LEAD = 'Y' AND W-NUM4-C (W-I) = '-'
+               MOVE '0' TO W-NUM4-C (W-I)
+               MOVE 'Y' TO W-NUM-NEG
+               MOVE W-I TO W-NUM-SGN
+               MOVE 'N' TO W-LEAD
            ELSE
                MOVE 'N' TO W-LEAD.
       *

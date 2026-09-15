@@ -163,6 +163,16 @@ BAD_CARDS = [
     ("* A COMMENT CARD", None),
     (card("SUGR", "0120", "1000", "         "), "blank seed field (D-159)"),
     (card("SUGR", "0120", "1000", "000000001"), None),
+    # D-265 made the rate column signed.  These are the cases that must
+    # still be refused, appended rather than inserted so that every card
+    # number checked above keeps the number it had.
+    (card("SUGR", "   -", "1000", "000000001"),
+     "sign with no digits behind it (D-265)"),
+    (card("SUGR", "12-0", "1000", "000000001"),
+     "minus that is not the leading character (D-265)"),
+    (card("SUGR", "0120", "  -1", "000000001"),
+     "the duration column is NOT signed (D-265)"),
+    (card("SUGR", "  -1", "1000", "000000001"), None),
 ]
 
 
@@ -346,6 +356,49 @@ def main(argv):
         sys.stdout.write("run_cob:   |%s|%s\n" % (cc, l))
     sys.stdout.write("run_cob: RPT echo of %d responses matches as 133-byte "
                      "FBA records, including the -1 latency\n" % len(recs))
+
+    # 7. D-265: the real Section 8.4 `path` deck, G-13 included.
+    #
+    # The cases above are hand-written spellings.  This one is the deck
+    # the MVS job actually submits, compared against the very file the
+    # x86-64 recording was built from -- so it proves not that the
+    # driver handles A minus, but that it produces exactly the fourteen
+    # records Section 8.4 defines, with G-13's rate of -1 among them.
+    # Without D-265 the driver answered ONF401E here and wrote thirteen.
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    sys.path.insert(0, os.path.join(ROOT, "tests"))
+    import mkreq                                       # noqa: E402
+
+    ctl = os.path.join(WORK, "path.ctl")
+    req = os.path.join(WORK, "path.req")
+    deck = mkreq.golden_cards("path").splitlines()
+    write_deck(ctl, ["MODE=REQ"] + deck)
+    if os.path.exists(req):
+        os.remove(req)
+    rc, out = run([exe], env, cwd=WORK, extra_env=ddenv(ONFCTL=ctl,
+                                                        ONFREQ=req))
+    sys.stdout.write("run_cob: MODE=REQ Section 8.4 path deck: rc=%d\n" % rc)
+    for l in out.splitlines():
+        sys.stdout.write("run_cob:   %s\n" % l.rstrip())
+    if rc != 0:
+        raise Fail("the golden path deck returned %d, expected 0; every "
+                   "card in it is well formed (D-265)" % rc)
+    got = io.open(req, "rb").read()
+    want = b"".join(mkreq.cards_to_records(mkreq.golden_cards("path")))
+    if got != want:
+        n = next((i for i in range(min(len(got), len(want)))
+                  if got[i:i + 1] != want[i:i + 1]), min(len(got), len(want)))
+        raise Fail("path deck differs at byte %d (record %d, offset %d): "
+                   "got %s want %s"
+                   % (n, n // L.RECORD_LEN + 1, n % L.RECORD_LEN,
+                      got[n:n + 8].hex(), want[n:n + 8].hex()))
+    g13 = got[12 * L.RECORD_LEN:13 * L.RECORD_LEN]
+    rate13 = struct.unpack(">h", g13[12:14])[0]
+    if rate13 != -1:
+        raise Fail("G-13's rate is %d, expected -1" % rate13)
+    sys.stdout.write("run_cob: %d records identical to tools/mkreq.py's "
+                     "packing of the same deck, G-13 rate=%d (D-265)\n"
+                     % (len(got) // L.RECORD_LEN, rate13))
 
     sys.stdout.write("run_cob: PASS on x86 GnuCOBOL (%s), IBM dialect; "
                      "this is the VL-02 proxy, not Enterprise COBOL, and says "

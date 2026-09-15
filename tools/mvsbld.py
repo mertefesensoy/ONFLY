@@ -209,7 +209,7 @@ def amalgamated_order(relpath, include_map):
 
 def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
           asm_parm="DECK,NOLIST", region=REGION, go_parm=None,
-          go_dd=()):
+          go_dd=(), post=()):
     """Return a deck that compiles `sources`, links them and runs the result.
 
     sources     [(repo path OR cards, 8-char member)]  units, in link order
@@ -218,6 +218,13 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
     go_dd       extra DD cards for the GO step, appended verbatim after
                 the standard three.  The caller writes whole JCL cards
                 because a DD's operands vary far too much to model.
+    post        whole cards for step(s) AFTER the GO step, appended
+                verbatim before the closing `//`.  Phase E slice 1 needs
+                an IDCAMS dump of the dataset ONFLYENG just wrote, and
+                that is a step rather than a DD, so it cannot travel in
+                `go_dd`.  The default is empty and every caller that
+                does not pass it emits exactly the deck it emitted
+                before -- this loop adds no card when `post` is ().
     headers     [(repo path, 8-char member)]  found by  #include "x.h"
     vb_headers  [(repo path, 8-char member)]  found by  #include <x.h>
     opt         GCCMVS optimisation flag
@@ -358,6 +365,8 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
     a("//SYSTERM  DD SYSOUT=*")
     a("//SYSIN    DD DUMMY")
     for card in go_dd:
+        a(card)
+    for card in post:
         a(card)
     a("//")
     return d
