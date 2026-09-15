@@ -469,6 +469,9 @@ RPT_PREFIXES = ("ONFLY REPORT", "REQUEST ", "READOUT ", "ONF301I",
 #: throughout.
 ANSI_CC = "1 0-+"
 
+#: ONFLYENG's per-request SYSPRINT line, which ONFRPT never has.
+ENGINE_ONF301I = re.compile(r"^ONF301I REQUEST \d+ COMPLETE")
+
 
 def report_from(listing):
     """The ONFRPT lines out of a job listing, carriage control removed.
@@ -481,6 +484,14 @@ def report_from(listing):
     out = []
     for raw in listing.splitlines():
         line = raw.rstrip()
+        # ONFLYENG's own SYSPRINT, not ONFRPT.  In a three-step job the
+        # engine's "ONF301I REQUEST 1 COMPLETE FP=..." lines sit in the
+        # same listing as the driver's report, and the driver's form is
+        # "  ONF301I  REQUEST COMPLETE ... FP=..." -- no request number,
+        # two spaces after the identifier.  Without this the report
+        # comes back five lines longer than it is.
+        if ENGINE_ONF301I.match(line.strip()):
+            continue
         # The carriage-control branch comes FIRST, and deliberately.
         # A body line arrives as " REQUEST ..." with a BLANK control
         # character, which `strip()` would also remove -- so testing

@@ -1,0 +1,21 @@
+ONFLY REPORT (FR-BAT-04)
+REQUEST    1 CODE=SUGR     RATE=   0 MS=1000 SEED=        1 RC=   0 OUT=   2 STEPS=    10000
+  ONF301I  REQUEST COMPLETE                                 FP=6C3F7272
+  READOUT      1 ID=        9 MN9-10331                          LAT-US=        -1 SPIKES=   0 HZ=      0.0
+  READOUT      2 ID=       88 MN9-16949                          LAT-US=        -1 SPIKES=   0 HZ=      0.0
+REQUEST    2 CODE=SUGR     RATE=  40 MS=1000 SEED=        1 RC=   0 OUT=   2 STEPS=    10000
+  ONF301I  REQUEST COMPLETE                                 FP=BAF81D91
+  READOUT      1 ID=        9 MN9-10331                          LAT-US=     25800 SPIKES=  27 HZ=     27.0
+  READOUT      2 ID=       88 MN9-16949                          LAT-US=        -1 SPIKES=   0 HZ=      0.0
+REQUEST    3 CODE=SUGR     RATE= 200 MS=1000 SEED=        1 RC=   0 OUT=   2 STEPS=    10000
+  ONF301I  REQUEST COMPLETE                                 FP=F9C7EE77
+  READOUT      1 ID=        9 MN9-10331                          LAT-US=      8600 SPIKES= 165 HZ=    165.0
+  READOUT      2 ID=       88 MN9-16949                          LAT-US=     43400 SPIKES=  15 HZ=     15.0
+REQUEST    4 CODE=SUGR     RATE=9999 MS=1000 SEED=        1 RC=   0 OUT=   2 STEPS=    10000
+  ONF301I  REQUEST COMPLETE                                 FP=4FD0ED1E
+  READOUT      1 ID=        9 MN9-10331                          LAT-US=      8500 SPIKES= 189 HZ=    189.0
+  READOUT      2 ID=       88 MN9-16949                          LAT-US=     41100 SPIKES=  24 HZ=     24.0
+REQUEST    5 CODE=SUGR     RATE= 100 MS=1000 SEED=        1 RC=   0 OUT=   2 STEPS=    10000
+  ONF301I  REQUEST COMPLETE                                 FP=C4C320BC
+  READOUT      1 ID=        9 MN9-10331                          LAT-US=     12100 SPIKES= 100 HZ=    100.0
+  READOUT      2 ID=       88 MN9-16949                          LAT-US=        -1 SPIKES=   0 HZ=      0.0
