@@ -104,7 +104,30 @@ command line. That is precisely the class of silent, position-dependent
 corruption D-93 exists to refuse, so the DD names were shortened and the
 card is 70 columns.
 
-### 3.4 Five probes, each answering one question
+### 3.4 Why the vendor cast went into the generator
+
+`softfloat/c2c/softfloat.c` is **generated** — `softfloat/derive2c.py`
+derives it from `third_party/SoftFloat-2c/softfloat/bits32/softfloat.c`
+by a list of substitutions, each carrying the number of occurrences it
+expects so that an upstream change is a failure rather than a partial
+edit (D-123). The 2026-09-11 implementation note says of it, in the
+file table: *New (generated). The derived library the builds compile.
+Never edited by hand.*
+
+D-285's cast was first written straight into the generated file, which
+was wrong twice over: `make` regenerates that file from
+`softfloat/derive2c.py`, so the cast would have vanished at the next
+build with no message; and the *reason* for the cast would have lived
+nowhere a future reader of the generator would find it. It is now an
+`EDITS_C` entry with an expected count of 1, and
+`python softfloat/derive2c.py --check` is what says the committed file
+and the generator agree.
+
+The same mistake was almost repeated at the level of evidence: the first
+ONFJRUN ran from the hand-edited text. Its fingerprints were right, and
+it is cited nowhere — see §6.4.
+
+### 3.5 Five probes, each answering one question
 
 The full link is 8,391 cards. Submitting it to learn "does JCC compile
 SoftFloat at all" would spend a long compile on something three units
@@ -341,7 +364,35 @@ regenerated text. The figures above are the second run's. The first is
 not cited anywhere, because a result from source the repository does not
 hold is not a result about the repository.
 
-### 6.5 What is NOT proven
+### 6.5 D-285 measured, not merely argued
+
+Section 4 argues the cast cannot change generated code. Arguments of
+that shape are how silent numerical regressions get in, so it was also
+measured on x86-64 Windows 11, mingw32 gcc, after the regeneration:
+
+```
+$ mingw32-make c2c
+run_c2c: SoftFloat 2c bits32 vs TestFloat -- 6 of 6 operations passed,
+         260376 cases checked, 18408 NaN cases skipped (VL-11)
+# tst2c 0 of 1854 vectors wrong
+
+$ mingw32-make tt02
+run_tt02: 18 of 18 operation runs passed, 781128 cases checked,
+          55224 NaN cases skipped (VL-11)
+
+$ mingw32-make lint liclint col80 c04 c04mvs sub mvsrun mvsjcc names
+lint_nr05: 64 files scanned, 1 excluded, 0 violations
+lint_col80: 73 files scanned, all within 80 columns (D-93)
+lint_c04: every external satisfies C-04 (both object sets)
+run_sub: 16 passed   run_mvsrun: 47 passed   run_mvsjcc: 24 passed
+run_names: 21 passed
+```
+
+`python softfloat/derive2c.py --check` reports *4 generated files match
+the templates*, which is what makes the first three lines a statement
+about the committed tree rather than about a working copy.
+
+### 6.6 What is NOT proven
 
 - **Row 7 is one backend, one network and five requests.** It is
   SOFT2C only — NR-03 puts SoftFloat 2c on MVS and there is no 3e or
