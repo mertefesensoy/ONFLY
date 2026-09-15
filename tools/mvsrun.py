@@ -583,6 +583,19 @@ def run_run(argv):
     recs = mvscob.parse_dump(out)
     sys.stdout.write("mvsrun: recovered %d response records from the "
                      "IDCAMS dump\n" % len(recs))
+
+    # A job that failed still has a listing, and parse_dump() still
+    # returns something from it -- an empty list, or a short one.
+    # Writing that out under the name the comparator reads would turn a
+    # failed run into a file the next step compares and reports as a
+    # disagreement, which is a worse error message than the truth.
+    want = len(expected_records())
+    if len(recs) != want or m is None:
+        sys.stderr.write("mvsrun: %s did not produce %d response records "
+                         "(%d recovered, ONF302I %s); nothing written\n"
+                         % (RUN_JOB, want, len(recs),
+                            "absent" if m is None else "present"))
+        return 1
     if outdir:
         if not os.path.isdir(outdir):
             os.makedirs(outdir)

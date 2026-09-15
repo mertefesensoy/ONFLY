@@ -100,13 +100,18 @@ def matches(path, want):
     return True, "%d bytes, CRC %s" % (size, crc)
 
 
-def search_roots():
+def search_roots(subdir=os.path.join("data", "networks")):
     """Directories that might hold a good copy, most likely first.
 
     A worktree lives at <main>/.claude/worktrees/<name>, so the main
     checkout is three levels up.  Its siblings are the other worktrees.
     Nothing outside that tree is considered.
+
+    `subdir` is the path RELATIVE to a checkout root, so the same search
+    serves `data/networks` and `data/malecns`.  It defaults to the
+    former, which is what every caller before D-269 wanted.
     """
+    here = os.path.join(ROOT, subdir)
     roots = []
     env = os.environ.get("ONFLY_FIXTURES")
     if env:
@@ -114,13 +119,13 @@ def search_roots():
     parts = ROOT.replace("\\", "/").split("/")
     if len(parts) >= 3 and parts[-2] == "worktrees" and parts[-3] == ".claude":
         main = "/".join(parts[:-3])
-        roots.append(os.path.join(main, "data", "networks"))
+        roots.append(os.path.join(main, subdir))
         wt = "/".join(parts[:-1])
         if os.path.isdir(wt):
             for name in sorted(os.listdir(wt)):
-                cand = os.path.join(wt, name, "data", "networks")
+                cand = os.path.join(wt, name, subdir)
                 if os.path.isdir(cand) and os.path.abspath(cand) != \
-                        os.path.abspath(NETDIR):
+                        os.path.abspath(here):
                     roots.append(cand)
     return roots
 
@@ -156,9 +161,81 @@ def place(src, dst, link=False):
     return "copied"
 
 
+CNSDIR = os.path.join(ROOT, "data", "malecns")
+CNSMAN = os.path.join(CNSDIR, "MANIFEST.json")
+
+
+def malecns(keys, check_only=False, link=False):
+    """Place named MaleCNS source files, verified like any fixture.
+
+    D-269 needs `prep/names.py` to read per-body cell types, which live
+    in the annotations feather -- gitignored, 14.5 MB, and described by
+    `data/malecns/MANIFEST.json` with the same bytes/CRC-32/SHA-256
+    triple the networks carry.
+
+    Files are named EXPLICITLY and never fetched wholesale.  The third
+    file in that manifest, the connectome weights, is **1,051,241,946
+    bytes**, and a `--all` that quietly copied it into every worktree
+    would be a gigabyte of surprise for a caller who wanted 14 MB.
+    """
+    if not os.path.exists(CNSMAN):
+        sys.stderr.write("fixtures: no manifest at %s\n" % CNSMAN)
+        return 1
+    man = json.loads(io.open(CNSMAN, encoding="utf-8").read())
+    files = man["files"]
+    roots = search_roots(os.path.join("data", "malecns"))
+    bad = 0
+    for key in keys:
+        if key not in files:
+            sys.stdout.write("fixtures: %-14s UNKNOWN (have %s)\n"
+                             % (key, ", ".join(sorted(files))))
+            bad += 1
+            continue
+        want = files[key]
+        dst = os.path.join(CNSDIR, want["file"])
+        ok, why = matches(dst, want)
+        if ok:
+            sys.stdout.write("fixtures: %-14s OK       %s\n" % (key, why))
+            continue
+        if check_only:
+            sys.stdout.write("fixtures: %-14s MISSING  %s\n" % (key, why))
+            bad += 1
+            continue
+        found = None
+        for r in roots:
+            cand = os.path.join(r, want["file"])
+            good, _ = matches(cand, want)
+            if good:
+                found = cand
+                break
+        if found is None:
+            sys.stdout.write(
+                "fixtures: %-14s NOT FOUND (%s). Searched %d location(s). "
+                "It is downloaded from %s\n"
+                % (key, why, len(roots), want.get("url", "the dataset")))
+            bad += 1
+            continue
+        how = place(found, dst, link=link)
+        ok, why = matches(dst, want)
+        sys.stdout.write("fixtures: %-14s %s   %s  <- %s\n"
+                         % (key, how.upper(), why, found)
+                         if ok else
+                         "fixtures: %-14s FAILED after %s: %s\n"
+                         % (key, how, why))
+        bad += 0 if ok else 1
+    return 1 if bad else 0
+
+
 def main(argv):
     check_only = "--check" in argv
     link = "--link" in argv
+
+    if "--malecns" in argv:
+        i = argv.index("--malecns")
+        keys = [a for a in argv[i + 1:] if not a.startswith("--")]
+        if not keys:
+            keys = ["annotations"]
+        return malecns(keys, check_only=check_only, link=link)
     if not os.path.exists(MANIFEST):
         sys.stderr.write("fixtures: no manifest at %s\n" % MANIFEST)
         return 1

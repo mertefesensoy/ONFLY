@@ -227,7 +227,9 @@ def main(argv):
                          "%d warning(s), %d error(s)\n"
                          % (std, label, rc, warns, errs))
         if rc != 0 or errs:
-            sys.stdout.write(out)
+            sys.stdout.write(out.encode(sys.stdout.encoding or 'ascii',
+                                'replace').decode(
+        sys.stdout.encoding or 'ascii'))
             raise Fail("syntax check failed under -std=%s" % std)
         kinds = sorted(set(l.split("[")[-1].rstrip("]")
                            for l in out.splitlines() if "warning:" in l))
@@ -239,7 +241,9 @@ def main(argv):
     exe = os.path.join(WORK, "onflydrv.exe")
     rc, out = run([cobc, "-std=ibm", "-x", "-o", exe, "-I", COPYDIR, SRC], env)
     if rc != 0:
-        sys.stdout.write(out)
+        sys.stdout.write(out.encode(sys.stdout.encoding or 'ascii',
+                                'replace').decode(
+        sys.stdout.encoding or 'ascii'))
         raise Fail("build failed")
     sys.stdout.write("run_cob: built %s\n" % os.path.relpath(exe, ROOT))
 
@@ -313,19 +317,48 @@ def main(argv):
         raise Fail("a missing mode card must be ONF401E at card 1, RC 8, "
                    "no ONFREQ (D-158)")
 
-    # 6. RPT echo
+    # 6. FR-BAT-04: the full report.
+    #
+    # Six responses, chosen so that every branch of RPT-MESSAGE and of
+    # the name lookup is taken at least once:
+    #
+    #   1  RC 0   ONF301I, two named readouts and one that ONFNAM does
+    #             not name, so the *UNNAMED* path is exercised
+    #   2  RC 4   ONF201W, a reserved stimulus code, no readouts
+    #   3  RC 8   ONF203E -- the code XXXX is not in the generated
+    #             table, so D-270 resolves RC 8 that way
+    #   4  RC 8   ONF202E -- SUGR is in the table, so the same RC 8
+    #             resolves to the other message
+    #   5  RC 16  ONF903S
+    #   6  RC 0   1 spike in 150 ms = 6.6667 Hz.  This is the case that
+    #             DISTINGUISHES D-272: rounded it prints 6.7, truncated
+    #             it prints 6.6.
     ctl = os.path.join(WORK, "rpt.ctl")
     rsp = os.path.join(WORK, "rpt.rsp")
     rpt = os.path.join(WORK, "rpt.txt")
+    nam = os.path.join(WORK, "rpt.nam")
     write_deck(ctl, ["MODE=RPT"])
-    entries1 = [(5, 123456, 7), (9, -1, 0)]
+
+    # IR-NAM-01 columns: 1-5 index, 6 blank, 7-40 name.  Written here
+    # rather than copied from data/networks so the expected report does
+    # not depend on a science artifact.
+    with io.open(nam, "wb") as f:
+        for ident, text in ((5, "MN9-10331"), (9, "MN9-16949")):
+            f.write(("%05d %s" % (ident, text)).ljust(80).encode("ascii"))
+
+    entries1 = [(5, 123456, 7), (9, -1, 0), (77, 500, 3)]
     recs = [response_record("SUGR", 120, 1000, 1, 0, 10000, entries1),
-            response_record("WATR", 120, 1000, 1, 4, 0, [])]
+            response_record("WATR", 120, 1000, 1, 4, 0, []),
+            response_record("XXXX", 120, 1000, 1, 8, 0, []),
+            response_record("SUGR", 9999, 1000, 1, 8, 0, []),
+            response_record("SUGR", 120, 1000, 1, 16, 0, []),
+            response_record("SUGR", 40, 150, 3, 0, 1500, [(5, 1000, 1)])]
     io.open(rsp, "wb").write(b"".join(recs))
     if os.path.exists(rpt):
         os.remove(rpt)
     rc, out = run([exe], env, cwd=WORK,
-                  extra_env=ddenv(ONFCTL=ctl, ONFRSP=rsp, ONFRPT=rpt))
+                  extra_env=ddenv(ONFCTL=ctl, ONFRSP=rsp, ONFRPT=rpt,
+                                  ONFNAM=nam))
     sys.stdout.write("run_cob: MODE=RPT: rc=%d\n" % rc)
     for l in out.splitlines():
         sys.stdout.write("run_cob:   %s\n" % l.rstrip())
@@ -339,23 +372,50 @@ def main(argv):
     recs = [raw[i:i + 133].decode("ascii", "replace")
             for i in range(0, len(raw), 133)]
     lines = [(r[0], r[1:].rstrip()) for r in recs]
+
+    def req(n, code, rate, ms, seed, rc_, out_, steps):
+        return (" ", "REQUEST %4d CODE=%-8s RATE=%4d MS=%4d SEED=%9d"
+                     " RC=%4d OUT=%4d STEPS=%9d"
+                     % (n, code, rate, ms, seed, rc_, out_, steps))
+
+    def msg(ident, text):
+        return (" ", ("  %-8s %-48s FP=DEADBEEF" % (ident, text)).rstrip())
+
+    def outl(k, ident, name, lat, spk, hz):
+        return (" ", ("  READOUT   %4d ID=%9d %-34s LAT-US=%10d"
+                      " SPIKES=%4d HZ=%9s"
+                      % (k, ident, name, lat, spk, hz)).rstrip())
+
     want = [
-        ("1", "ONFLY REPORT - G4 SKELETON ECHO (D-155)"),
-        (" ", "REQUEST    1 CODE=SUGR     RATE= 120 MS=1000 SEED=        1 RC=   0"
-              " OUT=   2 STEPS=    10000"),
-        (" ", "  READOUT      1 ID=        5 LAT-US=    123456 SPIKES=   7"),
-        (" ", "  READOUT      2 ID=        9 LAT-US=        -1 SPIKES=   0"),
-        (" ", "REQUEST    2 CODE=WATR     RATE= 120 MS=1000 SEED=        1 RC=   4"
-              " OUT=   0 STEPS=        0"),
+        ("1", "ONFLY REPORT (FR-BAT-04)"),
+        req(1, "SUGR", 120, 1000, 1, 0, 3, 10000),
+        msg("ONF301I", "REQUEST COMPLETE"),
+        outl(1, 5, "MN9-10331", 123456, 7, "7.0"),
+        outl(2, 9, "MN9-16949", -1, 0, "0.0"),
+        outl(3, 77, "*UNNAMED*", 500, 3, "3.0"),
+        req(2, "WATR", 120, 1000, 1, 4, 0, 0),
+        msg("ONF201W", "STIMULUS CODE RESERVED, NOT SIMULATED"),
+        req(3, "XXXX", 120, 1000, 1, 8, 0, 0),
+        msg("ONF203E", "UNKNOWN STIMULUS CODE"),
+        req(4, "SUGR", 9999, 1000, 1, 8, 0, 0),
+        msg("ONF202E", "REQUEST FIELD OUT OF RANGE"),
+        req(5, "SUGR", 120, 1000, 1, 16, 0, 0),
+        msg("ONF903S", "NON-FINITE STATE VALUE, REQUEST ABORTED"),
+        req(6, "SUGR", 40, 150, 3, 0, 1, 1500),
+        msg("ONF301I", "REQUEST COMPLETE"),
+        outl(1, 5, "MN9-10331", 1000, 1, "6.7"),
     ]
     if lines != want:
         sys.stdout.write("got:\n" + "\n".join(repr(l) for l in lines) + "\n")
         sys.stdout.write("want:\n" + "\n".join(repr(l) for l in want) + "\n")
-        raise Fail("RPT echo differs")
+        raise Fail("FR-BAT-04 report differs")
     for cc, l in lines:
         sys.stdout.write("run_cob:   |%s|%s\n" % (cc, l))
-    sys.stdout.write("run_cob: RPT echo of %d responses matches as 133-byte "
-                     "FBA records, including the -1 latency\n" % len(recs))
+    sys.stdout.write("run_cob: FR-BAT-04 report matches: %d FBA/133 records, "
+                     "names from ONFNAM, Appendix E messages for RC 0/4/8/8/16 "
+                     "with RC 8 resolved both ways (D-270), fingerprint "
+                     "DEADBEEF in hex, and 6.7 Hz rounded from 6.6667 "
+                     "(D-272)\n" % len(recs))
 
     # 7. D-265: the real Section 8.4 `path` deck, G-13 included.
     #

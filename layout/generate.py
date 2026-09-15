@@ -384,22 +384,66 @@ def gen_net_header():
 # which is the single source every compiler builds (FR-BAT-03).
 # ---------------------------------------------------------------------------
 TEMPLATE = os.path.join(ROOT, "cobol", "ONFLYDRV.cbl")
-COPY_LINE = re.compile(r"^ {7}COPY ONFCOM\.\s*$")
+COPY_LINE = re.compile(r"^ {7}COPY (ONFCOM|ONFSTM)\.\s*$")
 ANY_COPY = re.compile(r"^ {6}[^*].*\bCOPY\b")
+
+
+def gen_cobol_stim():
+    """The stimulus-code table, from master.py's STIM_CODES (D-271).
+
+    FR-BAT-04 makes the driver name the Appendix E message for a return
+    code, and RC 8 is ambiguous between ONF202E and ONF203E.  D-270
+    resolves it from the stimulus code, so the driver has to know which
+    codes exist -- and `STIM_CODES` is already the single source of the
+    numeric identifiers IR-COM-05 puts in the fingerprint.  Generating
+    the table is what stops a fourth code being added there and the
+    driver silently calling it unknown.
+
+    **Text only, no numeric identifier.**  The driver needs membership,
+    not the id, and a group alternating `PIC X(4)` with `PIC S9(4) COMP`
+    would put every halfword on an odd boundary unless SYNCHRONIZED is
+    specified -- which is exactly the class of platform detail IR-COM-03
+    exists to keep out of this program.  An all-character table cannot
+    have that problem.
+    """
+    L = []
+    for b in [
+        "Stimulus codes, generated from layout/master.py STIM_CODES",
+        "(FR-BAT-05, D-270, D-271).  Membership only: the numeric ids",
+        "live in the fingerprint (IR-COM-05), never in the report.",
+    ]:
+        L.extend(_cobol_comment(b))
+    L.append("       01  ONF-STIM-CODES.")
+    for code, sid, note in M.STIM_CODES:
+        L.extend(_cobol_comment("  %s = %d, %s" % (code, sid, note)))
+        L.append("           05  FILLER                 PIC X(4)")
+        L.append("               VALUE '%s'." % code)
+    L.append("       01  ONF-STIM-TAB REDEFINES ONF-STIM-CODES.")
+    L.append("           05  ONF-STIM-TEXT          PIC X(4)")
+    L.append("               OCCURS %d TIMES." % len(M.STIM_CODES))
+    L.append("       01  ONF-STIM-COUNT             PIC S9(4) COMP")
+    L.append("               VALUE +%d." % len(M.STIM_CODES))
+    return "\n".join(L) + "\n"
 
 
 def gen_cobol_driver(copybook):
     src = io.open(TEMPLATE, encoding="ascii").read().splitlines()
-    hits = [i for i, l in enumerate(src) if COPY_LINE.match(l)]
-    if len(hits) != 1:
-        raise SystemExit("cobol/ONFLYDRV.cbl must contain exactly one "
-                         "'COPY ONFCOM.' line, found %d" % len(hits))
+    members = {"ONFCOM": copybook, "ONFSTM": gen_cobol_stim()}
+    hits = []
+    for i, line in enumerate(src):
+        m = COPY_LINE.match(line)
+        if m:
+            hits.append((i, m.group(1)))
+    names = [n for _i, n in hits]
+    if sorted(names) != sorted(members):
+        raise SystemExit("cobol/ONFLYDRV.cbl must COPY exactly %s once "
+                         "each; found %s"
+                         % (sorted(members), names))
     stray = [n + 1 for n, l in enumerate(src)
              if ANY_COPY.match(l) and not COPY_LINE.match(l)]
     if stray:
         raise SystemExit("cobol/ONFLYDRV.cbl has a COPY the generator does "
                          "not expand at line(s) %s" % stray)
-    i = hits[0]
     head = []
     for b in [
         "ONFLY generated file - DO NOT EDIT (IR-COM-01, D-18, D-161).",
@@ -413,12 +457,17 @@ def gen_cobol_driver(copybook):
     ]:
         head.extend(_cobol_comment(b))
     head.append("      *")
-    body = copybook.rstrip("\n").splitlines()
-    lines = (head + src[:i]
-             + ["      *---- COPY ONFCOM. expanded by layout/generate.py ----"]
-             + body
-             + ["      *---- end of ONFCOM ----------------------------------"]
-             + src[i + 1:])
+    lines = list(head)
+    prev = 0
+    for i, name in hits:
+        lines.extend(src[prev:i])
+        lines.append("      *---- COPY %s. expanded by layout/generate.py --"
+                     % name)
+        lines.extend(members[name].rstrip("\n").splitlines())
+        lines.append("      *---- end of %s ------------------------------"
+                     % name)
+        prev = i + 1
+    lines.extend(src[prev:])
     for n, line in enumerate(lines, 1):
         assert len(line) <= 72, "driver line %d past column 72: %r" % (n, line)
     return "\n".join(lines) + "\n"
@@ -428,8 +477,13 @@ def main():
     if not os.path.isdir(OUTDIR):
         os.makedirs(OUTDIR)
     copybook = gen_cobol()
+    # ONFSTM.cpy is written for the same reason ONFCOM.cpy is: the
+    # TEMPLATE cobol/ONFLYDRV.cbl is honest COBOL that says COPY, and
+    # tests/run_cob.py compiles it as well as the expanded driver, so
+    # every member it names has to exist as a file for cobc to find.
     artifacts = [
         ("ONFCOM.cpy", copybook),
+        ("ONFSTM.cpy", gen_cobol_stim()),
         ("ONFLYDRV.cbl", gen_cobol_driver(copybook)),
         ("onfcom.h", gen_c_header()),
         ("onfcom.c", gen_c_source()),

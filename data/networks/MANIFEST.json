@@ -25,6 +25,262 @@
     "VL-13"
   ],
   "mvp_subcircuit": "srext",
+  "names": {
+    "path": {
+      "bytes": 1296,
+      "crc32": "B6ADC159",
+      "decisions": [
+        "D-267",
+        "D-268",
+        "D-269"
+      ],
+      "entries": [
+        {
+          "bodyId": 10331,
+          "index": 13,
+          "name": "MN9-10331",
+          "role": "readout",
+          "type": "MN9"
+        },
+        {
+          "bodyId": 16949,
+          "index": 302,
+          "name": "MN9-16949",
+          "role": "readout",
+          "type": "MN9"
+        },
+        {
+          "bodyId": 55883,
+          "index": 567,
+          "name": "PHG9-55883",
+          "role": "stimulus",
+          "type": "PhG9"
+        },
+        {
+          "bodyId": 75730,
+          "index": 594,
+          "name": "PHG9-75730",
+          "role": "stimulus",
+          "type": "PhG9"
+        },
+        {
+          "bodyId": 129802,
+          "index": 633,
+          "name": "DORSAL_TPGRN-129802",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 146047,
+          "index": 642,
+          "name": "DORSAL_TPGRN-146047",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 152432,
+          "index": 648,
+          "name": "DORSAL_TPGRN-152432",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 170947,
+          "index": 659,
+          "name": "DORSAL_TPGRN-170947",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 182830,
+          "index": 666,
+          "name": "DORSAL_TPGRN-182830",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 192172,
+          "index": 668,
+          "name": "DORSAL_TPGRN-192172",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 202063,
+          "index": 670,
+          "name": "DORSAL_TPGRN-202063",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 246432,
+          "index": 677,
+          "name": "PHG9-246432",
+          "role": "stimulus",
+          "type": "PhG9"
+        },
+        {
+          "bodyId": 426555,
+          "index": 691,
+          "name": "DORSAL_TPGRN-426555",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 902216,
+          "index": 885,
+          "name": "PHG9-902216",
+          "role": "stimulus",
+          "type": "PhG9"
+        },
+        {
+          "bodyId": 104018476,
+          "index": 894,
+          "name": "DORSAL_TPGRN-104018476",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 274780241,
+          "index": 902,
+          "name": "DORSAL_TPGRN-274780241",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        }
+      ],
+      "file": "onfnam-malecns-v1.0-path.txt",
+      "pairing": "no recorded body list of length 913; pairing unchecked",
+      "rows": 16,
+      "sha256": "0c5af2006639c6660168f91de9e2a02b90e1de6ba5d844a32d70d20a0b654556"
+    },
+    "srext": {
+      "bytes": 1296,
+      "crc32": "85C8D2F5",
+      "decisions": [
+        "D-267",
+        "D-268",
+        "D-269"
+      ],
+      "entries": [
+        {
+          "bodyId": 10331,
+          "index": 9,
+          "name": "MN9-10331",
+          "role": "readout",
+          "type": "MN9"
+        },
+        {
+          "bodyId": 16949,
+          "index": 88,
+          "name": "MN9-16949",
+          "role": "readout",
+          "type": "MN9"
+        },
+        {
+          "bodyId": 55883,
+          "index": 128,
+          "name": "PHG9-55883",
+          "role": "stimulus",
+          "type": "PhG9"
+        },
+        {
+          "bodyId": 75730,
+          "index": 136,
+          "name": "PHG9-75730",
+          "role": "stimulus",
+          "type": "PhG9"
+        },
+        {
+          "bodyId": 129802,
+          "index": 140,
+          "name": "DORSAL_TPGRN-129802",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 146047,
+          "index": 141,
+          "name": "DORSAL_TPGRN-146047",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 152432,
+          "index": 142,
+          "name": "DORSAL_TPGRN-152432",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 170947,
+          "index": 145,
+          "name": "DORSAL_TPGRN-170947",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 182830,
+          "index": 147,
+          "name": "DORSAL_TPGRN-182830",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 192172,
+          "index": 148,
+          "name": "DORSAL_TPGRN-192172",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 202063,
+          "index": 150,
+          "name": "DORSAL_TPGRN-202063",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 246432,
+          "index": 155,
+          "name": "PHG9-246432",
+          "role": "stimulus",
+          "type": "PhG9"
+        },
+        {
+          "bodyId": 426555,
+          "index": 156,
+          "name": "DORSAL_TPGRN-426555",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 902216,
+          "index": 446,
+          "name": "PHG9-902216",
+          "role": "stimulus",
+          "type": "PhG9"
+        },
+        {
+          "bodyId": 104018476,
+          "index": 496,
+          "name": "DORSAL_TPGRN-104018476",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        },
+        {
+          "bodyId": 274780241,
+          "index": 497,
+          "name": "DORSAL_TPGRN-274780241",
+          "role": "stimulus",
+          "type": "dorsal_tpGRN"
+        }
+      ],
+      "file": "onfnam-malecns-v1.0-srext.txt",
+      "pairing": "pairing CHECKED against SUBCIRCUIT.json N=500, 16 of 501 rows",
+      "rows": 16,
+      "sha256": "421aabbfa47bfb173ec397a70e4ec5402cdf96080bee1571d6620abe0907c2b2"
+    }
+  },
   "networks": {
     "full": {
       "bytes": 299515264,

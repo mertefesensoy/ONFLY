@@ -150,7 +150,7 @@ SFSRCS = \
 ONFSF = softfloat/onfrpk.c softfloat/onfflag.c softfloat/onfsub.c \
         softfloat/onfprim.c
 
-GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
+GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy generated/ONFSTM.cpy \
             generated/onfcom_py.py generated/onfnhd.h generated/ONFLYDRV.cbl
 
 # TT-01's known-answer table (D-79).  Separate from $(GENERATED) because that
@@ -158,7 +158,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy \
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint liclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req sub mvsrun fixtures fixtures-check
+.PHONY: all test generate lint liclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req sub mvsrun names fixtures fixtures-check
 
 all: test
 
@@ -723,7 +723,7 @@ runners: $(BUILD) $(GENERATED) runner
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint liclint col80 c04 c04mvs sub mvsrun tt01 tt02 c2c sfs shim layout units fp kernel syn \
+test: lint liclint col80 c04 c04mvs sub mvsrun names tt01 tt02 c2c sfs shim layout units fp kernel syn \
       decode eng req golden prep
 	@echo "ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE"
 
@@ -747,6 +747,21 @@ sub:
 # existing caller's deck.  Pure Python; no cobc, no Hercules.
 mvsrun:
 	$(PYTHON) tests/run_mvsrun.py
+
+# D-267 ... D-269.  FR-PRP-07 has always required the pipeline to emit
+# a names file (IR-NAM) and none existed until 2026-09-15, which is
+# why FR-BAT-04's report could not be written: IR-COM-06 forbids the
+# response from carrying names, so ONFLYDRV has to map the numeric
+# identifier through ONFNAM.
+#
+# The test reads the COMMITTED files rather than regenerating them.
+# Regenerating needs pandas, pyarrow and a 14.5 MB gitignored feather
+# (tools/fixtures.py --malecns annotations); a bare checkout must
+# still be able to prove that what it holds is well formed.  The one
+# case that does regenerate prints a skip line and passes when those
+# prerequisites are absent, the pattern D-233 set.
+names:
+	$(PYTHON) tests/run_names.py
 
 # D-249.  data/networks/*.bin is gitignored (322 MB), so a fresh clone or
 # worktree starts without it and the first symptom is ONF103E raised four
