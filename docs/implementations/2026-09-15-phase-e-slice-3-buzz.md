@@ -27,7 +27,7 @@ never as the thing itself.
 
 | File | Change |
 |---|---|
-| `tools/mvsrun.py` | `install_eng_deck()`, `install_drv_deck()`, `buzz_deck()`, and the `--install-eng`, `--install-drv`, `--buzz` modes. `_sources()` factored out of `run_deck()`. |
+| `tools/mvsrun.py` | `install_eng_deck()`, `install_drv_deck()`, `demo_deck()`, and the `--install-eng`, `--install-drv`, `--buzz` (and `--buzz --sugr`) modes. `_sources()` factored out of `run_deck()`. `report_from()` and `compare_report()`. |
 | `tools/mvsbld.py` | `build(lmod=…, run=…)`: link into a PDS member and omit the GO step. |
 | `tools/mvscob.py` | `deck(lmod=…)`: the same for the COBOL side; the `WRITEN` step is now available to an install job. |
 | `tests/run_mvsrun.py` | Eleven cases over the three new decks. |
@@ -114,6 +114,31 @@ discussion produced:
 
 D-273 amended FR-BAT-06; D-274 gave G-01…G-14 their own SUGR job under
 FR-BAT-06's existing naming rule.
+
+**SUGR is the same three steps, not a different program.** `demo_deck(job)`
+builds both from one description, so what differs is the network, the control
+cards and the dataset names — nothing structural. Its STEP2 *will* end
+`COND CODE 0008`, by design, and IR-JCL-04 still runs STEP3 because 8 is below
+12, so the report prints and shows the ONF201W, ONF203E and ONF202E lines the
+error requests produce. That is the demonstration D-273 moved out of BUZZ, not
+a failure of it.
+
+### 5.1 A defect found by reading, before any job ran
+
+The filter that lifts the report out of a job listing was written
+
+```python
+l.lstrip().startswith(("ONFLY REPORT", "REQUEST ", "  ONF", "  READOUT"))
+```
+
+and `lstrip()` has just removed the two spaces, so `"  ONF"` and
+`"  READOUT"` can never match. **Every Appendix E message line and every
+readout line would have been dropped silently**, and the comparison against
+the x86 reference would have run on the title and the five request echoes —
+and passed. `report_from()` now matches the stripped text against explicit
+prefixes and keeps the original line, because the indentation is part of what
+is being compared; a case proves it recovers 21 of 21 lines from a listing
+that also carries ONF302I, ONF001I and IEF142I.
 
 ## 6. Verification
 
