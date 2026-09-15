@@ -306,7 +306,15 @@ def build_deck(opt=OPT):
     # NCAL is deliberately NOT specified: PDPCLIB.NCALIB is the C runtime and
     # the linkage editor must search it, which is how GCCCLG does it.  The
     # two object sets are concatenated on SYSLIN, which IEWL reads correctly
-    # -- the thing JCC's prelink stage could not be made to do.
+    # -- the thing JCC's prelink stage could not be made to do HERE.
+    #
+    # Read that narrowly.  On 2026-09-15 `tools/mvsjcc.py` put THIRTEEN
+    # objects on one PRELINK `I` DD and the step ended COND CODE 0000,
+    # so PRELINK plainly can read a concatenation.  Whatever defeated it
+    # in this file was something else -- most likely the object shapes
+    # involved here, which this note never recorded.  It is left standing
+    # rather than deleted because it is a dated observation, and
+    # corrected forward on the D-253 precedent.
     a("//LKED     EXEC PGM=IEWL,PARM='MAP,LIST',COND=(4,LT)")
     a("//SYSLIN   DD DSN=&&OBJ1,DISP=(OLD,DELETE)")
     a("//         DD DSN=&&OBJ2,DISP=(OLD,DELETE)")
