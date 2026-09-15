@@ -957,6 +957,54 @@ def run_install(argv):
     return 1 if bad else 0
 
 
+def perf_context():
+    """NFR-PERF-02's required accompaniment to any timing.
+
+    > Every performance measurement shall record the host CPU, the
+    > Hercules version and configuration, and the Hercules-reported
+    > MIPS rate.
+
+    So a step time reported without these is an incomplete measurement,
+    not merely an undocumented one.  The host CPU comes from the Gate G0
+    inventory rather than being re-probed, because that file is what the
+    G0 closure rests on and a second probe could disagree with it.
+
+    `maxrates` on the Hercules console is a QUERY, but on SDL Hercules
+    it also restarts the interval it reports on -- so the figure below
+    is the highest rate since the last such query, not since IPL.  Said
+    out loud because a reader comparing it with Gate G0's 45.633024
+    would otherwise assume they cover the same window.
+    """
+    out = {}
+    try:
+        body = mvseng.console("maxrates")
+        rates = re.findall(r"MIPS:\s*([0-9.]+)", body)
+        out["mips"] = max(float(r) for r in rates) if rates else None
+    except Exception:                                  # noqa: BLE001
+        out["mips"] = None
+    inv = os.path.join(ROOT, "data", "g0", "inventory.json")
+    out["cpu"] = out["hercules"] = None
+    if os.path.isfile(inv):
+        import json
+        man = json.loads(io.open(inv, encoding="utf-8").read())
+        try:
+            out["cpu"] = man["host"]["cpu_name"]["out"].strip()
+        except (KeyError, TypeError, AttributeError):
+            pass
+        ver = man.get("mvs", {}).get("hercules_version", "")
+        m = re.search(r"Hercules version (\S+)", ver)
+        out["hercules"] = m.group(1) if m else None
+    return out
+
+
+def print_perf_context():
+    c = perf_context()
+    sys.stdout.write("mvsrun: NFR-PERF-02 context -- host CPU %s; Hercules "
+                     "%s; highest observed MIPS since the last query %s\n"
+                     % (c["cpu"] or "(unknown)", c["hercules"] or "(unknown)",
+                        c["mips"] if c["mips"] is not None else "(unread)"))
+
+
 def run_buzz(argv):
     """ACC-7: the BUZZ job end to end on TK5."""
     deck = buzz_deck()
@@ -982,6 +1030,16 @@ def run_buzz(argv):
     for m in re.finditer(r"IEF142I\s+BUZZ\s+(\S+)\s+-\s+STEP WAS EXECUTED"
                          r"\s+-\s+COND CODE\s+(\d+)", out):
         steps[m.group(1)] = int(m.group(2))
+
+    # The step times MVS itself accounts for, and NFR-PERF-02's context
+    # beside them, so the numbers are a complete measurement rather than
+    # bare figures.
+    sys.stdout.write("\n=== step times, from the job's own accounting ===\n")
+    for m in re.finditer(r"IEF374I STEP /(\S+)\s+/ STOP\s+\S+\s+CPU\s+"
+                         r"(\d+)MIN (\S+)SEC.*?VIRT\s+(\S+)", out):
+        sys.stdout.write("  %-8s CPU %s min %s s   VIRT %s\n"
+                         % (m.group(1), m.group(2), m.group(3), m.group(4)))
+    print_perf_context()
     sys.stdout.write("\n=== ACC-7: BUZZ end to end ===\n")
     for name in ("SCRATCH", "STEP1", "STEP2", "STEP3"):
         sys.stdout.write("  %-8s COND CODE %s\n"
