@@ -175,6 +175,27 @@ runs byte-identical source to row 6. The engineer flagged that JCC's
 PARM-to-argv splitting was unmeasured; it was then measured, and gives
 `argc=5` with `argv[2..4]` holding the three names.
 
+D-284's claim is checkable rather than rhetorical, and it checks out.
+At the point row 7 ran:
+
+```
+$ git diff --stat da885b8..HEAD -- engine/ generated/ layout/ cobol/
+(no output)
+$ git diff --stat da885b8..HEAD -- softfloat/
+ softfloat/c2c/softfloat.c |  5 ++++-
+ softfloat/derive2c.py     | 19 +++++++++++++++++++
+```
+
+The engine, the generated layouts and the COBOL driver were untouched;
+the only source change in the whole tree was D-285's cast, through its
+generator. So row 7 compiled the same engine text as row 6 in the
+strongest available sense — the same bytes in the same repository at the
+same commit. (D-291 later adds `ONF_CCID` and `ONF_PLATID` branches to
+`engine/src/onflyeng.c` and `engine/include/onfplat.h`; those change no
+code on any platform whose macros are undefined, but they do mean this
+particular `git diff` is a statement about the row 7 run and not about
+the session's end state.)
+
 **D-285 — one line of vendor SoftFloat.** The first full link left
 F64LT, F64LE, F64MUL, F64SUB and F64ADD unresolved, and PRELINK's map
 showed no `SF2C` CSECT at all: the SoftFloat unit had contributed
