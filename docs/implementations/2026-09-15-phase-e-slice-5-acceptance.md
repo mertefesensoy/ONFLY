@@ -48,7 +48,11 @@ PARTIAL on this one criterion however well everything else goes.
 
 | File | Change |
 |---|---|
-| *(filled in as the sweep proceeds)* | |
+| `prep/extract.py` | `--acc3-file` now applies D-202's exclusion through `acc3_excluded()`, the function `acc3_eval()` already used (D-289). |
+| `tools/fixtures.py` | `digests()` streams in 8 MiB blocks. It read whole files, which cannot verify the 1,051,241,946-byte connectome weights on Windows. |
+| `tools/mvsrun.py` | `--install-net`; row 6's `ONFNET` reads the installed dataset (D-286); per-network dataset and job names. |
+| `docs/ONFLY-SRS.md` | D-288, D-289; Section 8.3 row 6 and row 7; Appendix D. |
+| `data/phase-e/` | The TK5 recordings this session produced. |
 
 ## 3. Implementation approach
 
@@ -214,7 +218,75 @@ would test one platform where the suite tests four.
 
 ## 6. Verification
 
-*(filled in)*
+Every figure is from 2026-09-15, in the session that reports it.
+
+### 6.1 ACC-1 and ACC-2, on the shipped network by its shipped name
+
+```
+$ python prep/extract.py --acc1 data/networks/onfnet-malecns-v1.0-srext.bin \
+      --label srext --jobs 8
+ACC-1 on srext (onfnet-malecns-v1.0-srext.bin), seeds 1..30
+  rate   Shiu ref    mean Hz seeds w/ spike fraction verdict
+    10       0.00       0.02          1/30          3% not tested (Shiu reference is zero)
+    40       4.73      13.77         30/30        100% PASS
+    60      32.07      28.88         30/30        100% PASS
+   120      64.43      72.07         30/30        100% PASS
+   200      77.57      91.35         30/30        100% PASS
+ACC-1 PASS over the rates it applies to: [40, 60, 120, 200]
+ACC-2 PASS: rate 0 produced 0 spikes across all 501 neurons
+```
+
+x86-64 Windows 11, mingw32 gcc, **NATIVE** backend, 81 s. ACC-1 asks
+for a spike in at least 90% of seeds; it got 100% at every rate it
+applies to. ACC-2's rate-0 case is also exercised on three more
+platform/backend combinations by G-15 in the x86, s390x and MVS suites.
+
+### 6.2 ACC-3, against the full brain
+
+```
+$ python prep/extract.py --acc3-file data/networks/onfnet-malecns-v1.0-srext.bin \
+      --label srext --jobs 8
+  rate    subcirc       full      tol    ACC-3
+    10       0.02       3.67     1.00     EXCL
+    40      13.77      14.35     1.44     PASS
+    60      28.88      28.38     2.84     PASS
+   120      72.07      68.38     6.84     PASS
+   200      91.35      88.80     8.88     PASS
+  10 Hz excluded and reported (D-202): reference 3.67 +- 4.22 Hz, subcircuit 0.02 Hz
+srext: 501 neurons, 10783 edges, need=255688 (NFR-MEM-01 PASS), ACC-3 PASS (79 s)
+```
+
+**This verdict changed during the session, and that is worth stating
+plainly.** The first run of the same command printed `ACC-3 FAIL`,
+because `--acc3-file` is the D-181 diagnostic and was written before
+D-202 amended the criterion: it tested all five rates, including the one
+D-202 excludes. The four rates ACC-3 actually tests passed then and
+pass now — the numbers above are unchanged — and what moved was the
+tool, not the measurement. The change was put to the owner rather than
+made, because a change that turns a FAIL into a PASS should not rest on
+an engineer's own judgement (D-289).
+
+NFR-MEM-01 is checked in the same pass: the decoded network needs
+255,688 bytes against TBD-14's 8 M region.
+
+### 6.3 ACC-5 rows 6 and 7 on the post-D-285 source
+
+Row 6, `srext`, re-run because D-285 changed the text it compiles:
+
+```
+$ python tools/mvsrun.py --compare data/phase-e/mvs data/phase-d/x86w
+  raw=False  binary=True  translated=True
+  ok   G-15 6C3F7272   G-16 BAF81D91   G-17 F9C7EE77
+  ok   G-18 4FD0ED1E   G-19 C4C320BC
+mvsrun: TX-01 PASS, ACC-5 row 6 PASS
+```
+
+Row 7 is in the slice 4 document. Both now read the same installed
+network (D-286), so the compiler is the only difference between them.
+
+### 6.4 ACC-4, ACC-6, ACC-7
+
+*(filled in as they land)*
 
 ## 7. Related docs
 
