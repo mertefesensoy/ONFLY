@@ -467,25 +467,6 @@ def run_deck():
     return d
 
 
-def step_table(listing):
-    """The IEFACTRT one-line-per-step summary JES2 prints for every job.
-
-    Read rather than the condition codes in the allocation messages,
-    because it is the only place that names the step and its return code
-    on one line, which is what a reader needs to see.
-    """
-    rows = []
-    for line in (listing or "").splitlines():
-        if "IEFACTRT" in line or "Stepname" in line:
-            continue
-        parts = line.split()
-        if len(parts) >= 6 and parts[-2] == "RC=":
-            rows.append((parts[-4], parts[-3], parts[-1]))
-        elif len(parts) >= 5 and parts[-2].startswith("RC="):
-            rows.append((parts[-4], parts[-3], parts[-2][3:]))
-    return rows
-
-
 def run_probe(argv):
     sources = probe_sources()
     d = deck("ONFJPRB", sources, mvseng.HEADERS, prelink=True)
