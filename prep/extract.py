@@ -512,8 +512,17 @@ def acc3_file(path, label, jobs):
              on_done)
     per_rate, ok_all = {}, True
     need = n = e = None
-    print("%6s %10s %10s %8s %6s" % ("rate", "subcirc", "full", "tol",
-                                    "ACC-3"))
+    # D-289: D-202's exclusion applies here too.  This path is the D-181
+    # diagnostic and was written BEFORE D-202 amended ACC-3, so it used
+    # to test all five validation rates -- including the one the
+    # criterion now excludes and reports.  On the shipped `srext`
+    # network that made it print FAIL while every rate ACC-3 actually
+    # tests passed, which is worse than a wrong answer: it is a tool
+    # whose headline contradicts the requirement it names.  The
+    # exclusion is asked of `acc3_excluded()`, the same function
+    # `acc3_eval()` uses, so there is one implementation of one rule.
+    print("%6s %10s %10s %8s %8s" % ("rate", "subcirc", "full", "tol",
+                                     "ACC-3"))
     for r in VAL_RATES:
         means = []
         for sd in SEEDS:
@@ -521,19 +530,42 @@ def acc3_file(path, label, jobs):
             sp = [x["spikes"] for x in res["readouts"]]
             means.append(sum(sp) * 1000.0 / cal.SIM_MS / len(sp))
         mean = sum(means) / len(means)
-        fb = full["per_rate"][str(r)]["onfly_mean_hz"]
+        fe = full["per_rate"][str(r)]
+        fb = fe["onfly_mean_hz"]
         tol = max(REL_TOL * fb, ABS_FLOOR)
         ok = abs(mean - fb) <= tol
-        ok_all = ok_all and ok
+        excluded = acc3_excluded(full, r)
+        # An excluded rate is REPORTED, never counted -- and its measured
+        # value and verdict are kept, because ACC-3 as amended requires
+        # the excluded rates and their numbers to be reported with every
+        # result.  Dropping them would satisfy the tool and not the
+        # requirement.
+        if not excluded:
+            ok_all = ok_all and ok
         per_rate[str(r)] = {"sub_mean_hz": mean, "full_mean_hz": fb,
-                            "tolerance_hz": tol, "pass": ok}
-        print("%6d %10.2f %10.2f %8.2f %6s"
-              % (r, mean, fb, tol, "PASS" if ok else "FAIL"))
-    out = {"decision": "D-181", "network": os.path.basename(path),
+                            "tolerance_hz": tol, "pass": ok,
+                            "excluded": excluded,
+                            "excluded_reason": (
+                                "D-202: reference sd %.2f >= mean %.2f"
+                                % (fe.get("onfly_sd_hz", 0.0), fb))
+                            if excluded else None}
+        print("%6d %10.2f %10.2f %8.2f %8s"
+              % (r, mean, fb, tol,
+                 "EXCL" if excluded else ("PASS" if ok else "FAIL")))
+    excl = [r for r in VAL_RATES if acc3_excluded(full, r)]
+    for r in excl:
+        fe = full["per_rate"][str(r)]
+        print("  %d Hz excluded and reported (D-202): reference "
+              "%.2f +- %.2f Hz, subcircuit %.2f Hz"
+              % (r, fe["onfly_mean_hz"], fe.get("onfly_sd_hz", 0.0),
+                 per_rate[str(r)]["sub_mean_hz"]))
+    out = {"decision": "D-181, amended by D-289",
+           "network": os.path.basename(path),
            "sha256": hashlib.sha256(io.open(path, "rb").read()).hexdigest(),
            "neurons": n, "edges": e, "need_bytes": need,
            "nfr_mem_01_pass": need is not None and need <= REGION_BYTES,
            "per_rate": per_rate, "acc3_pass": ok_all,
+           "acc3_excluded_rates": excl,
            "elapsed_s": round(time.time() - t0)}
     save_json(os.path.join(cal.CAL_DIR, "acc3-%s.json" % label), out)
     print("%s: %d neurons, %d edges, need=%d (NFR-MEM-01 %s), ACC-3 %s "

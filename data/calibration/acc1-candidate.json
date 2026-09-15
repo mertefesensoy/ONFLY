@@ -10,8 +10,8 @@
     "D-200",
     "D-203"
   ],
-  "elapsed_s": 48,
-  "label": "srext-n500",
+  "elapsed_s": 81,
+  "label": "srext",
   "network": "data/networks/onfnet-malecns-v1.0-srext.bin",
   "per_rate": {
     "10": {

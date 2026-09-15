@@ -1,0 +1,56 @@
+{
+  "acc3_excluded_rates": [
+    10
+  ],
+  "acc3_pass": true,
+  "decision": "D-181, amended by D-289",
+  "edges": 10783,
+  "elapsed_s": 79,
+  "need_bytes": 255688,
+  "network": "onfnet-malecns-v1.0-srext.bin",
+  "neurons": 501,
+  "nfr_mem_01_pass": true,
+  "per_rate": {
+    "10": {
+      "excluded": true,
+      "excluded_reason": "D-202: reference sd 4.22 >= mean 3.67",
+      "full_mean_hz": 3.6666666666666665,
+      "pass": false,
+      "sub_mean_hz": 0.016666666666666666,
+      "tolerance_hz": 1.0
+    },
+    "120": {
+      "excluded": false,
+      "excluded_reason": null,
+      "full_mean_hz": 68.38333333333334,
+      "pass": true,
+      "sub_mean_hz": 72.06666666666666,
+      "tolerance_hz": 6.838333333333335
+    },
+    "200": {
+      "excluded": false,
+      "excluded_reason": null,
+      "full_mean_hz": 88.8,
+      "pass": true,
+      "sub_mean_hz": 91.35,
+      "tolerance_hz": 8.88
+    },
+    "40": {
+      "excluded": false,
+      "excluded_reason": null,
+      "full_mean_hz": 14.35,
+      "pass": true,
+      "sub_mean_hz": 13.766666666666667,
+      "tolerance_hz": 1.435
+    },
+    "60": {
+      "excluded": false,
+      "excluded_reason": null,
+      "full_mean_hz": 28.383333333333333,
+      "pass": true,
+      "sub_mean_hz": 28.883333333333333,
+      "tolerance_hz": 2.8383333333333334
+    }
+  },
+  "sha256": "bf09a3ad18a82b8ecc0dd2fd397d81e332f38c98a78325269f5c39d2b3b1f66d"
+}
