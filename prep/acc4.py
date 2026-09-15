@@ -141,6 +141,16 @@ def main():
     if ref is None:
         raise SystemExit("no reference: run reference/shiu/rerun.py")
 
+    # The same guard prep/calibrate.py's main() has, and for the same
+    # reason.  Without it a missing runner is not caught here but 150
+    # lines later, inside run_many()'s Popen, as a bare
+    # "FileNotFoundError: [WinError 2] The system cannot find the file
+    # specified" naming neither the file nor the fix -- and only AFTER
+    # load_cache() has spent several minutes building the 594 MB signed
+    # cache.  Measured 2026-09-15 on a fresh worktree.
+    if not os.path.isfile(cal.RUNNET):
+        raise SystemExit("build the runner first: mingw32-make runner")
+
     arrays, stim, read = cal.load_cache()
     variant = None
     if a.variant:

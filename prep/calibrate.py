@@ -79,6 +79,24 @@ SCAN = (0.10, 0.15, 0.20, 0.25, 0.275, 0.30, 0.35, 0.40)   # D-171
 RESOLUTION = 0.005                   # D-171, mV
 GOLD = (math.sqrt(5.0) - 1.0) / 2.0
 
+# --- stimulus-set variant (D-302) -----------------------------------------
+#
+# None is the shipped stimulus set: D-52's 14 neurons on both hemispheres,
+# as D-73 fixed it and D-177 chose to keep.
+#
+# A variant restricts that set for INVESTIGATION ONLY.  D-176 measured the
+# variants at the shipped W_syn and VL-65 recorded, explicitly as not
+# proven, that "a W_syn recalibrated for the taste-peg-only or the
+# unilateral set would pass ACC-4 in full (no recalibration was run)".
+# This switch is what lets that be measured.
+#
+# It changes nothing that ships.  prep/emit.py reads the D-52 mapping
+# directly and never consults this; every emitted network, every golden
+# fingerprint and the calibrated 0.2969 mV are untouched by any run that
+# sets it.  A variant run writes to its own search log and its own
+# candidate filenames so the baseline record cannot be overwritten.
+VARIANT = None
+
 
 def key(w):
     """The 4-decimal label a candidate is filed under.
@@ -143,6 +161,34 @@ def load_cache():
     return arrays, z["stim"], z["read"]
 
 
+def select_stim(stim, name):
+    """Restrict ``stim`` to variant ``name``; return it unchanged if None.
+
+    Contract: returns ``(bodies, desc)`` where ``bodies`` is an int64
+    array of MaleCNS body ids and ``desc`` is acc4's description dict, or
+    ``(stim, None)`` when no variant is asked for.  No side effects.
+
+    The selection itself is **reused from prep/acc4.py rather than
+    copied**.  A calibration run and the ACC-4 evaluation that judges it
+    must agree on which neurons the variant means; two copies of the rule
+    reading the same annotation file is exactly how they would drift
+    apart, and the drift would be invisible -- both would still produce
+    numbers.
+
+    The import is deliberately LAZY.  ``acc4`` imports this module and
+    reads ``cal.CAL_DIR`` at module scope, so a top-level ``import acc4``
+    here would be a circular import resolved against a half-initialised
+    module.  By the time main() calls this, both modules are complete.
+    """
+    if not name:
+        return stim, None
+    import acc4
+    bodies, desc = acc4.select_variant(stim, name)
+    if not bodies:
+        raise SystemExit("variant %s selects no stimulus neurons" % name)
+    return np.array(bodies, dtype=np.int64), desc
+
+
 # --- one candidate --------------------------------------------------------
 def emit_candidate(w_syn, arrays, stim, read):
     nodes = np.union1d(np.unique(arrays["body_pre"]),
@@ -150,7 +196,13 @@ def emit_candidate(w_syn, arrays, stim, read):
     blob, n, e = emit.build_network(arrays, nodes, stim, read,
                                     "w=%s" % key(w_syn), w_syn=w_syn,
                                     max_ms=emit.MAX_MS)
-    path = os.path.join(CAL_DIR, "net-%s.bin" % key(w_syn))
+    # The variant is part of the NAME, not only of the log: two candidates
+    # at the same W_syn but different stimulus sets are different networks,
+    # and evaluate() deletes this file after the runs unless --keep.  A
+    # shared name would let a variant run and a baseline run racing on the
+    # same host read each other's bytes.
+    path = os.path.join(CAL_DIR, "net-%s%s.bin"
+                        % (("%s-" % VARIANT) if VARIANT else "", key(w_syn)))
     io.open(path, "wb").write(blob)
     return path, n, e, hashlib.sha256(blob).hexdigest(), \
         "%08X" % (zlib.crc32(blob) & 0xFFFFFFFF)
@@ -369,10 +421,23 @@ def main():
     ap.add_argument("--log", default=None,
                     help="search log to read and write (default "
                          "data/calibration/search-log.json)")
+    ap.add_argument("--variant", default=None,
+                    help="stimulus-set variant to calibrate FOR: right, "
+                         "phg9 or tpgrn (D-176, D-302). Investigation "
+                         "only -- no emitted network uses it")
     a = ap.parse_args()
-    global LOG
+    global LOG, VARIANT
+    VARIANT = a.variant
     if a.log:
         LOG = a.log if os.path.isabs(a.log) else os.path.join(CAL_DIR, a.log)
+        print("search log: %s" % LOG.replace("\\", "/"))
+    elif VARIANT:
+        # Never the baseline log.  D-209 made a re-run take a separate
+        # path because evaluate() returns a cached candidate rather than
+        # measuring it; the same reasoning applies twice over here, since
+        # a variant candidate at W_syn w is not the baseline candidate at
+        # W_syn w and must never be served in its place.
+        LOG = os.path.join(CAL_DIR, "search-log-%s.json" % VARIANT)
         print("search log: %s" % LOG.replace("\\", "/"))
     log = load_log()
     if a.status:
@@ -384,6 +449,12 @@ def main():
     if not os.path.isfile(RUNNET):
         raise SystemExit("build the runner first: mingw32-make runner")
     arrays, stim, read = load_cache()
+    stim, vdesc = select_stim(stim, VARIANT)
+    if vdesc:
+        print("variant %s: %d stimulus neurons %s sides %s"
+              % (VARIANT, len(stim), vdesc["types"], vdesc["sides"]))
+        print("  investigation only (D-302): no emitted network, no golden "
+              "fingerprint and no shipped W_syn is affected by this run")
     if a.scan:
         scan(log, arrays, stim, read, a.jobs, a.keep)
     if a.refine:
