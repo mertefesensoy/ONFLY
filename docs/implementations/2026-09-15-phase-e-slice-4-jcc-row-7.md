@@ -364,7 +364,51 @@ regenerated text. The figures above are the second run's. The first is
 not cited anywhere, because a result from source the repository does not
 hold is not a result about the repository.
 
-### 6.5 D-285 measured, not merely argued
+### 6.5 What row 7 found that no single-compiler row could
+
+The whole argument for row 7 is that a second code generator can
+disagree where one cannot. It did not disagree about any number — but
+it did expose an NFR-OBS-01 shortfall that had been latent since the
+manifest was written. Under JCC:
+
+```
+ONF001I NETWORK LOADED N=501 E=10783 CRC=4577D74E
+ONF002I RUN MANIFEST
+ONF002I   ENGINE VERSION  0.5.0
+ONF002I   FLOAT BACKEND   SOFT2C
+ONF002I   COMPILER        UNKNOWN      <-- NFR-OBS-01 requires this
+ONF002I   PLATFORM        UNKNOWN      <--
+ONF002I   MODE            SIMULATE
+ONF002I   NET FORMAT      1.1
+ONF002I   HEADER CRC      B05B9E6A
+ONF002I   PAYLOAD CRC     4577D74E
+ONF002I   N               501
+ONF002I   E               10783
+ONF002I   NS NR           14 2
+ONF002I   DT              100 US
+ONF002I   DT BITS         3FB999999999999A
+ONF002I   DELAY REFRACT   18 22 STEPS
+ONF002I   BIAS ROWS       9
+ONF002I   BYTES NEED      171768 255688
+```
+
+**Exactly two fields are wrong, and the rest are right.** The format
+version, both CRCs, the neuron and edge counts, the stimulus and readout
+counts, the timestep in microseconds and as its binary64 bit pattern,
+the delay and refractory step counts, the compensating table's row count
+and both byte figures are all correct. `ONF_CCID` keys off `__GNUC__`,
+`__IBMC__` and `__MVS__`; `ONF_PLATID` off `__MVS__`, `__s390x__` and
+`_WIN32`; JCC defines none of the six.
+
+NFR-OBS-01 says the manifest *shall* carry compiler identification, and
+the comment above `ONF_CCID` says why: *the same source produces
+different object code under GCCMVS, JCC, gcc and clang … a result that
+does not name its compiler cannot be compared with another.* The row
+whose purpose is to be a different compiler is therefore the row that
+could not say so. D-291 resolves it by asking JCC which macros it does
+define, rather than asserting an answer from the deck.
+
+### 6.6 D-285 measured, not merely argued
 
 Section 4 argues the cast cannot change generated code. Arguments of
 that shape are how silent numerical regressions get in, so it was also
@@ -392,7 +436,7 @@ run_names: 21 passed
 the templates*, which is what makes the first three lines a statement
 about the committed tree rather than about a working copy.
 
-### 6.6 What is NOT proven
+### 6.7 What is NOT proven
 
 - **Row 7 is one backend, one network and five requests.** It is
   SOFT2C only — NR-03 puts SoftFloat 2c on MVS and there is no 3e or
