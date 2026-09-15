@@ -147,6 +147,34 @@ def main():
         check("D-269: regenerating reproduces the committed files", True,
               "SKIP: %s" % str(exc).splitlines()[0])
 
+    # The framing trap.  The committed file is TEXT (IR-NAM-01) and
+    # carries a newline after each 80-column row; ONFLYDRV's FD says
+    # RECORDING MODE IS F.  Read raw on x86, record 2 begins one byte
+    # late and every row after the first is silently skipped -- which
+    # is how `srext` readout 88 came back *UNNAMED* on 2026-09-15 while
+    # readout 9 was named correctly.  names.records() is the framing
+    # step; this case exists so that nobody removes it.
+    for label in names.DEFAULT_NETS:
+        if not os.path.isfile(names.namepath(label)):
+            continue
+        raw = io.open(names.namepath(label), "rb").read()
+        framed = names.records(label)
+        naive = [raw[i:i + names.RECLEN]
+                 for i in range(0, len(raw), names.RECLEN)]
+        check("%s: raw bytes are NOT %d-byte records" % (label,
+                                                         names.RECLEN),
+              len(raw) % names.RECLEN != 0
+              or any(not r[:5].decode("ascii", "replace").isdigit()
+                     for r in naive),
+              "%d bytes, %d rows x %d + newlines"
+              % (len(raw), len(framed), names.RECLEN))
+        check("%s: records() frames them correctly" % label,
+              len(b"".join(framed)) == len(framed) * names.RECLEN
+              and all(r[:5].decode("ascii").isdigit() for r in framed)
+              and b"\n" not in b"".join(framed),
+              "%d records, %d bytes"
+              % (len(framed), len(b"".join(framed))))
+
     # IR-NAM-02's substitution rule, exercised directly.
     clean, changed = names.sanitise("dorsal_tpGRN+9")
     check("IR-NAM-02 sanitise() uppercases and substitutes",

@@ -202,6 +202,38 @@ def render(rows):
     return ("\n".join(out) + "\n").encode("ascii")
 
 
+def records(label):
+    """The names file as fixed 80-byte records, with NO line ends.
+
+    The committed file is TEXT -- IR-NAM-01 says so, and IR-NAM-03 has
+    it "transferred in text mode so that ASCII-to-EBCDIC conversion
+    happens in transport" -- so it carries a newline after each 80-column
+    row.  A reader on MVS never sees those: the transport (or IEBGENER
+    from card images) frames the file as RECFM=FB,LRECL=80 and the
+    newline is not part of a record.
+
+    **A program reading the committed file directly on x86 does see
+    them**, and ONFLYDRV's FD says `RECORDING MODE IS F`.  So record 2
+    begins one byte late, its first five columns are not digits, and the
+    row is silently skipped -- which is how `srext` readout 88 came back
+    `*UNNAMED*` while readout 9 was named correctly.  Exactly the trap
+    `write_deck` in tests/run_cob.py documents for ONFCTL.
+
+    This function is the framing step, named so that a caller cannot
+    forget it exists.
+    """
+    text = io.open(namepath(label), encoding="ascii").read()
+    out = []
+    for line in text.split("\n"):
+        if not line.strip():
+            continue
+        if len(line.rstrip()) > RECLEN:
+            raise NamesError("%s: a row is %d columns, limit %d"
+                             % (label, len(line.rstrip()), RECLEN))
+        out.append(line.rstrip().ljust(RECLEN).encode("ascii"))
+    return out
+
+
 def verify_against_subcircuit(label, rows):
     """Check the rank pairing against a recorded body list, if there is one.
 

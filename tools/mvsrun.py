@@ -487,7 +487,43 @@ def run_rpt(argv):
             if l.lstrip().startswith(("ONFLY REPORT", "REQUEST ",
                                       "  ONF", "  READOUT"))]
     sys.stdout.write("\n".join(keep) + "\n")
-    return 0 if keep else 1
+    if not keep:
+        sys.stderr.write("mvsrun: %s printed no report lines\n" % RPT_JOB)
+        return 1
+
+    # Against the x86 reference, line for line.
+    #
+    # Every field in the report is either a number or one of the three
+    # stimulus codes, and the printer has already translated EBCDIC to
+    # ASCII by the time this reads it -- so unlike the RECORDS, where
+    # D-261 had to allow for one code-page-dependent field, the printed
+    # report should be character-identical.  A difference here is a
+    # difference between MVT COBOL and GnuCOBOL, which is the whole
+    # question VL-02 says the proxy cannot answer.
+    ref = os.path.join(ROOT, "data", "phase-e", "x86",
+                       "rpt-%s-2c.txt" % NETNAME)
+    if not os.path.isfile(ref):
+        sys.stdout.write("mvsrun: no x86 reference at %s; run `make cob` "
+                         "first\n" % os.path.basename(ref))
+        return 0
+    raw = io.open(ref, "rb").read()
+    want = [raw[i:i + 133].decode("ascii", "replace")[1:].rstrip()
+            for i in range(0, len(raw), 133)]
+    got = [l.strip("\r") for l in keep]
+    sys.stdout.write("\n=== FR-BAT-04: MVS report vs the x86 reference ===\n")
+    ok = True
+    for i in range(max(len(got), len(want))):
+        g = got[i] if i < len(got) else "(absent)"
+        w = want[i] if i < len(want) else "(absent)"
+        if g == w:
+            continue
+        ok = False
+        sys.stdout.write("  FAIL line %d\n    MVS  %r\n    x86  %r\n"
+                         % (i + 1, g, w))
+    sys.stdout.write("  %s %d line(s) %s\n"
+                     % ("ok  " if ok else "FAIL", len(want),
+                        "identical" if ok else "differ"))
+    return 0 if ok else 1
 
 
 def read_records(path, reclen=None):

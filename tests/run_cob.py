@@ -460,6 +460,127 @@ def main(argv):
                      "packing of the same deck, G-13 rate=%d (D-265)\n"
                      % (len(got) // L.RECORD_LEN, rate13))
 
+    # 8. FR-BAT-01 end to end on x86, over the network the MVP ships.
+    #
+    # Steps 1-7 drive the driver over records Python wrote.  This drives
+    # the WHOLE chain -- ONFLYDRV MODE=REQ, then the C engine, then
+    # ONFLYDRV MODE=RPT -- over the real `srext` network and the real
+    # ONFNAM, so the report is over responses the engine actually
+    # produced rather than over a fixture with a DEADBEEF fingerprint.
+    #
+    # It is also the reference the MVS report is read against: the same
+    # three steps run there as three jobs, and a difference in the
+    # printed report is then a difference between PLATFORMS rather than
+    # between a platform and a hand-written expectation.
+    net = os.path.join(ROOT, "data", "networks",
+                       "onfnet-malecns-v1.0-srext.bin")
+    nam = os.path.join(ROOT, "data", "networks",
+                       "onfnam-malecns-v1.0-srext.txt")
+    eng = None
+    for cand in ("onflyeng_2c.exe", "onflyeng_2c"):
+        if os.path.exists(os.path.join(BUILD, cand)):
+            eng = os.path.join(BUILD, cand)
+            break
+    if eng is None or not os.path.exists(net) or not os.path.exists(nam):
+        sys.stdout.write("run_cob: SKIP FR-BAT-01 end to end -- need "
+                         "`make eng`, a network fixture and a names file\n")
+    else:
+        sys.path.insert(0, os.path.join(ROOT, "tools"))
+        sys.path.insert(0, os.path.join(ROOT, "tests"))
+        import mkreq                                   # noqa: E402
+
+        ctl = os.path.join(WORK, "e2e.ctl")
+        req = os.path.join(WORK, "e2e.req")
+        rsp = os.path.join(WORK, "e2e.rsp")
+        rpt = os.path.join(WORK, "e2e.txt")
+        write_deck(ctl, ["MODE=REQ"]
+                   + mkreq.golden_cards("srext").splitlines())
+        for f in (req, rsp, rpt):
+            if os.path.exists(f):
+                os.remove(f)
+
+        rc, out = run([exe], env, cwd=WORK,
+                      extra_env=ddenv(ONFCTL=ctl, ONFREQ=req))
+        if rc != 0:
+            raise Fail("STEP1 returned %d: %s" % (rc, out))
+
+        rc2, out2 = run([eng, "", net, req, rsp], env, cwd=WORK)
+        sys.stdout.write("run_cob: STEP2 %s -> rc=%d\n"
+                         % (os.path.basename(eng), rc2))
+        for l in out2.splitlines():
+            if l.startswith("ONF30") or l.startswith("ONF001I"):
+                sys.stdout.write("run_cob:   %s\n" % l.rstrip())
+        if rc2 != 0:
+            raise Fail("STEP2 returned %d" % rc2)
+
+        write_deck(ctl, ["MODE=RPT"])
+        # The committed ONFNAM is TEXT and carries a newline after each
+        # 80-column row; ONFLYDRV's FD is RECORDING MODE IS F.  On MVS
+        # the transport frames the file and the newlines never reach
+        # the program; on x86 nothing does that, so it is done here.
+        # Without it record 2 starts one byte late and every row after
+        # the first is silently skipped -- readout 88 came back
+        # *UNNAMED* exactly that way.
+        sys.path.insert(0, os.path.join(ROOT, "prep"))
+        import names as NAMES                          # noqa: E402
+        namfb = os.path.join(WORK, "e2e.nam")
+        io.open(namfb, "wb").write(b"".join(NAMES.records("srext")))
+
+        rc3, out3 = run([exe], env, cwd=WORK,
+                        extra_env=ddenv(ONFCTL=ctl, ONFRSP=rsp, ONFRPT=rpt,
+                                        ONFNAM=namfb))
+        if rc3 != 0:
+            raise Fail("STEP3 returned %d: %s" % (rc3, out3))
+
+        raw = io.open(rpt, "rb").read()
+        if len(raw) % 133:
+            raise Fail("ONFRPT is %d bytes, not a multiple of 133"
+                       % len(raw))
+        lines = [raw[i:i + 133].decode("ascii", "replace")[1:].rstrip()
+                 for i in range(0, len(raw), 133)]
+
+        # The engine's own ONFRSP is the authority for what the report
+        # must say, so the expectations are READ from it rather than
+        # written down.  A report that agreed with a hand-typed table
+        # would only prove the table.
+        recs = io.open(rsp, "rb").read()
+        nrec = len(recs) // L.RECORD_LEN
+        names = {}
+        for rec in NAMES.records("srext"):
+            row = rec.decode("ascii")
+            if row[:5].isdigit():
+                names[int(row[:5])] = row[6:40].rstrip()
+        problems = []
+        for i in range(nrec):
+            r = recs[i * L.RECORD_LEN:(i + 1) * L.RECORD_LEN]
+            fp = r[20:24].hex().upper()
+            want_msg = "  ONF301I  REQUEST COMPLETE"
+            hit = [l for l in lines if l.startswith(want_msg)
+                   and l.endswith("FP=" + fp)]
+            if not hit:
+                problems.append("no ONF301I line with FP=%s" % fp)
+        outc = int.from_bytes(recs[18:20], "big")
+        first = recs[:L.RECORD_LEN]
+        for k in range(outc):
+            off = L.HEAD_LEN + k * L.OUT_LEN
+            ident = int.from_bytes(first[off:off + 4], "big")
+            if names.get(ident) and not any(names[ident] in l
+                                            for l in lines):
+                problems.append("readout %d not named %s"
+                                % (ident, names[ident]))
+        if problems:
+            sys.stdout.write("\n".join(lines) + "\n")
+            raise Fail("; ".join(problems))
+
+        for l in lines:
+            sys.stdout.write("run_cob:   |%s\n" % l)
+        sys.stdout.write("run_cob: FR-BAT-01 end to end on x86: %d requests "
+                         "through ONFLYDRV -> ONFLYENG -> ONFLYDRV, every "
+                         "fingerprint in the report taken from the ONFRSP "
+                         "the engine wrote\n" % nrec)
+        io.open(os.path.join(ROOT, "data", "phase-e", "x86",
+                             "rpt-srext-2c.txt"), "wb").write(raw)
+
     sys.stdout.write("run_cob: PASS on x86 GnuCOBOL (%s), IBM dialect; "
                      "this is the VL-02 proxy, not Enterprise COBOL, and says "
                      "nothing about MVT COBOL\n" % ver)
