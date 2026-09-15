@@ -386,11 +386,38 @@ mvsrun: TX-01 PASS, ACC-5 row 6 PASS
 Row 7 is in the slice 4 document. Both now read the same installed
 network (D-286), so the compiler is the only difference between them.
 
-### 6.4 ACC-4, ACC-6, ACC-7
+### 6.4 The file all of this is about
+
+Every result in this document and in slice 4 is about one file, and it
+is worth pinning which:
+
+```
+MANIFEST says : 171768 bytes  CRC 038CAE79  SHA bf09a3ad18a82b8e...
+file on disk  : 171768 bytes  CRC 038CAE79  SHA bf09a3ad18a82b8e...
+agree         : True
+magic         : 4F4E4631        (TBD-09, closed by D-167)
+```
+
+and what the engine itself made of it, identically under GCCMVS and
+under JCC:
+
+```
+ONF001I NETWORK LOADED N=501 E=10783 CRC=4577D74E
+ONF002I   HEADER CRC      B05B9E6A
+ONF002I   PAYLOAD CRC     4577D74E
+```
+
+The chain therefore runs unbroken from `data/networks/MANIFEST.json`,
+through the bytes on disk, through the card images the reader delivered,
+through `HERC01.ONFLY.ENET`, to two independently compiled engines on
+MVS agreeing on both CRCs. That is what makes D-286's change of
+transport a non-issue rather than a caveat.
+
+### 6.5 ACC-4, ACC-6, ACC-7
 
 *(filled in as they land)*
 
-### 6.5 What is NOT proven, per claim
+### 6.6 What is NOT proven, per claim
 
 Stated per claim rather than as a list of caveats, because a caveat that
 does not say *which result* it limits is not a limit.
