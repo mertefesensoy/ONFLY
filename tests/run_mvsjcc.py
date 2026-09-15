@@ -183,6 +183,41 @@ def main():
           any("RECFM=FB,LRECL=80" in c for c in inst),
           "DCB=(RECFM=FB,LRECL=80,BLKSIZE=3200)")
 
+    # --- the recorded TK5 run ----------------------------------------
+    # The same shape tests/run_mvsrun.py uses for row 6: the evidence
+    # itself is checked from a clone, not just the deck that would
+    # produce it.  A recording that silently went missing, or that
+    # stopped agreeing with the golden suite, would otherwise be
+    # noticed only the next time somebody spent ten minutes of
+    # mainframe time.
+    rec = os.path.join(ROOT, "data", "phase-e", "jcc",
+                       "rsp-%s-2c.bin" % mvsrun.NETNAME)
+    ref = os.path.join(ROOT, "data", "phase-d", "x86w",
+                       "rsp-%s-2c.bin" % mvsrun.NETNAME)
+    if not os.path.isfile(rec):
+        check("the TK5 JCC recording is present", False, rec)
+    else:
+        got = mvsrun.read_records(rec)
+        want = mvsrun.read_records(ref)
+        check("the TK5 JCC recording is present", True,
+              "%d bytes" % os.path.getsize(rec))
+        views, _lines = mvsrun.compare_records(got, want, "ONFRSP")
+        check("row 7 == x86-64, D-261 translated identity",
+              views["translated"] and views["binary"],
+              "%d records; raw=%s binary=%s"
+              % (len(got), views["raw"], views["binary"]))
+        gold = mvsrun.golden_fingerprints(
+            os.path.join(ROOT, "data", "phase-d", "x86w"))
+        off, bad = 20, []
+        for (gid, wantfp), r in zip(gold, got):
+            if r[off:off + 4].hex().upper() != wantfp:
+                bad.append(gid)
+        check("row 7 == Section 8.4 fingerprints",
+              len(gold) == len(got) and not bad,
+              "%d of %d: %s..%s" % (len(got), len(gold),
+                                    gold[0][0], gold[-1][0])
+              if gold else "no golden entries")
+
     # --- the probe programs are well-formed C ------------------------
     sources = {"ddprobe": mvsjcc.ddprobe_source(), "rdrprobe": mvsjcc.RDR_SRC}
     for k, v in sorted(mvsjcc.MINI.items()):

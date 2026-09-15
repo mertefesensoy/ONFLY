@@ -187,8 +187,136 @@ overlap, so ACC-6's timing is measured on an otherwise quiet host.
 
 ## 6. Verification
 
-*(Filled in below as each result lands; every figure is from this
-session.)*
+Every figure below was produced on 2026-09-15, in the session that wrote
+this document.
+
+### 6.1 Off-MVS, before anything was submitted
+
+```
+$ python tests/run_mvsjcc.py
+  ok   ONFJRUN passes mvsub.check_cards                     8383 cards, longest 80
+  ok   every JCL card is inside column 71                   0 over
+  ok   ONFJRUN compiles UNIT_MEMBERS, in order              13 units, last ONFLYENG
+  ok   member names are <=8 and unique ignoring case (C-04) 13 members
+  ok   one JCC compile step per unit                        13 COMP steps
+  ok   PRELINK reads every object as one concatenation      13 objects on the I DD
+  ok   IEWL is given NCAL (PRELINK resolved the runtime)    SYS2.PROCLIB(JCCCL)'s own PARM
+  ok   row 7 ONFNET is the installed dataset                HERC01.ONFLY.ENET
+  ok   row 6 ONFNET is the same dataset                     HERC01.ONFLY.ENET
+  ok   neither row names the reader unit                    no unit-record DD in either GO step
+  ok   GO carries D-284's three names, in argv order        //   PARM='RUN //DDN:ONFNET //DDN:ONFREQ //DDN:ONFRSP'
+  ...
+run_mvsjcc: 21 passed, 0 failed
+```
+
+`python softfloat/derive2c.py --check` reports *4 generated files match
+the templates*, which is what says D-285's cast reached
+`softfloat/c2c/softfloat.c` **through the generator**. That file is
+generated and is never edited by hand; the cast was first written into
+it directly and that was wrong — it would have been silently reverted by
+the next `make`.
+
+### 6.2 The four measurements, each on TK5, each a separate job
+
+**JCC's fopen spelling and its PARM handling** — `python
+tools/mvsjcc.py --ddprobe`:
+
+```
+DDPROBE DD:ONFNET      FOPEN-NULL
+DDPROBE //DDN:ONFNET   OPEN read=4 7B899583
+DDPROBE DDN:ONFNET     FOPEN-NULL
+DDPROBE dd:onfnet      FOPEN-NULL
+ARGVPROBE argc=5
+ARGVPROBE argv[0]=<GO>       argv[1]=<RUN>
+ARGVPROBE argv[2]=<//DDN:ONFNET>
+ARGVPROBE argv[3]=<//DDN:ONFREQ>
+ARGVPROBE argv[4]=<//DDN:ONFRSP>
+```
+
+`7B899583` is EBCDIC `#inc`: the open was real and so was the read.
+
+**What JCC's RC 1 means** — `python tools/mvsjcc.py --mini
+warn|typebad|type`, three four-line programs:
+
+| probe | diagnostic | JCC RC | object? | GO |
+|---|---|---|---|---|
+| `warn` | `warning: unsigned operand of unary -` | 0 | yes | ran, `negu=4294967293` |
+| `typebad` | `type error in argument 1 to 'put'` | **1** | **no** | LKED RC 4, `main` unresolved, flushed |
+| `type` | the same with `(unsigned int *)` | 0 | yes | ran, `v=7` |
+
+**Whether JCC can read a unit-record DD** — `python tools/mvsjcc.py
+--rdrprobe`, with the reader loaded with the network:
+
+```
+RDRPROBE mode=rb               fopen-NULL
+RDRPROBE mode=r                fopen-NULL
+RDRPROBE mode=rb,type=record   fopen-NULL
+RDRPROBE no mode opened the reader
+```
+
+**That PRELINK takes a concatenation** — `python tools/mvsjcc.py
+--probe` put three objects on one `I` DD and PRELINK ended `COND CODE
+0000`; the full run then did the same with thirteen.
+
+### 6.3 What the failures looked like before the fixes
+
+Both are recorded because each was a *silent* failure mode — a job that
+ends with a return code saying nothing about the cause.
+
+Before D-285, the link ended `LKED RC 0004` with five `IEW0461`
+warnings, and PRELINK's map contained **no `SF2C` CSECT at all**:
+
+```
+Mapping ONFFP2C   ST000054
+Mapping F64LT     ST000055     <- references, never definitions
+Mapping F64LE     ST000056
+Mapping F64MUL    ST000057
+Mapping F64SUB    ST000058
+Mapping F64ADD    ST000059
+```
+
+Before D-286, the link was clean at `LKED RC 0000` and the engine
+answered:
+
+```
+ONF108E NETWORK DATASET UNREADABLE: //DDN:ONFNET
+```
+
+with the step accounting showing `10C.......0` — nothing read from the
+card reader — and `GO ... COND CODE 0012`.
+
+### 6.4 Row 7 itself
+
+*(Filled in when the run from the committed source lands.)*
+
+### 6.5 What is NOT proven
+
+- **Row 7 is one backend, one network and five requests.** It is
+  SOFT2C only — NR-03 puts SoftFloat 2c on MVS and there is no 3e or
+  native MVS build to compare — on `srext` only, over G-15 … G-19.
+  The fourteen `path` requests of row 6 have no JCC counterpart.
+- **JCC has no TT-01 or TT-02 result.** Gate G1 closed on GCCMVS
+  (VL-29, VL-30). What row 7 shows is that the *engine* agrees; the
+  float library's own conformance under JCC was not measured, and
+  VL-03's caveat about JCC's scope stands for that.
+- **A-05 was never tested for JCC.** GCCMVS's 64-bit failure was found
+  through IFOX00, which is not in JCC's path at all. Nothing here says
+  whether JCC's `long long` is correct — the MVS build uses SoftFloat
+  2c precisely so that it need not be.
+- **The transport differs from row 6's original.** Both rows now read
+  an installed dataset (D-286). What Gate G2 measured — the raw card
+  reader moving the network onto the system — is upstream of that and
+  unchanged, and FR-LOD-02's CRC gate stands between the copy and any
+  claim, but no ONFLY job now reads the reader directly except the
+  demonstrations.
+- **Hercules is an emulator.** VL-01's argument about QEMU applies in
+  the same form: nothing here is a real-hardware, z/OS or Enterprise
+  COBOL result.
+- **D-285's cast is argued, not exhaustively proven, to be neutral.**
+  The argument is that it changes a pointer's type and not its value,
+  between two types of the same width; the evidence is that every
+  platform's results are unchanged after it. That is strong for the
+  platforms re-run in this session and silent about any that were not.
 
 ## 7. Related docs
 
