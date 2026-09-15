@@ -197,7 +197,24 @@ the emulator stopped:
     $HASP097 PRINTER2 IS DRAINED    $HASP097 READER1  IS DRAINED
     $HASP097 PRINTER3 IS DRAINED
 
-Final state: `hercules: 0   runnet: 0   qemu: DOWN`.
+Final state: `hercules: 0   runnet: 0   qemu: DOWN`, confirmed four ways
+— the process check below, `pgrep -af` returning nothing, port 2222
+closed, and the console log above.
+
+**Do not check for the guest with an inline `pgrep -f`.** This says
+RUNNING when the guest is down:
+
+    wsl.exe -d Ubuntu -- bash -lc "pgrep -f qemu-system-s390x"
+
+because `-f` matches the whole command line and the `bash -lc` running
+the search *contains the pattern*, so it finds itself. It cost a
+contradictory reading during this shutdown. Put the check in a script
+file, whose own command line is `bash /mnt/c/.../qemustat.sh` and
+therefore does not contain the pattern:
+
+    scratchpad/qemustat.sh        # the form that answers correctly
+
+Or cross-check with port 2222, which cannot self-match.
 
 **One thing that needed doing by hand.** Stopping ACC-4's parent task
 left its **ten `runnet.exe` workers orphaned and still running** — the
