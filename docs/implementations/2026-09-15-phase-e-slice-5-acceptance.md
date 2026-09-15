@@ -446,9 +446,41 @@ through `HERC01.ONFLY.ENET`, to two independently compiled engines on
 MVS agreeing on both CRCs. That is what makes D-286's change of
 transport a non-issue rather than a caveat.
 
-### 6.5 ACC-4, ACC-6, ACC-7
+### 6.5 ACC-4, ACC-6, ACC-7 — not reached in this session
 
-*(filled in as they land)*
+These three are **not** reported here, because they were not measured
+here, and an implementation document that carried them from an earlier
+session would be doing exactly what §1 says this sweep exists to stop.
+
+**ACC-4** was submitted at 12:25 as `python prep/acc4.py --jobs 10`,
+151 full-brain runs on x86-64 NATIVE. It was still running when the
+session's turn budget ran out, at 93 minutes elapsed — consistent with
+the 91 minutes VL-64 took at `--jobs 14` and the 129 minutes VL-79 took
+at `--jobs 8`, on a host also carrying Hercules and a TCG guest. Its
+**verdict is not in doubt and is not the point**: VL-64 records the
+failure at 10 and 40 Hz, D-177 declined to change the stimulus set,
+D-195 and D-206 declined to relabel the criterion, and §4.3 above shows
+why the failure is structural rather than marginal. What the re-run buys
+is the date on the evidence, and that is what remains unbought.
+
+**ACC-6** (TX-04) was deliberately scheduled last, because D-288 requires
+a quiet host for it and ACC-4 was occupying one. It never started.
+ACC-7 (BUZZ) and the two installs it depends on were queued behind
+ONFPRUN, which held TK5 for the whole session.
+
+**The `path` half of ACC-5 row 6** — job ONFPRUN, G-01 … G-14 — was
+submitted at 12:23 and was still running at 95 minutes. Its previous
+run took 63 minutes of CPU; this one shares the host with 151 full-brain
+runs and a TCG guest.
+
+**ACC-5 rows 4 and 5** were on their third backend when the budget ran
+out. The guest was verified to be building this session's exact source
+(§3.5), and the first two backends completed, but `run_gld` prints its
+verdict per backend only at the end of the whole target, so **no s390x
+figure is claimed**.
+
+Everything in §§6.1–6.4 was measured in this session and is reported.
+Nothing else is.
 
 ### 6.6 What is NOT proven, per claim
 
