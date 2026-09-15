@@ -44,18 +44,33 @@ it is about to create. But read the notes.
 
     python tools/mvsrun.py --net path --run --out data/phase-e/mvs
 
-Submitted 12:23, ~100 min elapsed, not finished. Its previous run cost
+Submitted 12:23, ~110 min elapsed, not finished. Its previous run cost
 63 min of CPU; this one shared the host with 151 full-brain runs and a
-TCG guest.
+TCG guest, and MVS itself said so:
 
-**Before re-running, try recovery instead.** MVS owns the job, JES2 owns
-the output, and the submitting process is irrelevant to both:
+    /11.23.19 JOB 304 $HASP308 ONFPRUN ESTIMATED TIME EXCEEDED
+    /11.53.28 JOB 304 $HASP308 ONFPRUN ESTIMATED TIME EXCEEDED BY 30 MINUTES
 
-    python tools/mvsrun.py --net path --recover --out data/phase-e/mvs
+**It was cancelled deliberately, as part of D-293's clean shutdown**, so
+that JES2 could drain before MVS was quiesced — a shutdown around an
+active initiator is how a 1981 operating system ends up with datasets
+it never closed:
 
-That reads the last completed ONFPRUN out of the printer file and does
-everything the submitter would have done. **If Hercules was shut down
-mid-job the run is lost and must be resubmitted** — 65+ minutes.
+    IEE301I ONFPRUN  CANCEL COMMAND ACCEPTED
+    JOB 304  IEF450I ONFPRUN GO - ABEND S222 U0000 - TIME=12.11.49
+    JOB 304  $HASP395 ONFPRUN  ENDED
+    JOB 304  $HASP150 ONFPRUN  ON PRINTER1    10,156 LINES
+    JOB 304  $HASP250 ONFPRUN  IS PURGED
+
+S222 is operator cancel, not a failure of the engine.
+
+**Recovery will NOT work for this run and must not be attempted.**
+`python tools/mvsrun.py --net path --recover` reads the last *completed*
+ONFPRUN out of the printer — and the 10,156 lines above are a cancelled
+job, not a completed one. `process_run()` would find fewer than
+fourteen response records and refuse to write anything, which is the
+right behaviour, but do not mistake the printer's 10,156 lines for a
+result. **Resubmit it**: 65+ minutes on an otherwise quiet host.
 
 It writes `data/phase-e/mvs/rsp-path-2c.bin`, which
 `tests/run_mvsrun.py` checks against the fourteen `path` golden
@@ -160,7 +175,52 @@ undefined, so x86, s390x and the GCCMVS build are unaffected — but the
 `git diff` in slice 4 §5, which shows `engine/` untouched, is a
 statement about the row 7 run and stops being true once they are added.
 
-## 8. Related docs
+## 8. Restarting the labs (resuming later the same day, D-293)
+
+Both were shut down cleanly, so both must be started again. Neither
+starts by itself.
+
+**TK5 / Hercules** — `cmd.exe /c "cd /d C:\hercules-lab\mvs-tk5 && .\mvs.bat"`
+with `run_in_background: true`. Two traps, both previously measured:
+`NoDefaultCurrentDirectoryInExePath=1` is set on this host so a bare
+`mvs.bat` fails even from the right directory — it must be `.\mvs.bat`;
+and `mvs.bat`'s last line launches a bundled `tail.exe` that throws a
+dialog, which is harmless and can be killed.
+
+**Then set the codepage.** A restart silently returns Hercules to
+`default`, where ONFLY C cannot reach GCCMVS (VL-18, D-101, D-103):
+
+    codepage 819/1047        # via the console, or tools/mvsg0.py
+
+`tools/mvsub.py` refuses to submit on the wrong codepage (D-103), so
+this fails loudly rather than silently — but it fails *every* submission
+until it is set.
+
+**What survives on TK5 and what does not.** The catalogued datasets do:
+`HERC01.ONFLY.ENET` and `.PNET` (the installed networks, D-286),
+`.EREQ`/`.PREQ`, `.LOADLIB`, `.ONFNAM`. So `--install-net` does **not**
+need repeating. `HERC01.ONFLY.PRSP` may hold a partial response dataset
+from the cancelled run; nothing needs doing, because every job's own
+SCRATCH step deletes what it is about to create.
+
+**s390x guest** — see [[onfly-s390x-lab]] for the qemu line; it must be
+started under `setsid`, because `qemu-system-s390x` installs its own
+SIGHUP handler that overrides `nohup`. Boot to sshd takes about two
+minutes under TCG, and the port forward listens well before sshd does,
+so poll `uname -m` rather than the port.
+
+**Its copy of this session's source was digested immediately before
+shutdown and must be re-verified before it is trusted:**
+
+    sha256sum ~/onfly-d068b7/softfloat/c2c/softfloat.c
+    # 276b1e7d7d29b72e2e15d43395d313e078095d02703045dc7c4d40858ba10822
+    sha256sum ~/onfly-d068b7/data/networks/onfnet-malecns-v1.0-srext.bin
+    # bf09a3ad18a82b8ecc0dd2fd397d81e332f38c98a78325269f5c39d2b3b1f66d
+
+If either differs, re-copy with `scratchpad/s390push.sh` and exclude
+`data/calibration/signed.npz` (594 MB, never read by the suite).
+
+## 9. Related docs
 
 - [Phase E slice 4 — JCC and row 7](2026-09-15-phase-e-slice-4-jcc-row-7.md)
 - [Phase E slice 5 — the acceptance sweep](2026-09-15-phase-e-slice-5-acceptance.md)
