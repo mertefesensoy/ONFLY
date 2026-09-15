@@ -30,13 +30,35 @@ Known:
   VL-03   Recorded in advance: if JCC cannot compile the soft backend,
           the cross-check covers only what JCC can build.
 
-Not known, and this file exists to find out:
+Not known when this file was written, and measured by the probes below
+on 2026-09-15.  The answers are kept here because each one cost a
+mainframe job to find and none of them is guessable:
 
-  * whether JCC compiles the SoftFloat 2c amalgamation at all;
-  * whether JCC compiles ONFLY's own C89;
-  * whether its PRELINK stage accepts a CONCATENATED object input.
-    tools/mvstt01.py records, in its own source, that it could not be
-    made to -- with TWO objects.  This link has thirteen.
+  * **Does JCC compile the SoftFloat 2c amalgamation?**  Yes -- but only
+    after D-285.  Before it, JCC rejected `float64_rem`'s `add64` call
+    and wrote **no object at all** for the unit, so F64ADD, F64SUB,
+    F64MUL, F64LT and F64LE were every one unresolved at link.
+  * **Does JCC compile ONFLY's own C89?**  Yes, twelve of the thirteen
+    units at RC 0 on the first attempt.
+  * **Does PRELINK accept a CONCATENATED object input?**  Yes, thirteen
+    of them at COND CODE 0000.  `tools/mvstt01.py` records in its own
+    source that it could not be made to with TWO; that note is either
+    wrong or was about something else.
+  * **What does JCC's RC 1 mean?**  It can mean *no object written*.  A
+    `warning:` gives RC 0 and a usable object; a `type error` gives RC 1
+    and nothing.  `--mini warn|typebad|type` is the measurement.
+  * **Can JCC's libc open a DD?**  Only as `//DDN:NAME`; PDPCLIB's
+    `DD:NAME` returns NULL (D-284).  And **not at all** on a
+    unit-record device, in any mode, which is why D-286 installs the
+    network as a catalogued dataset that rows 6 and 7 both read.
+  * **Does it split PARM into argv?**  Yes, on blanks, exactly as
+    PDPCLIB does -- which is what makes D-284 work with no engine
+    source change.
+
+One thing it does NOT do: identify itself.  The run manifest NFR-OBS-01
+requires printed `COMPILER UNKNOWN` and `PLATFORM UNKNOWN` under JCC,
+because `ONF_CCID` and `ONF_PLATID` key off macros JCC does not define.
+`--ccprobe` asks it which macros it does define (D-291).
 
 THE TOOLCHAIN, READ OFF THE MACHINE AND NOT GUESSED
 ---------------------------------------------------
