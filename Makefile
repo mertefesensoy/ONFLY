@@ -725,7 +725,7 @@ runners: $(BUILD) $(GENERATED) runner
 # TT-02, come before the L1 unit tests and everything above them.
 test: lint liclint col80 c04 c04mvs sub mvsrun names tt01 tt02 c2c sfs shim layout units fp kernel syn \
       decode eng req golden prep
-	@echo "ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE"
+	@echo "ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE; plus IR-NAM-01..03 over the emitted names files, and the Phase E MVS decks and recordings -- TX-01 under D-261 and ACC-5 row 6 for all nineteen Section 8.4 requests"
 
 # D-249.  `summarise()` in tools/mvsub.py turns a few thousand lines of
 # JES2 output into the handful a person reads -- and, through the gate

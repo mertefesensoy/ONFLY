@@ -120,7 +120,19 @@ def main():
               len(set(n for _i, n in rows)) == len(rows),
               "%d distinct" % len(set(n for _i, n in rows)))
 
-        # IR-COM-06: the indices are the network's, read independently
+        # IR-COM-06: the indices are the network's, read independently.
+        #
+        # `data/networks/*.bin` is gitignored (322 MB), so a bare clone
+        # has the names files but not the networks they were derived
+        # from.  Skip rather than fail, the pattern D-233 set for
+        # `liclint` and the `prep` tests: everything above this line
+        # still runs, and the skip line says why.
+        if not os.path.isfile(names.netpath(label)):
+            check("%s: indices == the network's readout+stimulus" % label,
+                  True, "SKIP: no network fixture; run `make fixtures`")
+            check("%s: D-267 readout rows are MN9-<bodyId>" % label, True,
+                  "SKIP: no network fixture")
+            continue
         spec = netread.read(names.netpath(label))
         want = sorted([int(i) for i in spec["readout"]]
                       + [int(i) for i in (spec.get("stim")
