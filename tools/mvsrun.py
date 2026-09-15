@@ -456,10 +456,44 @@ RPT_PREFIXES = ("ONFLY REPORT", "REQUEST ", "READOUT ", "ONF301I",
                 "ONFNAM TRUNCATED")
 
 
+#: ANSI carriage-control characters (VL-59).  ONFRPT is RECFM=FBA and
+#: the driver writes byte 1 itself; the Hercules line printer writes the
+#: RAW record into the spool file, carriage control included.  So a
+#: report line arrives as "1ONFLY REPORT (FR-BAT-04)" or
+#: " REQUEST    1 CODE=...".
+#:
+#: The blank one hid the problem: `strip()` removes it, so every body
+#: line matched and only the title -- the one line whose control
+#: character is '1' -- did not.  The comparison then ran one line out of
+#: step and reported all 21 as differing, when the content was identical
+#: throughout.
+ANSI_CC = "1 0-+"
+
+
 def report_from(listing):
-    """The ONFRPT lines out of a job listing, indentation preserved."""
-    return [l.rstrip() for l in listing.splitlines()
-            if l.strip().startswith(RPT_PREFIXES)]
+    """The ONFRPT lines out of a job listing, carriage control removed.
+
+    The x86 reference has byte 1 stripped (`report_lines`), so this
+    strips it here too, and only when the rest of the line is a report
+    line -- a listing line that merely happens to begin with a '1' is
+    not one.
+    """
+    out = []
+    for raw in listing.splitlines():
+        line = raw.rstrip()
+        # The carriage-control branch comes FIRST, and deliberately.
+        # A body line arrives as " REQUEST ..." with a BLANK control
+        # character, which `strip()` would also remove -- so testing
+        # the unstripped line first would keep the blank on the body
+        # lines and drop the '1' from the title, leaving the report one
+        # column out of step with the x86 reference on twenty lines out
+        # of twenty-one.
+        if line[:1] in ANSI_CC and line[1:].strip().startswith(
+                RPT_PREFIXES):
+            out.append(line[1:])
+        elif line.strip().startswith(RPT_PREFIXES):
+            out.append(line)
+    return out
 
 
 def name_cards(label=None):

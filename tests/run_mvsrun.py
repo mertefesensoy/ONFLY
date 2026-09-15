@@ -368,6 +368,21 @@ def main():
               lifted == good,
               "%d of %d lines, from %d lines of listing"
               % (len(lifted), len(good), len(noise) + len(good)))
+
+        # As the MVS printer actually delivers it.  ONFRPT is RECFM=FBA
+        # and the driver writes byte 1 itself (VL-59); the Hercules
+        # line printer puts the RAW record in the spool file, carriage
+        # control included -- "1ONFLY REPORT ..." for the title and
+        # " REQUEST ..." for the body.  Measured 2026-09-15; the blank
+        # one hid the problem, because strip() removes it, so only the
+        # title failed to match and the whole report came out one line
+        # out of step.
+        with_cc = ["1" + good[0]] + [" " + l for l in good[1:]]
+        lifted = mvsrun.report_from("\n".join(noise + with_cc))
+        check("report_from strips ANSI carriage control (VL-59)",
+              lifted == good,
+              "%d lines, title CC '1' and body CC blank both removed"
+              % len(lifted))
     else:
         check("compare_report: exercised against the x86 reference", True,
               "SKIP: no %s; run `make cob`" % os.path.basename(ref))
