@@ -5,8 +5,8 @@
 | Date | 2026-09-15 |
 | Author | ONFLY senior engineer |
 | Phase / gate | Phase E — MVS MVP |
-| Owner decisions relied on | D-279, D-281, D-282, D-283, D-284, D-285, D-286 |
-| Requirements touched | ACC-5, IR-COM-05, FR-LOD-02, FR-LOD-03, NR-02, NR-03, NR-09, C-04, A-04, A-05 |
+| Owner decisions relied on | D-279, D-281, D-282, D-283, D-284, D-285, D-286, D-291 |
+| Requirements touched | ACC-5, ACC-2, TX-01, TX-02, IR-COM-05, FR-LOD-02, FR-LOD-03, NR-02, NR-03, NR-09, NFR-OBS-01, C-04, A-04, A-05 |
 | Open items closed | none |
 
 ## 1. Problem / motivation
@@ -48,10 +48,14 @@ link has thirteen.
 
 | File | Change |
 |---|---|
-| `tools/mvsjcc.py` | New. The whole JCC path: five probes that answer one question each, and the thirteen-unit build, run and comparison for row 7. |
+| `tools/mvsjcc.py` | New. The whole JCC path: six probes that answer one question each, and the thirteen-unit build, run and comparison for row 7. |
 | `tools/mvsrun.py` | `--install-net` copies the network off the card reader into a catalogued FB/80 dataset (D-286); row 6's `ONFNET` DD now reads that dataset instead of the reader; `NETS` gains a per-network dataset and job name. |
-| `softfloat/c2c/softfloat.c` | One `(bits32 *)` cast on `float64_rem`'s `add64` call (D-285), with the reason in place. |
-| `docs/ONFLY-SRS.md` | D-279…D-286 in Appendix A.1; Section 8.3 row 7; Appendix D. |
+| `softfloat/derive2c.py` | The `(bits32 *)` cast on `float64_rem`'s `add64` call, as an `EDITS_C` entry with an expected count of 1 (D-285). |
+| `softfloat/c2c/softfloat.c` | Regenerated from it. **Not edited by hand** — see §3.4. |
+| `tests/run_mvsjcc.py` | New. Twenty-four cases: the link order, the shared installed network, D-284's PARM, the recorded run, and that every generated probe source is well-formed C. |
+| `tools/mvstt01.py` | A note this session contradicted, corrected forward rather than deleted. |
+| `Makefile` | `mvsjcc` added to the `test` target. |
+| `docs/ONFLY-SRS.md` | D-279…D-286 and D-291 in Appendix A.1; Section 8.3 rows 6 and 7; VL-93 in Appendix D. |
 
 ## 3. Implementation approach
 
@@ -127,7 +131,7 @@ The same mistake was almost repeated at the level of evidence: the first
 ONFJRUN ran from the hand-edited text. Its fingerprints were right, and
 it is cited nowhere — see §6.4.
 
-### 3.5 Five probes, each answering one question
+### 3.5 Six probes, each answering one question
 
 The full link is 8,391 cards. Submitting it to learn "does JCC compile
 SoftFloat at all" would spend a long compile on something three units
@@ -140,7 +144,8 @@ and each is still in `tools/mvsjcc.py` so the findings are reproducible.
 | `--ddprobe` | Which `fopen` spelling does JCC's libc honour, and does it split a PARM into argv? | 100 cards |
 | `--mini warn|typebad|type` | Does JCC's RC 1 mean "warning" or "no object"? | 3 × ~95 cards |
 | `--rdrprobe` | Can JCC open a unit-record DD in any mode? | 95 cards |
-| `--run` | Row 7 itself | 8,390 cards |
+| `--ccprobe` | Which predefined macros does JCC define? (D-291) | 186 cards |
+| `--run` | Row 7 itself | 8,383 cards |
 
 ## 4. Numerical details
 
