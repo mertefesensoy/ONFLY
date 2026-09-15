@@ -544,8 +544,18 @@ def mvsrun_reclen():
     return layout.RECORD_LEN
 
 
-def golden_fingerprints(refdir, netname=NETNAME, backend="2c"):
-    """(golden id, fingerprint) from a recorded gold-<net>-<backend>.txt."""
+def golden_fingerprints(refdir, netname=None, backend="2c"):
+    """(golden id, fingerprint) from a recorded gold-<net>-<backend>.txt.
+
+    `netname` is resolved HERE, not in the signature.  Written
+    `netname=NETNAME` it binds the module global once, at import, so
+    `select("path")` left this reading `gold-srext-2c.txt` and the
+    comparison reported five golden entries against fourteen records
+    with every fingerprint wrong -- an alarming-looking failure whose
+    cause was entirely in this line.  The SECOND time this session that
+    a mutable-looking default bit; see `write_cards`.
+    """
+    netname = NETNAME if netname is None else netname
     path = os.path.join(refdir, "gold-%s-%s.txt" % (netname, backend))
     text = io.open(path, encoding="ascii").read()
     return [(m.group(1), m.group(2))

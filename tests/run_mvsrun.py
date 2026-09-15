@@ -14,25 +14,34 @@ defect.  So the column limits, the delimiter collisions, the member-name
 rules and the link order are all checked here, where a failure costs a
 second and names itself.
 
-Cases:
-  1-2   The two decks pass mvsub.check_cards: 80 columns, no card equal
-        to the IEBUPDTE delimiter, JCL inside column 71.
-  3     UNIT_MEMBERS matches what run_deck() actually links, and every
-        member is unique ignoring case (C-04) and at most 8 characters.
-  4     The five units mvseng.py omits are present, and ONFLYENG is last.
-  5-6   The GO step carries IR-JCL-01's three DD names, and no PARM --
-        onfeisv() reads anything that is not VERIFY as SIMULATE.
-  7     The DUMP step follows GO and reads the dataset GO wrote.
-  8     The control cards are the Section 8.4 `srext` requests, in the
-        suite's order, and MODE=REQ is first (D-158).
-  9     The records those cards must produce are byte-identical to
-        data/phase-d/x86w/req-srext.bin -- the file the x86-64 recording
-        was made from.  This is what makes D-260's risk bounded.
-  10    write_cards() pads to a whole number of 80-byte cards and leaves
-        the network's own bytes untouched at the front (FR-LOD-03).
-  11    REGRESSION: mvscob.deck() with no keywords is unchanged.
-  12    REGRESSION: mvsbld.build() with post=() adds no card.
-  13    The IDCAMS dump parser round-trips a 412-byte record.
+WHAT IS CHECKED, IN FOUR GROUPS
+-------------------------------
+**The decks, before a mainframe sees them.**  Both pass
+`mvsub.check_cards` (80 columns, no card equal to the IEBUPDTE
+delimiter, JCL inside column 71).  `UNIT_MEMBERS` matches what
+`run_deck()` actually links, every member is at most 8 characters and
+unique ignoring case (C-04), and the five units `mvseng.py` omits are
+there with ONFLYENG last.  The GO step carries IR-JCL-01's three DD
+names and no PARM -- `onfeisv()` reads anything that is not VERIFY as
+SIMULATE.  DUMP reads the dataset GO wrote, and SCRATCH deletes it
+first, so the job reruns.
+
+**The requests.**  ONFCTL is MODE=REQ (D-158) then the Section 8.4
+cards in the suite's order, and the records they must produce are
+byte-identical to `data/phase-d/x86w/req-srext.bin` -- the file the
+x86-64 recording was made from.  That is what bounds the risk the owner
+accepted in D-260.
+
+**The recorded TK5 runs**, for `srext` and `path` both: TX-01's MVS
+half under D-261's translated identity, ACC-5 row 6 against what
+Section 8.4 says the fingerprints must BE, and IR-JCL-04's return codes
+on the `path` half, where G-11 warns and G-12 and G-13 error.
+
+**Three bugs that actually happened**, each with a case so it cannot
+happen again: `write_cards()` and `golden_fingerprints()` binding a
+module global as a default argument (so `select()` changed half of what
+they did), and the additive keyword arguments on `mvsbld.build()` and
+`mvscob.deck()` altering an existing caller's deck.
 """
 import io
 import os
@@ -214,48 +223,79 @@ def main():
     check("IDCAMS dump parser round-trips a 412-byte record",
           len(back) == 1 and back[0] == rec, "%d bytes" % len(back[0]))
 
-    # --- the recorded MVS run (D-261, D-262) ---------------------------
-    mvsdir = os.path.join(ROOT, "data", "phase-e", "mvs")
+    # --- the recorded MVS runs (D-261, D-262, D-264) -------------------
+    #
+    # Both networks, because they prove different things.  `srext` is
+    # the network the MVP ships and its five requests are all valid;
+    # `path` carries G-11, G-12 and G-13, whose ONF201W, ONF203E and
+    # ONF202E paths the MVS engine reaches nowhere else.
     refdir = os.path.join(ROOT, "data", "phase-d", "x86w")
-    name = "rsp-%s-2c.bin" % mvsrun.NETNAME
-    mvspath = os.path.join(mvsdir, name)
+    mvsdir = os.path.join(ROOT, "data", "phase-e", "mvs")
 
-    # 14
-    have = os.path.isfile(mvspath)
-    check("the TK5 recording is present", have,
-          "%d bytes" % os.path.getsize(mvspath) if have else "absent")
+    for label in ("srext", "path"):
+        mvsrun.select(label)
+        name = "rsp-%s-2c.bin" % label
+        mvspath = os.path.join(mvsdir, name)
+        have = os.path.isfile(mvspath)
+        check("%s: the TK5 recording is present" % label, have,
+              "%d bytes" % os.path.getsize(mvspath) if have else "absent")
+        if not have:
+            continue
 
-    if have:
         got = mvsrun.read_records(mvspath)
         ref = mvsrun.read_records(os.path.join(refdir, name))
 
-        # 15  TX-01's MVS half, exactly as D-261 defines it.
+        # TX-01's MVS half, exactly as D-261 defines it.
         views, _ = mvsrun.compare_records(got, ref, "ONFRSP")
-        check("TX-01: MVS == x86-64 under D-261 translated identity",
+        check("%s: TX-01 MVS == x86-64, D-261 translated identity" % label,
               views["translated"],
               "%d records; raw=%s binary=%s"
               % (len(got), views["raw"], views["binary"]))
 
-        # 16  ACC-5 row 6, against what Section 8.4 says the fingerprint
-        #     must be rather than against the other recording.
+        # ACC-5 row 6, against what Section 8.4 says the fingerprint
+        # must BE rather than against the other recording.
         gold = mvsrun.golden_fingerprints(refdir)
         pairs = [(gid, want, r[20:24].hex().upper())
                  for (gid, want), r in zip(gold, got)]
-        check("ACC-5 row 6: MVS fingerprints == Section 8.4",
-              len(gold) == len(got)
+        check("%s: ACC-5 row 6 == Section 8.4" % label,
+              len(gold) == len(got) and bool(pairs)
               and all(w == g for _, w, g in pairs),
-              " ".join("%s=%s" % (gid, g) for gid, _, g in pairs))
+              "%d of %d: %s..%s"
+              % (len(pairs), len(got),
+                 pairs[0][0] if pairs else "-",
+                 pairs[-1][0] if pairs else "-"))
 
-        # 17  The negative case.  D-261 rejected judging on bytes 8..411
-        #     alone because under that rule MVS could write anything in
-        #     the stimulus code and TX-01 would still pass.  That is not
-        #     an argument unless the chosen rule actually catches it.
-        spoiled = [b"XXXXXXXX" + r[8:] for r in got]
-        bad, _ = mvsrun.compare_records(spoiled, ref, "spoiled")
-        check("D-261 has teeth: a wrong chr field fails translated",
-              bad["binary"] and not bad["translated"],
-              "binary=%s translated=%s"
-              % (bad["binary"], bad["translated"]))
+        # THE BUG THIS CASE EXISTS FOR.  golden_fingerprints() once
+        # took `netname=NETNAME` in its signature, so select("path")
+        # left it reading gold-srext-2c.txt: five golden entries
+        # against fourteen records, every fingerprint reported wrong,
+        # and nothing whatever wrong with the mainframe.  The second
+        # mutable-looking default to bite in one session.
+        check("%s: golden_fingerprints follows select()" % label,
+              len(gold) == len(got),
+              "%d golden entries for %d records" % (len(gold), len(got)))
+
+        if label == "path":
+            # The error-path requests carry a fingerprint too, because
+            # IR-COM-05's canonical string includes the return code.
+            rcs = [int.from_bytes(r[16:18], "big", signed=True)
+                   for r in got]
+            check("path: G-11 warns and G-12, G-13 error (IR-JCL-04)",
+                  rcs[10] == 4 and rcs[11] == 8 and rcs[12] == 8
+                  and max(rcs) == 8,
+                  "rc per record: %s" % rcs)
+
+    mvsrun.select("srext")
+
+    # D-261 has teeth: the rejected binary-only rule would pass a
+    # record whose stimulus code had been replaced wholesale.
+    got = mvsrun.read_records(os.path.join(mvsdir, "rsp-srext-2c.bin"))
+    ref = mvsrun.read_records(os.path.join(refdir, "rsp-srext-2c.bin"))
+    spoiled = [b"XXXXXXXX" + r[8:] for r in got]
+    bad, _ = mvsrun.compare_records(spoiled, ref, "spoiled")
+    check("D-261 has teeth: a wrong chr field fails translated",
+          bad["binary"] and not bad["translated"],
+          "binary=%s translated=%s" % (bad["binary"], bad["translated"]))
 
     sys.stdout.write("run_mvsrun: %d passed, %d failed\n"
                      % (PASS[0], FAIL[0]))
