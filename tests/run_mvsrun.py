@@ -313,6 +313,22 @@ def main():
             got, _out = mvsrun.compare_report(lines, ref)
             check("compare_report: %s" % what, got is want,
                   "%s (expected %s)" % (got, want))
+
+        # report_from() lifts the ONFRPT lines out of a whole job
+        # listing.  The case exists because the first version filtered
+        # with `l.lstrip().startswith("  ONF")`, which can never match:
+        # lstrip has just removed the two spaces.  Three quarters of
+        # the report -- every message and every readout -- would have
+        # been dropped SILENTLY, and the comparison would have passed
+        # on the title and the request echoes alone.
+        noise = ["IEF142I BUZZ STEP1 - STEP WAS EXECUTED - COND CODE 0000",
+                 "ONF302I STEP SUMMARY: 0005 OK, 0000 ERROR, 0000 ECHOED",
+                 "ONF001I NETWORK LOADED N=501 E=10783 CRC=4577D74E"]
+        lifted = mvsrun.report_from("\n".join(noise + good))
+        check("report_from lifts the whole report out of a listing",
+              lifted == good,
+              "%d of %d lines, from %d lines of listing"
+              % (len(lifted), len(good), len(noise) + len(good)))
     else:
         check("compare_report: exercised against the x86 reference", True,
               "SKIP: no %s; run `make cob`" % os.path.basename(ref))

@@ -440,6 +440,25 @@ def compare_records(got, want, what):
 
 GOLD_LINE = re.compile(r"^GOLD id=(\S+).*\bfp=([0-9A-F]{8})", re.M)
 
+#: The lines ONFRPT can hold (FR-BAT-04), matched against the STRIPPED
+#: text while the ORIGINAL line is kept, because the indentation is part
+#: of what is being compared.
+#:
+#: Written the obvious way this was wrong: `l.lstrip().startswith("  ONF")`
+#: can never match, because lstrip has just removed the two spaces.  The
+#: message and readout lines -- three quarters of the report -- would
+#: have been dropped silently and the comparison would have passed on
+#: the title and the request echoes alone.
+RPT_PREFIXES = ("ONFLY REPORT", "REQUEST ", "READOUT ", "ONF301I",
+                "ONF201W", "ONF202E", "ONF203E", "ONF903S", "ONF???",
+                "ONFNAM TRUNCATED")
+
+
+def report_from(listing):
+    """The ONFRPT lines out of a job listing, indentation preserved."""
+    return [l.rstrip() for l in listing.splitlines()
+            if l.strip().startswith(RPT_PREFIXES)]
+
 
 def name_cards(label=None):
     """The committed ONFNAM file as cards, for an inline DD * stream.
@@ -596,9 +615,7 @@ def run_rpt(argv):
     # about what a person reads, so the evidence has to be the lines a
     # person would read.
     sys.stdout.write("\n=== FR-BAT-04 report, as MVT COBOL printed it ===\n")
-    keep = [l.rstrip() for l in out.splitlines()
-            if l.lstrip().startswith(("ONFLY REPORT", "REQUEST ",
-                                      "  ONF", "  READOUT"))]
+    keep = report_from(out)
     sys.stdout.write("\n".join(keep) + "\n")
     if not keep:
         sys.stderr.write("mvsrun: %s printed no report lines\n" % RPT_JOB)
@@ -1047,9 +1064,7 @@ def run_buzz(argv):
     worst = max(steps.values()) if steps else -1
     ran = all(n in steps for n in ("STEP1", "STEP2", "STEP3"))
 
-    report = [l.rstrip() for l in out.splitlines()
-              if l.lstrip().startswith(("ONFLY REPORT", "REQUEST ",
-                                        "  ONF", "  READOUT"))]
+    report = report_from(out)
     sys.stdout.write("\n=== the report BUZZ printed (FR-BAT-04) ===\n")
     sys.stdout.write("\n".join(report) + "\n")
     ok = ran and worst == 0 and bool(report)
