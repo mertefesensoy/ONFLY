@@ -209,7 +209,7 @@ def amalgamated_order(relpath, include_map):
 
 def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
           asm_parm="DECK,NOLIST", region=REGION, go_parm=None,
-          go_dd=(), post=(), scratch=()):
+          go_dd=(), post=(), scratch=(), lmod=None, run=True):
     """Return a deck that compiles `sources`, links them and runs the result.
 
     sources     [(repo path OR cards, 8-char member)]  units, in link order
@@ -218,6 +218,14 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
     go_dd       extra DD cards for the GO step, appended verbatim after
                 the standard three.  The caller writes whole JCL cards
                 because a DD's operands vary far too much to model.
+    lmod        (library, member): link-edit INTO that PDS member
+                instead of a passed temporary, so the program is
+                INSTALLED.  FR-BAT-01's BUZZ job is three EXEC steps
+                over programs that are already there; a demonstration
+                that recompiled the engine first would need the whole
+                8,500-card deck to be a demonstration.
+    run         False omits the GO step entirely, for an install job
+                that has nothing to run.
     post        whole cards for step(s) AFTER the GO step, appended
                 verbatim before the closing `//`.  Phase E slice 1 needs
                 an IDCAMS dump of the dataset ONFLYENG just wrote, and
@@ -274,6 +282,17 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
         a("//D%d       DD DSN=%s,DISP=(MOD,DELETE)," % (n, dsn))
         a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
     a("//*")
+    if lmod:
+        # DISP=(MOD,CATLG) is the idiom that works on BOTH runs: on a
+        # first run MOD creates the library and CATLG catalogues it; on
+        # every run after, MOD finds it and nothing is disturbed.  JCL
+        # has no conditional allocation, and two install jobs write to
+        # this one library, so neither can be the one that creates it.
+        a("//ALLOCL   EXEC PGM=IEFBR14")
+        a("//L1       DD DSN=%s,DISP=(MOD,CATLG)," % lmod[0])
+        a("//            UNIT=SYSDA,SPACE=(CYL,(5,2,10)),")
+        a("//            DCB=(RECFM=U,BLKSIZE=6144)")
+        a("//*")
     a("//ALLOC    EXEC PGM=IEFBR14")
     for n, (dsn, dcb) in enumerate((
             (HDR_DSN, "(RECFM=FB,LRECL=80,BLKSIZE=3200)"),
@@ -355,24 +374,33 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
     a("//SYSLIB   DD DSN=PDPCLIB.NCALIB,DISP=SHR")
     a("//SYSUT1   DD UNIT=SYSALLDA,SPACE=(CYL,(2,1))")
     a("//SYSPRINT DD SYSOUT=*")
-    a("//SYSLMOD  DD DSN=&&GOSET(GO),UNIT=SYSALLDA,")
-    a("//            SPACE=(1024,(50,20,1)),DISP=(,PASS)")
+    if lmod:
+        # INSTALL, rather than compile-and-go.  FR-BAT-01's BUZZ job is
+        # three EXEC steps over programs that are already there; a
+        # demonstration that recompiled the engine first would spend
+        # its first minute on something no demonstration is about, and
+        # would need the whole 8,500-card deck to be a demonstration.
+        a("//SYSLMOD  DD DSN=%s(%s),DISP=SHR" % lmod)
+    else:
+        a("//SYSLMOD  DD DSN=&&GOSET(GO),UNIT=SYSALLDA,")
+        a("//            SPACE=(1024,(50,20,1)),DISP=(,PASS)")
     a("//*")
     # ONFLYENG is driven by its PARM (IR-TRN-03's VERIFY) and reads the
     # network through a DD the caller must allocate (IR-JCL-01), neither
     # of which any earlier job here needed.  Both stay optional so every
     # existing caller emits exactly the cards it emitted before.
-    if go_parm:
-        a("//GO       EXEC PGM=*.LKED.SYSLMOD,PARM='%s',"
-          % go_parm)
-        a("//            COND=(4,LT)")
-    else:
-        a("//GO       EXEC PGM=*.LKED.SYSLMOD,COND=(4,LT)")
-    a("//SYSPRINT DD SYSOUT=*")
-    a("//SYSTERM  DD SYSOUT=*")
-    a("//SYSIN    DD DUMMY")
-    for card in go_dd:
-        a(card)
+    if run:
+        if go_parm:
+            a("//GO       EXEC PGM=*.LKED.SYSLMOD,PARM='%s',"
+              % go_parm)
+            a("//            COND=(4,LT)")
+        else:
+            a("//GO       EXEC PGM=*.LKED.SYSLMOD,COND=(4,LT)")
+        a("//SYSPRINT DD SYSOUT=*")
+        a("//SYSTERM  DD SYSOUT=*")
+        a("//SYSIN    DD DUMMY")
+        for card in go_dd:
+            a(card)
     for card in post:
         a(card)
     a("//")

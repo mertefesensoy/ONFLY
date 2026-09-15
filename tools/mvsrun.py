@@ -100,6 +100,11 @@ Run:
                                                       printer alone
     python tools/mvsrun.py [--net N] --report         STEP3 on MVS
     python tools/mvsrun.py [--net N] --compare A B   TX-01, ACC-5 row 6
+
+Slice 3 (FR-BAT-01, FR-BAT-06, D-273):
+    python tools/mvsrun.py --install-eng   ONFLYENG -> LOADLIB
+    python tools/mvsrun.py --install-drv   ONFLYDRV + ONFNAM
+    python tools/mvsrun.py --buzz          the three-step BUZZ job
 """
 import io
 import os
@@ -251,17 +256,11 @@ def req_deck():
                        with_rpt=False)
 
 
-def run_deck(opt=mvsbld.OPT):
-    """Job ONFERUN: FR-BAT-01 STEP2 under GCCMVS.
+def _sources(opt=mvsbld.OPT):
+    """The thirteen translation units, in link order.
 
-    The source list is tools/mvseng.py's with five units added --
-    onfrnd.c, onfstm.c, onfker.c, onfreq.c and generated/onfcom.c -- and
-    it is written out here rather than derived from mvseng's, because
-    LINK ORDER is part of it and an expression that inserted units into
-    someone else's list would hide that.
-
-    Every one of the five except onfreq.c has already been compiled on
-    MVS by tools/mvssyn.py, in this order, with these member names.
+    Factored out of run_deck() so the INSTALL job links exactly what
+    the run job links.  Two copies of a link order is two link orders.
     """
     prologue = mvsbld.cards_of("generated/onf2cnm.h")
     library = prologue + mvsbld.amalgamate(mvseng.UNIT, mvseng.INCLUDES)
@@ -283,15 +282,28 @@ def run_deck(opt=mvsbld.OPT):
         (onfly("engine/src/onfker.c"), "ONFKERC"),
         (onfly("engine/src/onfreq.c"), "ONFREQC"),
         (onfly("generated/onfcom.c"), "ONFCOMC"),
-        # D-142: the 32-bit self-test, for the same reason mvseng.py
-        # links it -- NR-14 as D-118 amended it asks for the width the
-        # engine actually uses, and ONFLYENG runs it at entry.
         (mvsbld.cards_of("softfloat/onfi32.c"), "ONFI32C"),
         (onfly("engine/src/onflyeng.c"), "ONFLYENG"),
     ]
-    got = tuple(s[1] for s in sources)
+    got = tuple(x[1] for x in sources)
     if got != UNIT_MEMBERS:
         raise RunError("link order changed: %s" % (got,))
+    return sources
+
+
+def run_deck(opt=mvsbld.OPT):
+    """Job ONFERUN: FR-BAT-01 STEP2 under GCCMVS.
+
+    The source list is tools/mvseng.py's with five units added --
+    onfrnd.c, onfstm.c, onfker.c, onfreq.c and generated/onfcom.c -- and
+    it is written out here rather than derived from mvseng's, because
+    LINK ORDER is part of it and an expression that inserted units into
+    someone else's list would hide that.
+
+    Every one of the five except onfreq.c has already been compiled on
+    MVS by tools/mvssyn.py, in this order, with these member names.
+    """
+    sources = _sources(opt)
 
     # IR-JCL-01's DD names.  No PARM at all on the GO step: onfeisv()
     # treats anything that is not VERIFY as SIMULATE, and an absent PARM
@@ -463,6 +475,107 @@ def rpt_deck():
     """Job ONF*RPT: FR-BAT-04's report on MVS (slice 2)."""
     return mvscob.deck(rpt_only=True, rsp_dsn=RSP_DSN, job=RPT_JOB,
                        title="ONFLY E2 REPORT", nam_cards=name_cards())
+
+
+# --- Phase E slice 3: install, then BUZZ (FR-BAT-01, FR-BAT-06) ------------
+
+LOADLIB = "%s.ONFLY.LOADLIB" % USER
+NAM_DSN = "%s.ONFLY.ONFNAM" % USER
+BUZZ_JOB = "BUZZ"
+BUZZ_REQ = "%s.ONFLY.BREQ" % USER
+BUZZ_RSP = "%s.ONFLY.BRSP" % USER
+
+
+def install_eng_deck(opt=mvsbld.OPT):
+    """Link ONFLYENG into the load library, and run nothing."""
+    return mvsbld.build("ONFIENG", "ONFLY INSTALL ENG", _sources(opt),
+                        headers=HEADERS, run=False,
+                        lmod=(LOADLIB, "ONFLYENG"), opt=opt)
+
+
+def install_drv_deck():
+    """Link ONFLYDRV into the load library, and install ONFNAM with it."""
+    return mvscob.deck(job="ONFIDRV", title="ONFLY INSTALL DRV",
+                       lmod=(LOADLIB, "ONFLYDRV"),
+                       nam_cards=name_cards("srext"), nam_dsn=NAM_DSN)
+
+
+def buzz_deck():
+    """FR-BAT-01's three steps as one job, named BUZZ (FR-BAT-06).
+
+    Exactly three EXEC steps after the scratch, because FR-BAT-01 says
+    "one job of three steps" and means it.  Nothing is compiled here:
+    both programs were installed into `LOADLIB` by the two install
+    jobs, and ONFNAM went in with them, so a reviewer watching BUZZ
+    sees the MVP run rather than a build.
+
+    D-273 fixes what it runs: the `srext` half of Section 8.4, G-15 to
+    G-19.  All five are valid requests, so every step ends 0 and ACC-7's
+    "return code 0" is satisfiable -- which it is not over the whole
+    suite, where G-12 and G-13 make STEP2 end 8 by IR-JCL-04's own rule.
+
+    The COND parameters are IR-JCL-04 transcribed rather than
+    interpreted: "STEP2 shall run only if STEP1 ended below 8" is
+    `COND=(8,LE,STEP1)` -- skip when 8 <= the return code -- and "STEP3
+    shall run only if STEP2 ended below 12" is `COND=(12,LE,STEP2)`.
+    """
+    select("srext")
+    d = []
+
+    def a(card):
+        if card.startswith("//") and len(card) > mvsbld.JCL_FIELD:
+            raise RunError("JCL card exceeds column %d: %s"
+                           % (mvsbld.JCL_FIELD, card))
+        d.append(card)
+
+    a("//%-8s JOB (001),'ONFLY BUZZ',CLASS=A,MSGCLASS=A," % BUZZ_JOB)
+    a("//             USER=%s,PASSWORD=CUL8TR," % USER)
+    a("//             REGION=8M,TIME=1440,MSGLEVEL=(1,1)")
+    a("//*")
+    a("//SCRATCH  EXEC PGM=IEFBR14")
+    for n, dsn in enumerate((BUZZ_REQ, BUZZ_RSP), 1):
+        a("//D%d       DD DSN=%s,DISP=(MOD,DELETE)," % (n, dsn))
+        a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
+    a("//*")
+
+    a("//STEP1    EXEC PGM=ONFLYDRV")
+    a("//STEPLIB  DD DSN=%s,DISP=SHR" % LOADLIB)
+    a("//SYSOUT   DD SYSOUT=*")
+    a("//SYSPRINT DD SYSOUT=*")
+    a("//ONFREQ   DD DSN=%s,DISP=(,CATLG,DELETE)," % BUZZ_REQ)
+    a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
+    a("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
+    a("//ONFCTL   DD *")
+    for text, _exp in request_cards():
+        a(text)
+    a("/*")
+    a("//*")
+
+    a("//STEP2    EXEC PGM=ONFLYENG,COND=(8,LE,STEP1)")
+    a("//STEPLIB  DD DSN=%s,DISP=SHR" % LOADLIB)
+    a("//SYSPRINT DD SYSOUT=*")
+    a("//SYSTERM  DD SYSOUT=*")
+    a("//SYSIN    DD DUMMY")
+    a("//ONFNET   DD UNIT=%s," % mvseng.READER_UNIT)
+    a("//            DCB=(RECFM=F,LRECL=80,BLKSIZE=80)")
+    a("//ONFREQ   DD DSN=%s,DISP=SHR" % BUZZ_REQ)
+    a("//ONFRSP   DD DSN=%s,DISP=(,CATLG,DELETE)," % BUZZ_RSP)
+    a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
+    a("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
+    a("//*")
+
+    a("//STEP3    EXEC PGM=ONFLYDRV,COND=(12,LE,STEP2)")
+    a("//STEPLIB  DD DSN=%s,DISP=SHR" % LOADLIB)
+    a("//SYSOUT   DD SYSOUT=*")
+    a("//SYSPRINT DD SYSOUT=*")
+    a("//ONFRSP   DD DSN=%s,DISP=SHR" % BUZZ_RSP)
+    a("//ONFNAM   DD DSN=%s,DISP=SHR" % NAM_DSN)
+    a("//ONFRPT   DD SYSOUT=*,DCB=(RECFM=FBA,LRECL=133,BLKSIZE=133)")
+    a("//ONFCTL   DD *")
+    a("MODE=RPT")
+    a("/*")
+    a("//")
+    return d
 
 
 def run_rpt(argv):
@@ -780,6 +893,89 @@ def process_run(out, argv):
     return 0
 
 
+def run_simple(argv, deck, job, timeout, what):
+    """Submit one deck, print its step results, return its worst RC."""
+    mvsub.check_cards(deck)
+    if "--print" in argv:
+        sys.stdout.write("\n".join(deck) + "\n")
+        return 0
+    sys.stdout.write("mvsrun: %s (%s), %d cards\n" % (job, what, len(deck)))
+    t0 = time.time()
+    out = submit_and_collect(deck, job, timeout)
+    sys.stdout.write("mvsrun: %s finished in %.1f s\n"
+                     % (job, time.time() - t0))
+    sys.stdout.write("\n".join(mvsub.summarise(out)) + "\n")
+    return out
+
+
+def run_install(argv):
+    which = "drv" if "--install-drv" in argv else "eng"
+    if which == "drv":
+        out = run_simple(argv, install_drv_deck(), "ONFIDRV", 900,
+                         "ONFLYDRV + ONFNAM into %s" % LOADLIB)
+    else:
+        opt = mvsbld.OPT
+        for a in argv:
+            if a.startswith("--opt="):
+                opt = a[len("--opt="):]
+        out = run_simple(argv, install_eng_deck(opt), "ONFIENG", 3600,
+                         "ONFLYENG into %s" % LOADLIB)
+    if not isinstance(out, str):
+        return out
+    bad = [l for l in mvsub.summarise(out)
+           if "COND CODE" in l and "COND CODE 0000" not in l
+           and "COND CODE 0004" not in l]
+    for l in bad:
+        sys.stderr.write("mvsrun: %s\n" % l.strip())
+    return 1 if bad else 0
+
+
+def run_buzz(argv):
+    """ACC-7: the BUZZ job end to end on TK5."""
+    deck = buzz_deck()
+    mvsub.check_cards(deck)
+    if "--print" in argv:
+        sys.stdout.write("\n".join(deck) + "\n")
+        return 0
+    if not os.path.isfile(CARDFILE):
+        sys.stderr.write("mvsrun: no card file; run --cards first\n")
+        return 2
+    mvseng.console("devinit %s *" % mvseng.READER_DEV)
+    staged = mvseng.stage(CARDFILE)
+    mvseng.console("devinit %s %s eof"
+                   % (mvseng.READER_DEV, staged.replace("\\", "/")))
+    sys.stdout.write("mvsrun: reader %s loaded with %s\n"
+                     % (mvseng.READER_DEV, staged))
+    out = run_simple(argv, deck, BUZZ_JOB, 3600,
+                     "FR-BAT-01 three steps, D-273 srext")
+    if not isinstance(out, str):
+        return out
+
+    steps = {}
+    for m in re.finditer(r"IEF142I\s+BUZZ\s+(\S+)\s+-\s+STEP WAS EXECUTED"
+                         r"\s+-\s+COND CODE\s+(\d+)", out):
+        steps[m.group(1)] = int(m.group(2))
+    sys.stdout.write("\n=== ACC-7: BUZZ end to end ===\n")
+    for name in ("SCRATCH", "STEP1", "STEP2", "STEP3"):
+        sys.stdout.write("  %-8s COND CODE %s\n"
+                         % (name, steps.get(name, "(not executed)")))
+    worst = max(steps.values()) if steps else -1
+    ran = all(n in steps for n in ("STEP1", "STEP2", "STEP3"))
+
+    report = [l.rstrip() for l in out.splitlines()
+              if l.lstrip().startswith(("ONFLY REPORT", "REQUEST ",
+                                        "  ONF", "  READOUT"))]
+    sys.stdout.write("\n=== the report BUZZ printed (FR-BAT-04) ===\n")
+    sys.stdout.write("\n".join(report) + "\n")
+    ok = ran and worst == 0 and bool(report)
+    sys.stdout.write("\nmvsrun: ACC-7 %s -- three steps %s, worst COND CODE "
+                     "%s, %d report line(s)\n"
+                     % ("PASS" if ok else "FAIL",
+                        "all executed" if ran else "NOT all executed",
+                        worst, len(report)))
+    return 0 if ok else 1
+
+
 def main(argv):
     try:
         sys.stdout.reconfigure(errors="replace")
@@ -801,6 +997,10 @@ def main(argv):
         return run_req(argv)
     if "--run" in argv:
         return run_run(argv)
+    if "--install-eng" in argv or "--install-drv" in argv:
+        return run_install(argv)
+    if "--buzz" in argv:
+        return run_buzz(argv)
     if "--recover" in argv:
         return recover(argv)
     if "--report" in argv:

@@ -115,7 +115,7 @@ def expected_records(cards=None):
 
 def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
          job=None, title="ONFLY G4 COBOL", rpt_only=False, rsp_dsn=None,
-         nam_cards=None, nam_dsn=None):
+         nam_cards=None, nam_dsn=None, lmod=None):
     """Gate G4's COBOL job, or the same job over different control cards.
 
     The four keyword arguments exist for Phase E slice 1 (D-260), which
@@ -171,9 +171,18 @@ def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
     # In rpt_only mode the request dataset is an INPUT to some other
     # job and must survive: scratching it here would delete the ONFREQ
     # the engine step reads, from a job whose name says "report".
+    if lmod:
+        a("//ALLOCL   EXEC PGM=IEFBR14")
+        a("//L1       DD DSN=%s,DISP=(MOD,CATLG)," % lmod[0])
+        a("//            UNIT=SYSDA,SPACE=(CYL,(5,2,10)),")
+        a("//            DCB=(RECFM=U,BLKSIZE=6144)")
+        a("//*")
     a("//SCRATCH  EXEC PGM=IEFBR14")
-    kill = ((LIB_DSN, SRC_DSN, nam_dsn) if rpt_only
-            else (LIB_DSN, SRC_DSN, req_dsn))
+    kill = [LIB_DSN, SRC_DSN]
+    if nam_cards:
+        kill.append(nam_dsn)
+    if not (rpt_only or lmod):
+        kill.append(req_dsn)
     for n, dsn in enumerate(kill, 1):
         a("//D%d       DD DSN=%s,DISP=(MOD,DELETE)," % (n, dsn))
         a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
@@ -216,16 +225,22 @@ def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
     a("//*")
     a("//LKED     EXEC PGM=IEWL,PARM='LIST,XREF,LET',COND=(5,LT,COB)")
     a("//SYSLIN   DD DSN=&&LOADSET,DISP=(OLD,DELETE)")
-    a("//SYSLMOD  DD DSN=&&GODATA(RUN),DISP=(NEW,PASS),UNIT=SYSDA,")
-    a("//            SPACE=(1024,(50,20,1))")
+    if lmod:
+        a("//SYSLMOD  DD DSN=%s(%s),DISP=SHR" % lmod)
+    else:
+        a("//SYSLMOD  DD DSN=&&GODATA(RUN),DISP=(NEW,PASS),"
+          "UNIT=SYSDA,")
+        a("//            SPACE=(1024,(50,20,1))")
     a("//SYSLIB   DD DSN=SYS1.COBLIB,DISP=SHR")
     a("//SYSUT1   DD UNIT=SYSDA,SPACE=(1024,(50,20))")
     a("//SYSPRINT DD SYSOUT=*")
     a("//*")
-    if rpt_only:
+    if nam_cards:
         # IR-NAM-03's transport: inline cards (ASCII on the wire,
         # EBCDIC once JES2 has read them) copied by IEBGENER into the
-        # labelled FB/80 dataset ONFNAM's FD describes.
+        # labelled FB/80 dataset ONFNAM's FD describes.  An INSTALL
+        # job does this too, so that BUZZ is exactly the three steps
+        # FR-BAT-01 names and not four.
         a("//WRITEN   EXEC PGM=IEBGENER")
         a("//SYSPRINT DD SYSOUT=*")
         a("//SYSIN    DD DUMMY")
@@ -237,6 +252,12 @@ def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
             a(text)
         a("/*")
         a("//*")
+    if lmod:
+        # Installed, not run: nothing follows the link but the names
+        # file, and BUZZ EXECs the member.
+        a("//")
+        return d
+    if rpt_only:
         # FR-BAT-01 STEP3, on its own until slice 3 folds the three
         # steps into one job.
         a("//GO       EXEC PGM=*.LKED.SYSLMOD,"

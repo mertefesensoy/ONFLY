@@ -223,6 +223,71 @@ def main():
     check("IDCAMS dump parser round-trips a 412-byte record",
           len(back) == 1 and back[0] == rec, "%d bytes" % len(back[0]))
 
+    # --- slice 3: install, then BUZZ (FR-BAT-01, FR-BAT-06, D-273) -----
+    buzz = mvsrun.buzz_deck()
+    ieng = mvsrun.install_eng_deck()
+    idrv = mvsrun.install_drv_deck()
+    for name, deck in (("BUZZ", buzz), ("ONFIENG", ieng),
+                       ("ONFIDRV", idrv)):
+        try:
+            mvsub.check_cards(deck)
+            check("%s deck passes mvsub.check_cards" % name, True,
+                  "%d cards" % len(deck))
+        except Exception as exc:                      # noqa: BLE001
+            check("%s deck passes mvsub.check_cards" % name, False,
+                  str(exc))
+
+    execs = [c.split()[0][2:] for c in buzz if " EXEC " in c]
+    check("BUZZ is FR-BAT-01's THREE steps, plus a scratch",
+          execs == ["SCRATCH", "STEP1", "STEP2", "STEP3"], " ".join(execs))
+
+    # IR-JCL-04 transcribed, not interpreted: "STEP2 shall run only if
+    # STEP1 ended below 8" and "STEP3 shall run only if STEP2 ended
+    # below 12".
+    check("BUZZ carries IR-JCL-04's conditioning",
+          any("STEP2    EXEC PGM=ONFLYENG,COND=(8,LE,STEP1)" in c
+              for c in buzz)
+          and any("STEP3    EXEC PGM=ONFLYDRV,COND=(12,LE,STEP2)" in c
+                  for c in buzz),
+          "COND=(8,LE,STEP1) and COND=(12,LE,STEP2)")
+
+    # A demonstration must not be a build.  If BUZZ ever grows a
+    # compile step it stops being watchable and starts being 8,500
+    # cards.
+    check("BUZZ compiles nothing",
+          not any(p in c for c in buzz
+                  for p in ("PGM=GCC", "PGM=IKFCBL00", "PGM=IEWL",
+                            "PGM=IFOX00")),
+          "%d cards, no compiler or linkage editor" % len(buzz))
+
+    # STEP1's ONFCTL stream only.  STEP3 has an ONFCTL of its own
+    # carrying MODE=RPT, and a filter by card text would sweep it in.
+    first = buzz.index("//ONFCTL   DD *")
+    ctl = buzz[first + 1:buzz.index("/*", first)]
+    want_cards = [t for t, _ in mvsrun.request_cards()]
+    check("BUZZ runs the D-273 srext suite",
+          ctl == want_cards,
+          "%d control cards: %s" % (len(ctl), ctl[0] if ctl else "-"))
+
+    # The install jobs put the programs where BUZZ looks for them, and
+    # run nothing themselves.
+    for name, deck, member in (("ONFIENG", ieng, "ONFLYENG"),
+                               ("ONFIDRV", idrv, "ONFLYDRV")):
+        check("%s links into %s(%s) and runs nothing"
+              % (name, mvsrun.LOADLIB.split(".")[-1], member),
+              any("SYSLMOD  DD DSN=%s(%s),DISP=SHR"
+                  % (mvsrun.LOADLIB, member) in c for c in deck)
+              and not any(c.startswith("//GO ") for c in deck),
+              "%d cards" % len(deck))
+    check("ONFIDRV installs ONFNAM alongside the program",
+          any(mvsrun.NAM_DSN in c for c in idrv)
+          and any("WRITEN" in c for c in idrv),
+          mvsrun.NAM_DSN)
+    check("BUZZ's STEPLIB and ONFNAM name what the installs created",
+          all(any(dsn in c for c in buzz)
+              for dsn in (mvsrun.LOADLIB, mvsrun.NAM_DSN)),
+          "%s, %s" % (mvsrun.LOADLIB, mvsrun.NAM_DSN))
+
     # --- the recorded MVS runs (D-261, D-262, D-264) -------------------
     #
     # Both networks, because they prove different things.  `srext` is
