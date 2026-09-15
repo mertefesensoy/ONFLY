@@ -348,6 +348,25 @@ effect measured rather than predicted. **The engineer's estimate to the owner
 before the run was 47 minutes and was wrong by a third**, for exactly the
 reason §4 now records.
 
+### 6.2c The same job, run twice — and one number that moved
+
+`ONFERUN` was run again later the same day, with the engine recompiled from
+source and relinked, to catalogue an ONFRSP for the report job. Two results
+came out of it that the first run could not give:
+
+**The bytes are reproducible on MVS.** `git status` after the second run
+reported **only the listing** as modified: `rsp-srext-2c.bin` and
+`req-srext.bin` were untouched, and the five `ONF301I … FP=` lines were the
+same five fingerprints. Thirteen translation units recompiled, relinked and
+re-run produced the identical 2,060 bytes.
+
+**The timing is not.** The GO step reported `CPU 16MIN 56.53SEC` against the
+first run's `CPU 13MIN 45.87SEC` — **23% slower, at identical `VIRT 1040K`**,
+because this session's own x86 builds were competing for the core throughout.
+That is worth stating next to §4's 32.97 µs: the figure is a property of the
+*host's spare capacity* as much as of the engine, and **any ACC-6 measurement
+must be taken on a quiet host or it means nothing**. TX-04 was run accordingly.
+
 ### 6.3 What is NOT proven
 
 - **Row 7 is untouched.** Nothing here says anything about JCC (VL-03).
