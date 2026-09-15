@@ -88,7 +88,34 @@ contention. Everything else in the sweep is insensitive to load —
 return codes and fingerprints do not change with CPU pressure — so only
 ACC-6 actually constrains the order, and it constrains it completely.
 
-### 3.3 Why row 6 is run again at all
+### 3.3 The s390x rows, and a VM that did not need restarting
+
+D-290 asked for ACC-5's rows 4 and 5 to be re-established for the same
+reason as rows 6 and 7 — they were Phase D results against pre-D-285
+source. The guest turned out to be **already running**, left up from
+the 2026-09-14 session, but with its 9p share exporting a *different*
+worktree (`onfly-senior-engineer-30d72c`). A 9p device cannot be
+re-pointed on a live QEMU, so the obvious move was to stop and restart
+it.
+
+That was not done. Restarting a running VM is a lab action, and it was
+not necessary: this session's source was copied into the guest over ssh
+into `~/onfly-d068b7` and built there, which touches no VM
+configuration and cannot disturb anything else using the machine. The
+copy excludes `.git` (a file pointing at a Windows path, useless in the
+guest and the reason `liclint` skips there under D-233), `build`,
+`data/malecns` and `data/transport`, and the two large networks — the
+Section 8.4 suite runs against `path` and `srext`, which are 1.1 MB
+between them.
+
+One thing went wrong and is worth recording: 870 MB arrived rather than
+the expected twelve, because `data/calibration/signed.npz` — the 594 MB
+signed-count cache built minutes earlier for ACC-4 — was not in the
+exclude list. It was removed guest-side, leaving 303 MB against 21 GB
+free. An exclude list written from what a tree *should* contain will
+miss what a tool put there an hour ago.
+
+### 3.4 Why row 6 is run again at all
 
 D-285 changed the text every platform compiles. Row 6's nineteen
 fingerprints, ACC-6's 166 s and ACC-7's BUZZ run were all recorded
