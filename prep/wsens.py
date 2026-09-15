@@ -149,7 +149,18 @@ def main():
                               for r in rates), entry["elapsed_s"]))
 
     out["elapsed_s"] = round(time.time() - t_all, 1)
-    dst = os.path.join(cal.CAL_DIR, "wsens-%s.json" % a.variant)
+    # The SEED COUNT is part of the name, not just of the content.
+    #
+    # A probe's whole value is its error bars, so a 4-seed run and a
+    # 30-seed run of the same variant are different evidence and must be
+    # different files.  Writing both to `wsens-<variant>.json` would let
+    # the second silently replace the first, leaving a verification-limit
+    # entry citing a file that no longer holds the numbers it quotes --
+    # the D-209 failure mode, and the one tests/test_varnt.py pins for
+    # calibrate.py.  Caught here 2026-09-15 by stopping a 30-seed run a
+    # minute after it started, having missed it when the tool was written.
+    dst = os.path.join(cal.CAL_DIR,
+                       "wsens-%s-s%d.json" % (a.variant, len(seeds)))
     io.open(dst, "w", encoding="utf-8").write(
         json.dumps(out, indent=2, sort_keys=True))
 
