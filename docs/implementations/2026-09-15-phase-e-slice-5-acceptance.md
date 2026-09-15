@@ -5,8 +5,8 @@
 | Date | 2026-09-15 |
 | Author | ONFLY senior engineer |
 | Phase / gate | Phase E — MVS MVP |
-| Owner decisions relied on | D-279, D-280, D-282, D-283, D-285, D-286, D-287 |
-| Requirements touched | ACC-1 … ACC-7, SR-CAL-05, NFR-PERF-01, FR-BAT-01, FR-BAT-04, FR-BAT-05, FR-BAT-06, IR-JCL-04, TX-01, TX-04 |
+| Owner decisions relied on | D-279, D-280, D-282, D-283, D-285, D-286, D-287, D-288, D-289, D-290, D-291 |
+| Requirements touched | ACC-1 … ACC-7, SR-CAL-05, SR-EXT-02, NFR-MEM-01, NFR-PERF-01, NFR-OBS-01, FR-BAT-01, FR-BAT-04, FR-BAT-05, FR-BAT-06, FR-LOD-02, IR-JCL-04, IR-COM-05, TX-01, TX-02, TX-04 |
 | Open items closed | none |
 
 ## 1. Problem / motivation
@@ -51,8 +51,10 @@ PARTIAL on this one criterion however well everything else goes.
 | `prep/extract.py` | `--acc3-file` now applies D-202's exclusion through `acc3_excluded()`, the function `acc3_eval()` already used (D-289). |
 | `tools/fixtures.py` | `digests()` streams in 8 MiB blocks. It read whole files, which cannot verify the 1,051,241,946-byte connectome weights on Windows. |
 | `tools/mvsrun.py` | `--install-net`; row 6's `ONFNET` reads the installed dataset (D-286); per-network dataset and job names. |
-| `docs/ONFLY-SRS.md` | D-288, D-289; Section 8.3 row 6 and row 7; Appendix D. |
+| `docs/ONFLY-SRS.md` | D-288 … D-291; Section 8.3 rows 6 and 7; VL-94 in Appendix D. |
+| `tests/test_fixt.py` | New, in the `prep` target. Fifteen cases over the streamed digests and D-202's exclusion rule. |
 | `data/phase-e/` | The TK5 recordings this session produced. |
+| `data/calibration/` | `acc1-candidate.json` and `acc3-srext.json` for the shipped network. |
 
 ## 3. Implementation approach
 
