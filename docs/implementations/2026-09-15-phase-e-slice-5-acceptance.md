@@ -107,7 +107,23 @@ That is not a deviation from D-288; it is D-288 applied to a fact D-288
 did not have. What the owner protected — a performance figure taken on
 an uncontended host — is exactly what this preserves.
 
-### 3.4 The s390x rows, and a VM that did not need restarting
+### 3.4 ACC-3 depends on ACC-4's output file, so it is run twice
+
+`--acc3-file` reads the full brain's per-rate means from
+`data/calibration/acc4.json` and uses them both as the comparand and to
+compute each tolerance. `prep/acc4.py` **writes** that file. So an
+ACC-3 measured before ACC-4 finishes is measured against the *previous*
+ACC-4's numbers.
+
+The means ought to be identical — the full-brain run is deterministic
+given the same network, the same 30 seeds and the same x86 NATIVE build,
+and D-285 touched only the soft backend, which `build/runnet.exe` does
+not contain. "Ought to" is not a measurement, so ACC-3 is simply run
+again after ACC-4 lands and the two are compared. It costs 79 seconds,
+which is less than the cost of explaining why the first one was
+sufficient.
+
+### 3.5 The s390x rows, and a VM that did not need restarting
 
 D-290 asked for ACC-5's rows 4 and 5 to be re-established for the same
 reason as rows 6 and 7 — they were Phase D results against pre-D-285
@@ -134,7 +150,7 @@ exclude list. It was removed guest-side, leaving 303 MB against 21 GB
 free. An exclude list written from what a tree *should* contain will
 miss what a tool put there an hour ago.
 
-### 3.5 Why row 6 is run again at all
+### 3.6 Why row 6 is run again at all
 
 D-285 changed the text every platform compiles. Row 6's nineteen
 fingerprints, ACC-6's 166 s and ACC-7's BUZZ run were all recorded
