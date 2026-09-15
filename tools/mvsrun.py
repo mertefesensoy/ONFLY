@@ -106,6 +106,7 @@ Slice 3 (FR-BAT-01, FR-BAT-06, D-273):
     python tools/mvsrun.py --install-drv   ONFLYDRV + ONFNAM
     python tools/mvsrun.py --buzz          the three-step BUZZ job
     python tools/mvsrun.py --buzz --sugr   the same over `path` (D-274)
+    python tools/mvsrun.py --buzz --tx04   ONE request, timed (D-276)
 """
 import io
 import os
@@ -516,6 +517,16 @@ DEMOS = {
              "req": "%s.ONFLY.BREQ" % USER, "rsp": "%s.ONFLY.BRSP" % USER},
     "SUGR": {"net": "path", "title": "ONFLY SUGR",
              "req": "%s.ONFLY.SREQ" % USER, "rsp": "%s.ONFLY.SRSP" % USER},
+    # TX-04 (D-276).  ONE request at the standard duration, because
+    # NFR-PERF-01 bounds one and an aggregate over five bounds nothing.
+    # Same three steps as BUZZ so that what is timed is the MVP's own
+    # STEP2 and not a special harness.
+    "ONFTX04": {"net": "srext", "title": "ONFLY TX-04",
+                "req": "%s.ONFLY.TREQ" % USER,
+                "rsp": "%s.ONFLY.TRSP" % USER,
+                "cards": ["MODE=REQ",
+                          "* TX-04: ONE request at the standard duration",
+                          "%-4s %4d %4d %9d" % ("SUGR", 200, 1000, 1)]},
 }
 BUZZ_JOB = "BUZZ"
 BUZZ_REQ = DEMOS["BUZZ"]["req"]
@@ -588,7 +599,8 @@ def demo_deck(job="BUZZ"):
     a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
     a("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
     a("//ONFCTL   DD *")
-    for text, _exp in request_cards():
+    for text in (spec.get("cards")
+                 or [t for t, _e in request_cards()]):
         a(text)
     a("/*")
     a("//*")
@@ -1047,7 +1059,11 @@ def print_perf_context():
 
 def run_buzz(argv):
     """ACC-7 for BUZZ; the same three steps for SUGR."""
-    job = "SUGR" if "--sugr" in argv else "BUZZ"
+    job = "BUZZ"
+    if "--sugr" in argv:
+        job = "SUGR"
+    if "--tx04" in argv:
+        job = "ONFTX04"
     deck = demo_deck(job)
     mvsub.check_cards(deck)
     if "--print" in argv:
@@ -1093,6 +1109,41 @@ def run_buzz(argv):
     report = report_from(out)
     sys.stdout.write("\n=== the report BUZZ printed (FR-BAT-04) ===\n")
     sys.stdout.write("\n".join(report) + "\n")
+    if job == "ONFTX04":
+        # NFR-PERF-01: "One request at the standard duration (1000 ms,
+        # D-73) shall complete in at most 10 minutes of wall-clock time
+        # on the TK5 reference host."  Both the job's own CPU
+        # accounting and its elapsed time are reported: the bound is
+        # written against wall clock, and on this emulator the two are
+        # close but not equal.
+        cpu = el = None
+        m = re.search(r"IEF374I STEP /STEP2\s+/ STOP\s+\S+\s+CPU\s+"
+                      r"(\d+)MIN (\S+)SEC", out)
+        if m:
+            cpu = int(m.group(1)) * 60 + float(m.group(2))
+        m = re.search(r"elapsed time\s+(\d+):(\d+):(\d+)", out)
+        if m:
+            el = (int(m.group(1)) * 3600 + int(m.group(2)) * 60
+                  + int(m.group(3)))
+        bound = 600
+        sys.stdout.write("\n=== TX-04 / ACC-6 vs NFR-PERF-01 ===\n")
+        sys.stdout.write("  one SUGR request, 200 Hz, 1000 ms, seed 1, "
+                         "srext (501 neurons)\n")
+        sys.stdout.write("  STEP2 CPU     %s s\n"
+                         % ("%.2f" % cpu if cpu is not None else "(unread)"))
+        sys.stdout.write("  STEP2 elapsed %s s\n"
+                         % ("%d" % el if el is not None else "(unread)"))
+        sys.stdout.write("  bound         %d s (NFR-PERF-01, D-133)\n"
+                         % bound)
+        verdict = (cpu is not None and cpu <= bound
+                   and (el is None or el <= bound))
+        sys.stdout.write("  ACC-6 %s\n" % ("PASS" if verdict else "FAIL"))
+        ok = ran and worst == 0 and verdict
+        sys.stdout.write("\nmvsrun: %s -- three steps %s, worst COND CODE "
+                         "%s\n" % (job, "all executed" if ran
+                                    else "NOT all executed", worst))
+        return 0 if ok else 1
+
     ok = ran and worst == 0 and bool(report)
     sys.stdout.write("\nmvsrun: ACC-7 %s -- three steps %s, worst COND CODE "
                      "%s, %d report line(s)\n"
