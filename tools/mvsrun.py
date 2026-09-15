@@ -666,8 +666,15 @@ def run_install_net(argv):
     sys.stdout.write("\n".join(mvsub.summarise(out)) + "\n")
     for line in out.splitlines():
         s = line.rstrip()
-        if ("IEB1014I" in s or "RECORDS" in s.upper()[:40]
-                or "DATA SET" in s.upper() and NET_DSN in s.upper()):
+        # Three unrelated conditions, parenthesised rather than left to
+        # `and` binding tighter than `or`.  The original spelling was
+        # correct by accident of precedence, which is not a property a
+        # reader should have to verify.
+        up = s.upper()
+        interesting = ("IEB1014I" in s
+                       or "RECORDS" in up[:40]
+                       or ("DATA SET" in up and NET_DSN in up))
+        if interesting:
             sys.stdout.write("  %s\n" % s.strip())
     return 0
 
