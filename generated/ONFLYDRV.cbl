@@ -24,11 +24,21 @@
       *MODES (D-158)
       *  The first ONFCTL card selects the mode: MODE=REQ builds
       *  request records from the cards that follow (IR-JCL-02) and
-      *  writes them to ONFREQ; MODE=RPT reads ONFRSP and echoes the
-      *  numeric fields to ONFRPT.  This is the Gate G4 skeleton
-      *  (D-155): names from ONFNAM, the Hz column, the fingerprint
-      *  in hexadecimal and the reserved-code warning (FR-BAT-04,
-      *  FR-BAT-05) arrive in Phase E.
+      *  writes them to ONFREQ; MODE=RPT reads ONFRSP and prints the
+      *  FR-BAT-04 report to ONFRPT.
+      *
+      *  The report was the Gate G4 skeleton (D-155) until Phase E
+      *  slice 2 completed it on 2026-09-15: each readout's NAME,
+      *  mapped through ONFNAM because IR-COM-06 forbids the response
+      *  from carrying one; the firing rate in Hz to one decimal,
+      *  ROUNDED by D-272; the return code with its Appendix E
+      *  message, RC 8 resolved between ONF202E and ONF203E by D-270;
+      *  and the response fingerprint in hexadecimal.
+      *
+      *  The rate column of a control card is signed (D-265), so that
+      *  Section 8.4's G-13 reaches the ENGINE, which owes it ONF202E.
+      *  A driver that rejected the card would answer ONF401E instead
+      *  and the engine would never see the request.
       *
       *THE LAYOUT IS COPIED, NEVER SPELLED OUT (IR-COM-01, D-157)
       *  generated/ONFCOM.cpy is the only description of the 412-byte
