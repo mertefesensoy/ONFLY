@@ -88,7 +88,24 @@ contention. Everything else in the sweep is insensitive to load —
 return codes and fingerprints do not change with CPU pressure — so only
 ACC-6 actually constrains the order, and it constrains it completely.
 
-### 3.3 The s390x rows, and a VM that did not need restarting
+### 3.3 What D-288 actually constrains, once the numbers are known
+
+D-288 narrowed D-283 to "all x86 work stops before TX-04". Once ACC-4
+was running it became clear that this fixes the whole order, not just
+one step: ACC-4 is 151 full-brain runs and at `--jobs 10` on a host also
+carrying Hercules and a TCG guest it runs for roughly two hours. TX-04
+cannot start until it ends.
+
+So TX-04 moves to **last**, and SUGR — 65 minutes of TK5 time that
+cares nothing about host load — fills the window instead of idling in
+it. The order becomes: the JCC predefine probe, the two installs, BUZZ,
+the row 7 re-run, SUGR, and then TX-04 on a quiet machine.
+
+That is not a deviation from D-288; it is D-288 applied to a fact D-288
+did not have. What the owner protected — a performance figure taken on
+an uncontended host — is exactly what this preserves.
+
+### 3.4 The s390x rows, and a VM that did not need restarting
 
 D-290 asked for ACC-5's rows 4 and 5 to be re-established for the same
 reason as rows 6 and 7 — they were Phase D results against pre-D-285
@@ -115,7 +132,7 @@ exclude list. It was removed guest-side, leaving 303 MB against 21 GB
 free. An exclude list written from what a tree *should* contain will
 miss what a tool put there an hour ago.
 
-### 3.4 Why row 6 is run again at all
+### 3.5 Why row 6 is run again at all
 
 D-285 changed the text every platform compiles. Row 6's nineteen
 fingerprints, ACC-6's 166 s and ACC-7's BUZZ run were all recorded
