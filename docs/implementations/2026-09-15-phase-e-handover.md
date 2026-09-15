@@ -177,8 +177,34 @@ statement about the row 7 run and stops being true once they are added.
 
 ## 8. Restarting the labs (resuming later the same day, D-293)
 
-Both were shut down cleanly, so both must be started again. Neither
-starts by itself.
+**Both went down cleanly, and this is the evidence.**
+
+The s390x guest was powered off from inside and its console log ends:
+
+    [  OK  ] Reached target shutdown.target - System Shutdown.
+    [  OK  ] Reached target final.target - Late Shutdown Services.
+    [  OK  ] Finished systemd-poweroff.service - System Power Off.
+    [  OK  ] Reached target poweroff.target - System Power Off.
+
+Filesystems unmounted before the image closed, so the qcow2 — which
+carries the byte-verified copy of this session's source — is consistent.
+
+MVS was quiesced through TK5's own `scripts/shutdown`, which stops JES2,
+runs end-of-day and quiesces the system. It drained every device before
+the emulator stopped:
+
+    $HASP097 PRINTER1 IS DRAINED    $HASP097 PUNCH1   IS DRAINED
+    $HASP097 PRINTER2 IS DRAINED    $HASP097 READER1  IS DRAINED
+    $HASP097 PRINTER3 IS DRAINED
+
+Final state: `hercules: 0   runnet: 0   qemu: DOWN`.
+
+**One thing that needed doing by hand.** Stopping ACC-4's parent task
+left its **ten `runnet.exe` workers orphaned and still running** — the
+task manager kills the parent, not the children. They were killed
+separately. Anyone stopping a `prep/acc4.py` run should check for them.
+
+Both must now be started again. Neither starts by itself.
 
 **TK5 / Hercules** — `cmd.exe /c "cd /d C:\hercules-lab\mvs-tk5 && .\mvs.bat"`
 with `run_in_background: true`. Two traps, both previously measured:
