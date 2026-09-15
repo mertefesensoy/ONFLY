@@ -590,14 +590,24 @@ def ccprobe_source():
     point is to find the one that IS defined.  A macro that expands to
     nothing is distinguished from one that expands to a value by the
     stringised form, so `-D FOO` and `-D FOO=1` are not confused.
+
+    The stringify is TWO levels, and that is load-bearing.  `#x` in a
+    function-like macro suppresses expansion of the argument, so a single
+    `STR(FOO)` stringises the token `FOO` whatever FOO is defined to.  The
+    first run of this probe on 2026-09-15 used one level and reported
+    `__STDC__` as `<__STDC__>`, where C89 requires the value 1 -- the
+    column showed macro names, never values, and the paragraph above was
+    false of the code below it.  XSTR expands the argument first, then STR
+    stringises the result, which is what makes the distinction real.
     """
-    src = ["#include <stdio.h>", "", "#define STR(x) #x", "",
+    src = ["#include <stdio.h>", "",
+           "#define STR(x) #x", "#define XSTR(x) STR(x)", "",
            "int main(void)", "{"]
     for m in CCMACROS:
         src.append("#ifdef %s" % m)
         src.append("    printf(\"CCPROBE %-20s DEFINED  <%%s>\\n\","
                    % m)
-        src.append("           STR(%s));" % m)
+        src.append("           XSTR(%s));" % m)
         src.append("#else")
         src.append("    printf(\"CCPROBE %-20s -\\n\");" % m)
         src.append("#endif")

@@ -133,6 +133,25 @@
 #define ONF_CCID "IBMC"
 #elif defined(__CMS__) || defined(__MVS__)
 #define ONF_CCID "MVSC"
+#elif defined(JCC)
+/*
+ * JCC, measured (D-291).  Of nineteen candidates probed on TK5 it
+ * predefines exactly two: JCC=1 and __STDC__=1.  It defines no __MVS__,
+ * no __GNUC__ and no version macro, which is why Section 8.3 row 7 --
+ * the one row that exists to vary the compiler -- was the row whose
+ * manifest printed COMPILER UNKNOWN.
+ *
+ * The branch is LAST on purpose.  JCC is an un-prefixed identifier and
+ * could collide with a user macro elsewhere, so it is reached only when
+ * every better-known macro is absent.  That also makes the change
+ * provably neutral: x86 and s390x match __GNUC__ first, GCCMVS matches
+ * __GNUC__ first, and no ONFLY build defines JCC itself.
+ *
+ * No version is carried because JCC exposes none to the preprocessor.
+ * "JCC 1.50.00" is known only from its generated assembler comment
+ * (A-04), which is a build artifact, not something the engine can read.
+ */
+#define ONF_CCID "JCC"
 #else
 #define ONF_CCID "UNKNOWN"
 #endif

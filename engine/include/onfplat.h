@@ -72,6 +72,20 @@ typedef char onf_assert_twoc[(((onf_u32)-1) == 0xFFFFFFFFUL) ? 1 : -1];
 #define ONF_PLATID "S390X"
 #elif defined(_WIN32) || defined(__WIN32__)
 #define ONF_PLATID "WIN32"
+#elif defined(JCC)
+/*
+ * JCC (D-291).  Probed on TK5: it predefines no platform macro at all --
+ * not __MVS__, not __370__, not __EBCDIC__ -- so the platform has to be
+ * inferred from the compiler.
+ *
+ * That inference is sound HERE and nowhere in general: JCC is a
+ * cross-compiler, and this branch is true only because the one target
+ * ONFLY ever builds with it is MVS 3.8j on TK5 (A-04, Section 8.3
+ * row 7).  Point JCC at another target and this line would lie.  It is
+ * last in the chain so that any platform with a real macro of its own
+ * is matched by that macro first.
+ */
+#define ONF_PLATID "MVS38J"
 #else
 #define ONF_PLATID "UNKNOWN"
 #endif
