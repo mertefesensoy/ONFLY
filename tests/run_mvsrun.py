@@ -14,8 +14,8 @@ defect.  So the column limits, the delimiter collisions, the member-name
 rules and the link order are all checked here, where a failure costs a
 second and names itself.
 
-WHAT IS CHECKED, IN FOUR GROUPS
--------------------------------
+WHAT IS CHECKED, IN SIX GROUPS
+------------------------------
 **The decks, before a mainframe sees them.**  Both pass
 `mvsub.check_cards` (80 columns, no card equal to the IEBUPDTE
 delimiter, JCL inside column 71).  `UNIT_MEMBERS` matches what
@@ -37,11 +37,26 @@ half under D-261's translated identity, ACC-5 row 6 against what
 Section 8.4 says the fingerprints must BE, and IR-JCL-04's return codes
 on the `path` half, where G-11 warns and G-12 and G-13 error.
 
-**Three bugs that actually happened**, each with a case so it cannot
+**Slice 3's demonstration jobs** (D-273, D-274): BUZZ over `srext` and
+SUGR over `path` are each exactly FR-BAT-01's three steps plus a
+scratch, each compiles nothing, each runs the suite its decision
+assigns, and BUZZ carries IR-JCL-04's conditioning in the spelling that
+means what the requirement says. The two install jobs link into the
+load library BUZZ's STEPLIB names, and put ONFNAM where its ONFNAM DD
+looks for it.
+
+**The report comparator, before it judges anything.** `report_from()`
+lifts the ONFRPT lines out of a whole job listing, and
+`compare_report()` is exercised against the x86 reference four ways --
+identical passes, a uniform printer indent still passes, one wrong
+readout name fails, a missing line fails.
+
+**Four bugs that actually happened**, each with a case so it cannot
 happen again: `write_cards()` and `golden_fingerprints()` binding a
 module global as a default argument (so `select()` changed half of what
-they did), and the additive keyword arguments on `mvsbld.build()` and
-`mvscob.deck()` altering an existing caller's deck.
+they did); a report filter whose `lstrip()` made two of its four
+prefixes unmatchable; and the additive keyword arguments on
+`mvsbld.build()` and `mvscob.deck()` altering an existing caller's deck.
 """
 import io
 import os
