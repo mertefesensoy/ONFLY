@@ -616,6 +616,94 @@ def run_rpt(argv):
     return 0 if ok else 1
 
 
+def read_records(path, reclen=None):
+    """A recorded ONFREQ/ONFRSP dataset as a list of records."""
+    if reclen is None:
+        reclen = mvsrun_reclen()
+    with open(path, "rb") as f:
+        blob = f.read()
+    if len(blob) == 0 or len(blob) % reclen:
+        raise RunError("%s is %d bytes, not a multiple of %d"
+                       % (path, len(blob), reclen))
+    return [blob[i:i + reclen] for i in range(0, len(blob), reclen)]
+
+
+def mvsrun_reclen():
+    """ONF_RECLEN, from the generated layout rather than a literal."""
+    import onfcom_py as layout
+    return layout.RECORD_LEN
+
+
+def golden_fingerprints(refdir, netname=None, backend="2c"):
+    """(golden id, fingerprint) from a recorded gold-<net>-<backend>.txt.
+
+    `netname` is resolved HERE, not in the signature.  Written
+    `netname=NETNAME` it binds the module global once, at import, so
+    `select("path")` left this reading `gold-srext-2c.txt` and the
+    comparison reported five golden entries against fourteen records
+    with every fingerprint wrong -- an alarming-looking failure whose
+    cause was entirely in this line.  The SECOND time this session that
+    a mutable-looking default bit; see `write_cards`.
+    """
+    netname = NETNAME if netname is None else netname
+    path = os.path.join(refdir, "gold-%s-%s.txt" % (netname, backend))
+    text = io.open(path, encoding="ascii").read()
+    return [(m.group(1), m.group(2))
+            for m in GOLD_LINE.finditer(text) if m]
+
+
+def run_compare(argv):
+    """TX-01's MVS half and ACC-5's row 6, judged per D-261.
+
+    `tests/run_tx.py --compare` is Phase D's comparator and is byte-exact
+    by construction, which under D-261 would fail on the one `'chr'`
+    field every time.  Rather than weaken that tool -- Phase D's claim is
+    x86 against s390x, both ASCII, where byte-exactness is exactly right
+    -- the code-page-aware comparison lives here, with Phase E.
+    """
+    if len(argv) < 2:
+        sys.stderr.write("usage: mvsrun.py --compare <mvsdir> <refdir>\n")
+        return 2
+    mvsdir, refdir = argv[0], argv[1]
+    name = "rsp-%s-2c.bin" % NETNAME
+    mvs = read_records(os.path.join(mvsdir, name))
+    ref = read_records(os.path.join(refdir, name))
+
+    sys.stdout.write("=== TX-01 (MVS half), D-261 translated identity ===\n")
+    sys.stdout.write("    %s\n    vs %s\n"
+                     % (os.path.join(mvsdir, name),
+                        os.path.join(refdir, name)))
+    views, lines = compare_records(mvs, ref, "ONFRSP")
+    sys.stdout.write("\n".join(lines) + "\n")
+    sys.stdout.write("  raw=%s  binary=%s  translated=%s\n"
+                     % (views["raw"], views["binary"], views["translated"]))
+
+    # ACC-5 row 6.  The fingerprint is a FIELD of the record, so identical
+    # records imply identical fingerprints -- but the golden suite is
+    # where Section 8.4 states what the fingerprint must BE, and a claim
+    # about ACC-5 that never reads that file is a claim about agreement
+    # between two recordings rather than about the suite.
+    ok = views["translated"]
+    off = 20                       # ONF-FPRINT, layout/master.py
+    sys.stdout.write("\n=== ACC-5 row 6: TK5 MVS 3.8j / SOFT2C / GCCMVS "
+                     "vs Section 8.4 ===\n")
+    gold = golden_fingerprints(refdir)
+    if len(gold) != len(mvs):
+        sys.stdout.write("  FAIL %d golden entries, %d MVS records\n"
+                         % (len(gold), len(mvs)))
+        ok = False
+    for (gid, want), rec in zip(gold, mvs):
+        got = rec[off:off + 4].hex().upper()
+        good = got == want
+        ok = ok and good
+        sys.stdout.write("  %-4s %-5s fp=%s  golden=%s\n"
+                         % ("ok" if good else "FAIL", gid, got, want))
+    sys.stdout.write("mvsrun: TX-01 %s, ACC-5 row 6 %s\n"
+                     % ("PASS" if views["translated"] else "FAIL",
+                        "PASS" if ok else "FAIL"))
+    return 0 if ok else 1
+
+
 def report_lines(raw):
     """A recorded ONFRPT as printable lines: FBA/133, byte 1 is the
     ANSI carriage-control character the printer consumes (VL-59)."""
