@@ -623,6 +623,20 @@ def run_rpt(argv):
     want = [raw[i:i + 133].decode("ascii", "replace")[1:].rstrip()
             for i in range(0, len(raw), 133)]
     got = [l.strip("\r") for l in keep]
+
+    # The printer may indent everything it writes by a constant amount.
+    # That is a property of the PRINTER, not of the report, and letting
+    # it fail the comparison would report a COBOL difference where
+    # there is none.  A UNIFORM prefix is removed and said out loud; a
+    # ragged one is left alone, because then it is not an indent.
+    if got and want and got[0] != want[0]:
+        pad = len(got[0]) - len(got[0].lstrip(" "))
+        pad -= len(want[0]) - len(want[0].lstrip(" "))
+        if pad > 0 and all(l[:pad].strip() == "" for l in got):
+            sys.stdout.write("mvsrun: removing %d column(s) of printer "
+                             "indent from every line before comparing\n"
+                             % pad)
+            got = [l[pad:] for l in got]
     sys.stdout.write("\n=== FR-BAT-04: MVS report vs the x86 reference ===\n")
     ok = True
     for i in range(max(len(got), len(want))):

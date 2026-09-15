@@ -315,12 +315,41 @@ quotes it from — against TBD-14's measured 8M region (NFR-MEM-01).
 `CPU 13MIN 45.87SEC` — from which §4 derives 32.97 µs per neuron-step, and
 16.69 s for the entire compile, assemble and link.
 
+### 6.2b The `path` half — job ONFPRUN (D-264)
+
+Same platform, compiler and backend. Thirteen compiles, thirteen assemblies,
+`LKED` and `DUMP` at COND CODE 0000, and **`GO` at COND CODE 0008, which is
+correct**:
+
+```
+python tools/mvsrun.py --net path --run --out data/phase-e/mvs
+  ONF302I STEP SUMMARY: 11 OK, 1 WARN, 2 ERROR
+  mvsrun: ONF301I request 1 FP=6C143127 ... request 14 FP=8EC69ADE
+  mvsrun: recovered 14 response records from the IDCAMS dump
+
+python tools/mvsrun.py --net path --compare data/phase-e/mvs data/phase-d/x86w
+  raw=False  binary=True  translated=True
+  ok   G-01  fp=6C143127  golden=6C143127      ... ok G-14 fp=8EC69ADE
+  mvsrun: TX-01 PASS, ACC-5 row 6 PASS
+```
+
+The warning and the two errors are G-11's reserved stimulus code, G-12's
+unknown code and G-13's out-of-range rate — **the first time the MVS engine
+has reached FR-BAT-05's, D-41's and FR-SIM-06's rejection paths.** All three
+still carry a fingerprint, because IR-COM-05's canonical string includes the
+return code.
+
+With the five `srext` requests, **row 6 of the Section 8.3 matrix is complete:
+nineteen of nineteen.**
+
+`GO` cost **CPU 63 min 04.79 s** with `VIRT 2624K` — 44.1 µs per neuron-step
+over 85,831,130 of them, against `srext`'s 32.97 µs, which is §4's edge-density
+effect measured rather than predicted. **The engineer's estimate to the owner
+before the run was 47 minutes and was wrong by a third**, for exactly the
+reason §4 now records.
+
 ### 6.3 What is NOT proven
 
-- **The `path` half of the golden suite has not run on MVS in this
-  section.** Row 6 of the Section 8.3 matrix is filled for `srext` only, and
-  FR-BAT-05's ONF201W, D-41's ONF203E and FR-SIM-06's ONF202E have never been
-  reached by the MVS engine.
 - **Row 7 is untouched.** Nothing here says anything about JCC (VL-03).
 - **Four Gate G1 workarounds are still load-bearing and still outside the
   repository**: the `-O1` pin (VL-17), the `819/1047` codepage (VL-18), the
