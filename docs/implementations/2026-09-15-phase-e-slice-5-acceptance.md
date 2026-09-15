@@ -331,6 +331,30 @@ an engineer's own judgement (D-289).
 NFR-MEM-01 is checked in the same pass: the decoded network needs
 255,688 bytes against TBD-14's 8 M region.
 
+**Does D-289 make ACC-3 vacuous?** It is a fair question of any change
+that turns a FAIL into a PASS, so it was answered rather than asserted.
+The same fixed tool was pointed at the D-75 `path` fixture — 913
+neurons, never intended as the MVP subcircuit:
+
+```
+$ python prep/extract.py --acc3-file data/networks/onfnet-malecns-v1.0-path.bin \
+      --label pathchk --jobs 6
+  rate    subcirc       full      tol    ACC-3
+    10       3.30       3.67     1.00     EXCL
+    40       4.55      14.35     1.44     FAIL
+    60      18.88      28.38     2.84     FAIL
+   120      68.72      68.38     6.84     PASS
+   200      92.87      88.80     8.88     PASS
+  10 Hz excluded and reported (D-202): reference 3.67 +- 4.22 Hz, subcircuit 3.30 Hz
+pathchk: 913 neurons, 72852 edges, need=1104340 (NFR-MEM-01 PASS), ACC-3 FAIL (154 s)
+```
+
+It still fails, on the two rates where that network genuinely does not
+reproduce the full brain. The exclusion removes one rate from the test;
+it does not remove the test. This is the same argument VL-76 made when
+D-202 was adopted — *five of the six sizes measured still fail it* —
+now shown with the corrected tool rather than the one that predated it.
+
 ### 6.3 ACC-5 rows 6 and 7 on the post-D-285 source
 
 Row 6, `srext`, re-run because D-285 changed the text it compiles:
