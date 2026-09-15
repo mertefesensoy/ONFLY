@@ -142,23 +142,50 @@ that also carries ONF302I, ONF001I and IEF142I.
 
 ## 6. Verification
 
-*(pending: the three jobs have been built and checked off-MVS, and had not been
-submitted at the time this section was written)*
+### 6.1 Off-MVS
 
 ```
 mingw32-make mvsrun
 ```
-→ `run_mvsrun: 36 passed, 0 failed`, including the BUZZ shape, the IR-JCL-04
-conditioning, "BUZZ compiles nothing", and that BUZZ's `STEPLIB` and `ONFNAM`
-name exactly what the install jobs create.
+→ `run_mvsrun: 47 passed, 0 failed`, including the BUZZ and SUGR shapes, the
+IR-JCL-04 conditioning in both spellings, "BUZZ compiles nothing", that each
+job runs the suite its decision assigns, and that BUZZ's `STEPLIB` and
+`ONFNAM` name exactly what the install jobs create.
 
-### What is NOT proven
+### 6.2 Installation on TK5
 
-- **No slice-3 job has run on TK5.** Everything above is a deck inspected on
-  x86. Whether IEWL writes a usable load module into a PDS member, whether
-  `PGM=ONFLYENG` resolves through `STEPLIB`, and whether MVT COBOL's
-  ONFLYDRV runs from a library rather than from `&&GODATA` are all untested.
-- ACC-7 is therefore **NOT RUN**.
+**Platform:** MVS 3.8j TK5 under Hercules 4.9.1.11612-SDL; GCCMVS 3.2.3 at
+`-O1` for the engine, IKFCBL00 for the driver.
+
+```
+python tools/mvsrun.py --install-eng
+  IEF142I ONFIENG COMP1 ... COMP13 / ASM1 ... ASM13 - COND CODE 0000
+  IEF142I ONFIENG LKED  - STEP WAS EXECUTED - COND CODE 0000
+
+python tools/mvsrun.py --install-drv
+  IEF142I ONFIDRV ALLOCL  - COND CODE 0000
+  IEF142I ONFIDRV COB     - COND CODE 0004      (Gate G4's eight IKF4072I-W)
+  IEF142I ONFIDRV LKED    - COND CODE 0000
+  IEF142I ONFIDRV WRITEN  - COND CODE 0000
+```
+
+Both programs and ONFNAM are in `HERC01.ONFLY.LOADLIB` /
+`HERC01.ONFLY.ONFNAM`. **IEWL writes a usable load module into a PDS member** —
+which was the first of slice 3's three unknowns.
+
+### 6.3 BUZZ on TK5
+
+The second and third unknowns were answered within a second of the job
+starting:
+
+```
+7.22.02 JOB 284 IEF403I BUZZ - STARTED
+7.22.02 JOB 284 IEF236I ALLOC. FOR BUZZ STEP2
+```
+
+BUZZ reached STEP2 immediately, so SCRATCH and STEP1 had already run — meaning
+**`PGM=ONFLYDRV` resolved through `STEPLIB` and MVT COBOL's driver ran from a
+library rather than from `&&GODATA`**, and `PGM=ONFLYENG` allocated. 
 
 ## 7. Related docs
 
