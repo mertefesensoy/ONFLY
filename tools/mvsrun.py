@@ -1166,10 +1166,18 @@ def run_buzz(argv):
                       r"(\d+)MIN (\S+)SEC", out)
         if m:
             cpu = int(m.group(1)) * 60 + float(m.group(2))
-        m = re.search(r"elapsed time\s+(\d+):(\d+):(\d+)", out)
-        if m:
-            el = (int(m.group(1)) * 3600 + int(m.group(2)) * 60
-                  + int(m.group(3)))
+        # Scoped to STEP2.  A plain search takes the FIRST "elapsed
+        # time" in the listing, which belongs to SCRATCH and reads
+        # 00:00:00 -- so the verdict was passing partly on a number
+        # that was not the one NFR-PERF-01 bounds.  The step's own
+        # accounting block carries its elapsed time a few lines after
+        # its IEF374I, so the search starts there.
+        at = out.find("IEF374I STEP /STEP2")
+        if at >= 0:
+            m = re.search(r"elapsed time\s+(\d+):(\d+):(\d+)", out[at:])
+            if m:
+                el = (int(m.group(1)) * 3600 + int(m.group(2)) * 60
+                      + int(m.group(3)))
         bound = 600
         sys.stdout.write("\n=== TX-04 / ACC-6 vs NFR-PERF-01 ===\n")
         sys.stdout.write("  one SUGR request, 200 Hz, 1000 ms, seed 1, "
