@@ -142,7 +142,7 @@ and each is still in `tools/mvsjcc.py` so the findings are reproducible.
 |---|---|---|
 | `--probe` | Does JCC compile the SoftFloat 2c amalgamation, plain ONFLY C89, and will PRELINK take a concatenation? | 5,874 cards |
 | `--ddprobe` | Which `fopen` spelling does JCC's libc honour, and does it split a PARM into argv? | 100 cards |
-| `--mini warn|typebad|type` | Does JCC's RC 1 mean "warning" or "no object"? | 3 × ~95 cards |
+| `--mini warn` / `typebad` / `type` | Does JCC's RC 1 mean "warning" or "no object"? | 3 × ~95 cards |
 | `--rdrprobe` | Can JCC open a unit-record DD in any mode? | 95 cards |
 | `--ccprobe` | Which predefined macros does JCC define? (D-291) | 186 cards |
 | `--run` | Row 7 itself | 8,383 cards |
