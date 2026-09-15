@@ -175,6 +175,46 @@ mingw32-make cob
 Also `run_cob: 14 records identical to tools/mkreq.py's packing of the same
 deck, G-13 rate=-1 (D-265)`.
 
+### 6.1b FR-BAT-01 end to end on x86, over the network the MVP ships
+
+Everything above drives the driver over records Python wrote. This drives the
+**whole chain** — ONFLYDRV MODE=REQ, the C engine, ONFLYDRV MODE=RPT — over
+the real `srext` network and the real ONFNAM, and reads its expectations out
+of the ONFRSP the engine produced rather than from a table:
+
+```
+run_cob: STEP2 onflyeng_2c.exe -> rc=0
+  ONF001I NETWORK LOADED N=501 E=10783 CRC=4577D74E
+  ONF301I REQUEST 1 COMPLETE FP=6C3F7272   ... REQUEST 5 COMPLETE FP=C4C320BC
+|REQUEST    3 CODE=SUGR     RATE= 200 MS=1000 SEED=        1 RC=   0 OUT=   2 STEPS=    10000
+|  ONF301I  REQUEST COMPLETE                                 FP=F9C7EE77
+|  READOUT      1 ID=        9 MN9-10331   LAT-US=      8600 SPIKES= 165 HZ=    165.0
+|  READOUT      2 ID=       88 MN9-16949   LAT-US=     43400 SPIKES=  15 HZ=     15.0
+run_cob: FR-BAT-01 end to end on x86: 5 requests through ONFLYDRV ->
+         ONFLYENG -> ONFLYDRV, every fingerprint in the report taken from
+         the ONFRSP the engine wrote
+```
+
+Those spike counts and latencies are `gold-srext-2c.txt`'s exactly. The report
+is saved as `data/phase-e/x86/rpt-srext-2c.txt` and is the reference the MVS
+report is compared against.
+
+**And it found a bug the synthetic test could not.** Readout 88 first printed
+`*UNNAMED*` although ONFNAM holds `00088 MN9-16949`. The COBOL was right; the
+file was not being **framed**. `prep/names.py` writes 80 columns *plus a
+newline* — IR-NAM-01 calls the file text and IR-NAM-03 transfers it in text
+mode — while ONFLYDRV's FD says `RECORDING MODE IS F`. On MVS the transport
+frames the file and the newlines never reach the program; on x86 nothing did,
+so record 2 began one byte late, its first five columns were not digits, and
+every row after the first was silently skipped. Exactly the trap
+`write_deck`'s own docstring records for ONFCTL.
+
+`prep/names.records()` is now the framing step, named so a caller cannot
+forget it exists, and `tests/run_names.py` pins both halves: that the raw
+bytes are **not** 80-byte records, and that `records()` makes them so. The
+synthetic test in §6.1 passed throughout, because it wrote its own names file
+with `ljust(80)` and no newline.
+
 ### 6.2 What is NOT proven
 
 - **Everything above is x86-64 GnuCOBOL 3.2.0 under `-std=ibm` and
