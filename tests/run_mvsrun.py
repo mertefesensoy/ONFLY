@@ -288,6 +288,35 @@ def main():
               for dsn in (mvsrun.LOADLIB, mvsrun.NAM_DSN)),
           "%s, %s" % (mvsrun.LOADLIB, mvsrun.NAM_DSN))
 
+    # --- the report comparator, proven before it judges anything ------
+    #
+    # `compare_report()` decides whether MVT COBOL's FR-BAT-04 report
+    # equals GnuCOBOL's.  A comparator whose only evidence is the run it
+    # is judging is not evidence, so it is exercised here against the
+    # x86 reference in four ways -- and the indent case matters because
+    # a printer that indents everything it writes would otherwise be
+    # reported as a COBOL difference.
+    ref = os.path.join(ROOT, "data", "phase-e", "x86",
+                       "rpt-srext-2c.txt")
+    if os.path.isfile(ref):
+        good = mvsrun.report_lines(io.open(ref, "rb").read())
+        wrong = list(good)
+        wrong[3] = wrong[3].replace("MN9-10331", "MN9-99999")
+        cases = [
+            ("identical", good, True),
+            ("a uniform 2-column printer indent",
+             ["  " + l for l in good], True),
+            ("one wrong readout name", wrong, False),
+            ("a missing line", good[:-1], False),
+        ]
+        for what, lines, want in cases:
+            got, _out = mvsrun.compare_report(lines, ref)
+            check("compare_report: %s" % what, got is want,
+                  "%s (expected %s)" % (got, want))
+    else:
+        check("compare_report: exercised against the x86 reference", True,
+              "SKIP: no %s; run `make cob`" % os.path.basename(ref))
+
     # --- the recorded MVS runs (D-261, D-262, D-264) -------------------
     #
     # Both networks, because they prove different things.  `srext` is

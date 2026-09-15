@@ -604,40 +604,53 @@ def run_rpt(argv):
         sys.stderr.write("mvsrun: %s printed no report lines\n" % RPT_JOB)
         return 1
 
-    # Against the x86 reference, line for line.
-    #
-    # Every field in the report is either a number or one of the three
-    # stimulus codes, and the printer has already translated EBCDIC to
-    # ASCII by the time this reads it -- so unlike the RECORDS, where
-    # D-261 had to allow for one code-page-dependent field, the printed
-    # report should be character-identical.  A difference here is a
-    # difference between MVT COBOL and GnuCOBOL, which is the whole
-    # question VL-02 says the proxy cannot answer.
     ref = os.path.join(ROOT, "data", "phase-e", "x86",
                        "rpt-%s-2c.txt" % NETNAME)
     if not os.path.isfile(ref):
         sys.stdout.write("mvsrun: no x86 reference at %s; run `make cob` "
                          "first\n" % os.path.basename(ref))
         return 0
-    raw = io.open(ref, "rb").read()
-    want = [raw[i:i + 133].decode("ascii", "replace")[1:].rstrip()
+    ok, lines = compare_report(keep, ref)
+    sys.stdout.write("\n=== FR-BAT-04: MVS report vs the x86 reference ===\n")
+    sys.stdout.write("\n".join(lines) + "\n")
+    return 0 if ok else 1
+
+
+def report_lines(raw):
+    """A recorded ONFRPT as printable lines: FBA/133, byte 1 is the
+    ANSI carriage-control character the printer consumes (VL-59)."""
+    return [raw[i:i + 133].decode("ascii", "replace")[1:].rstrip()
             for i in range(0, len(raw), 133)]
-    got = [l.strip("\r") for l in keep]
+
+
+def compare_report(got, refpath):
+    """The MVS report against the x86 reference, line for line.
+
+    Every field in the report is either a number or one of the three
+    stimulus codes, and the printer has already translated EBCDIC to
+    ASCII by the time this reads it -- so unlike the RECORDS, where
+    D-261 had to allow for one code-page-dependent field, the printed
+    report should be character-identical.  A difference here is a
+    difference between MVT COBOL and GnuCOBOL, which is the whole
+    question VL-02 says the proxy cannot answer.
+    """
+    want = report_lines(io.open(refpath, "rb").read())
+    got = [l.rstrip().strip("\r") for l in got]
 
     # The printer may indent everything it writes by a constant amount.
     # That is a property of the PRINTER, not of the report, and letting
     # it fail the comparison would report a COBOL difference where
     # there is none.  A UNIFORM prefix is removed and said out loud; a
     # ragged one is left alone, because then it is not an indent.
+    lines = []
     if got and want and got[0] != want[0]:
-        pad = len(got[0]) - len(got[0].lstrip(" "))
-        pad -= len(want[0]) - len(want[0].lstrip(" "))
+        pad = (len(got[0]) - len(got[0].lstrip(" "))
+               - (len(want[0]) - len(want[0].lstrip(" "))))
         if pad > 0 and all(l[:pad].strip() == "" for l in got):
-            sys.stdout.write("mvsrun: removing %d column(s) of printer "
-                             "indent from every line before comparing\n"
-                             % pad)
+            lines.append("  note removing %d column(s) of printer indent "
+                         "from every line" % pad)
             got = [l[pad:] for l in got]
-    sys.stdout.write("\n=== FR-BAT-04: MVS report vs the x86 reference ===\n")
+
     ok = True
     for i in range(max(len(got), len(want))):
         g = got[i] if i < len(got) else "(absent)"
@@ -645,100 +658,12 @@ def run_rpt(argv):
         if g == w:
             continue
         ok = False
-        sys.stdout.write("  FAIL line %d\n    MVS  %r\n    x86  %r\n"
-                         % (i + 1, g, w))
-    sys.stdout.write("  %s %d line(s) %s\n"
-                     % ("ok  " if ok else "FAIL", len(want),
-                        "identical" if ok else "differ"))
-    return 0 if ok else 1
-
-
-def read_records(path, reclen=None):
-    """A recorded ONFREQ/ONFRSP dataset as a list of records."""
-    if reclen is None:
-        reclen = mvsrun_reclen()
-    with open(path, "rb") as f:
-        blob = f.read()
-    if len(blob) == 0 or len(blob) % reclen:
-        raise RunError("%s is %d bytes, not a multiple of %d"
-                       % (path, len(blob), reclen))
-    return [blob[i:i + reclen] for i in range(0, len(blob), reclen)]
-
-
-def mvsrun_reclen():
-    """ONF_RECLEN, from the generated layout rather than a literal."""
-    import onfcom_py as layout
-    return layout.RECORD_LEN
-
-
-def golden_fingerprints(refdir, netname=None, backend="2c"):
-    """(golden id, fingerprint) from a recorded gold-<net>-<backend>.txt.
-
-    `netname` is resolved HERE, not in the signature.  Written
-    `netname=NETNAME` it binds the module global once, at import, so
-    `select("path")` left this reading `gold-srext-2c.txt` and the
-    comparison reported five golden entries against fourteen records
-    with every fingerprint wrong -- an alarming-looking failure whose
-    cause was entirely in this line.  The SECOND time this session that
-    a mutable-looking default bit; see `write_cards`.
-    """
-    netname = NETNAME if netname is None else netname
-    path = os.path.join(refdir, "gold-%s-%s.txt" % (netname, backend))
-    text = io.open(path, encoding="ascii").read()
-    return [(m.group(1), m.group(2))
-            for m in GOLD_LINE.finditer(text) if m]
-
-
-def run_compare(argv):
-    """TX-01's MVS half and ACC-5's row 6, judged per D-261.
-
-    `tests/run_tx.py --compare` is Phase D's comparator and is byte-exact
-    by construction, which under D-261 would fail on the one `'chr'`
-    field every time.  Rather than weaken that tool -- Phase D's claim is
-    x86 against s390x, both ASCII, where byte-exactness is exactly right
-    -- the code-page-aware comparison lives here, with Phase E.
-    """
-    if len(argv) < 2:
-        sys.stderr.write("usage: mvsrun.py --compare <mvsdir> <refdir>\n")
-        return 2
-    mvsdir, refdir = argv[0], argv[1]
-    name = "rsp-%s-2c.bin" % NETNAME
-    mvs = read_records(os.path.join(mvsdir, name))
-    ref = read_records(os.path.join(refdir, name))
-
-    sys.stdout.write("=== TX-01 (MVS half), D-261 translated identity ===\n")
-    sys.stdout.write("    %s\n    vs %s\n"
-                     % (os.path.join(mvsdir, name),
-                        os.path.join(refdir, name)))
-    views, lines = compare_records(mvs, ref, "ONFRSP")
-    sys.stdout.write("\n".join(lines) + "\n")
-    sys.stdout.write("  raw=%s  binary=%s  translated=%s\n"
-                     % (views["raw"], views["binary"], views["translated"]))
-
-    # ACC-5 row 6.  The fingerprint is a FIELD of the record, so identical
-    # records imply identical fingerprints -- but the golden suite is
-    # where Section 8.4 states what the fingerprint must BE, and a claim
-    # about ACC-5 that never reads that file is a claim about agreement
-    # between two recordings rather than about the suite.
-    ok = views["translated"]
-    off = 20                       # ONF-FPRINT, layout/master.py
-    sys.stdout.write("\n=== ACC-5 row 6: TK5 MVS 3.8j / SOFT2C / GCCMVS "
-                     "vs Section 8.4 ===\n")
-    gold = golden_fingerprints(refdir)
-    if len(gold) != len(mvs):
-        sys.stdout.write("  FAIL %d golden entries, %d MVS records\n"
-                         % (len(gold), len(mvs)))
-        ok = False
-    for (gid, want), rec in zip(gold, mvs):
-        got = rec[off:off + 4].hex().upper()
-        good = got == want
-        ok = ok and good
-        sys.stdout.write("  %-4s %-5s fp=%s  golden=%s\n"
-                         % ("ok" if good else "FAIL", gid, got, want))
-    sys.stdout.write("mvsrun: TX-01 %s, ACC-5 row 6 %s\n"
-                     % ("PASS" if views["translated"] else "FAIL",
-                        "PASS" if ok else "FAIL"))
-    return 0 if ok else 1
+        lines.append("  FAIL line %d\n    MVS  %r\n    x86  %r"
+                     % (i + 1, g, w))
+    lines.append("  %s %d line(s) %s"
+                 % ("ok  " if ok else "FAIL", len(want),
+                    "identical" if ok else "differ"))
+    return ok, lines
 
 
 def submit_and_collect(deck, job, timeout):
