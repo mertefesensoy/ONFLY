@@ -17,7 +17,7 @@
     "pass": false,
     "shape_pass": true
   },
-  "elapsed_s": 7723,
+  "elapsed_s": 6971,
   "network": {
     "crc32": "44C8B933",
     "edges": 24775486,

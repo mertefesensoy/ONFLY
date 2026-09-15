@@ -5,7 +5,7 @@
   "acc3_pass": true,
   "decision": "D-181, amended by D-289",
   "edges": 10783,
-  "elapsed_s": 79,
+  "elapsed_s": 80,
   "need_bytes": 255688,
   "network": "onfnet-malecns-v1.0-srext.bin",
   "neurons": 501,
