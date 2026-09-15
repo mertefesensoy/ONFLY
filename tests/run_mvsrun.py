@@ -224,11 +224,12 @@ def main():
           len(back) == 1 and back[0] == rec, "%d bytes" % len(back[0]))
 
     # --- slice 3: install, then BUZZ (FR-BAT-01, FR-BAT-06, D-273) -----
-    buzz = mvsrun.buzz_deck()
+    buzz = mvsrun.demo_deck("BUZZ")
+    sugr = mvsrun.demo_deck("SUGR")
     ieng = mvsrun.install_eng_deck()
     idrv = mvsrun.install_drv_deck()
-    for name, deck in (("BUZZ", buzz), ("ONFIENG", ieng),
-                       ("ONFIDRV", idrv)):
+    for name, deck in (("BUZZ", buzz), ("SUGR", sugr),
+                       ("ONFIENG", ieng), ("ONFIDRV", idrv)):
         try:
             mvsub.check_cards(deck)
             check("%s deck passes mvsub.check_cards" % name, True,
@@ -237,6 +238,19 @@ def main():
             check("%s deck passes mvsub.check_cards" % name, False,
                   str(exc))
 
+    # D-274: SUGR is the same three steps over the path suite, so
+    # the shape checks apply to both.
+    for name, deck in (("BUZZ", buzz), ("SUGR", sugr)):
+        ex = [c.split()[0][2:] for c in deck if " EXEC " in c]
+        check("%s is FR-BAT-01's THREE steps, plus a scratch"
+              % name,
+              ex == ["SCRATCH", "STEP1", "STEP2", "STEP3"],
+              " ".join(ex))
+        check("%s compiles nothing" % name,
+              not any(p in c for c in deck
+                      for p in ("PGM=GCC", "PGM=IKFCBL00",
+                                "PGM=IEWL", "PGM=IFOX00")),
+              "%d cards" % len(deck))
     execs = [c.split()[0][2:] for c in buzz if " EXEC " in c]
     check("BUZZ is FR-BAT-01's THREE steps, plus a scratch",
           execs == ["SCRATCH", "STEP1", "STEP2", "STEP3"], " ".join(execs))
@@ -262,12 +276,22 @@ def main():
 
     # STEP1's ONFCTL stream only.  STEP3 has an ONFCTL of its own
     # carrying MODE=RPT, and a filter by card text would sweep it in.
-    first = buzz.index("//ONFCTL   DD *")
-    ctl = buzz[first + 1:buzz.index("/*", first)]
-    want_cards = [t for t, _ in mvsrun.request_cards()]
-    check("BUZZ runs the D-273 srext suite",
-          ctl == want_cards,
-          "%d control cards: %s" % (len(ctl), ctl[0] if ctl else "-"))
+    # demo_deck() calls select(), so building SUGR left the module
+    # pointing at `path`.  Re-select before asking what BUZZ's cards
+    # should be, or this compares BUZZ's srext deck with path's suite
+    # and fails for a reason that is entirely about module state.
+    for job, net, n in (("BUZZ", "srext", 5), ("SUGR", "path", 14)):
+        deck = buzz if job == "BUZZ" else sugr
+        mvsrun.select(net)
+        first = deck.index("//ONFCTL   DD *")
+        ctl = deck[first + 1:deck.index("/*", first)]
+        want_cards = [t for t, _ in mvsrun.request_cards()]
+        check("%s runs the %s suite (D-273, D-274)" % (job, net),
+              ctl == want_cards
+              and len([c for c in ctl if not c.startswith(("*", "MODE"))])
+              == n,
+              "%d control cards, %d requests" % (len(ctl), n))
+    mvsrun.select("srext")
 
     # The install jobs put the programs where BUZZ looks for them, and
     # run nothing themselves.

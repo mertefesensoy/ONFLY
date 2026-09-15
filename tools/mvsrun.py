@@ -105,6 +105,7 @@ Slice 3 (FR-BAT-01, FR-BAT-06, D-273):
     python tools/mvsrun.py --install-eng   ONFLYENG -> LOADLIB
     python tools/mvsrun.py --install-drv   ONFLYDRV + ONFNAM
     python tools/mvsrun.py --buzz          the three-step BUZZ job
+    python tools/mvsrun.py --buzz --sugr   the same over `path` (D-274)
 """
 import io
 import os
@@ -500,9 +501,25 @@ def rpt_deck():
 
 LOADLIB = "%s.ONFLY.LOADLIB" % USER
 NAM_DSN = "%s.ONFLY.ONFNAM" % USER
+
+#: The two demonstration jobs FR-BAT-06 names, after D-273 and D-274.
+#:
+#:   BUZZ  the demonstration: `srext`, G-15 to G-19, every request
+#:         valid, so every step ends 0 and ACC-7 is satisfiable.
+#:   SUGR  the same three steps over `path`, G-01 to G-14.  Its STEP2
+#:         ends 8 BY DESIGN -- G-12 is an unknown stimulus code and
+#:         G-13 an out-of-range rate -- which is exactly why D-273 took
+#:         these requests out of BUZZ.  IR-JCL-04 still runs STEP3,
+#:         because 8 is below 12, so the report prints and shows them.
+DEMOS = {
+    "BUZZ": {"net": "srext", "title": "ONFLY BUZZ",
+             "req": "%s.ONFLY.BREQ" % USER, "rsp": "%s.ONFLY.BRSP" % USER},
+    "SUGR": {"net": "path", "title": "ONFLY SUGR",
+             "req": "%s.ONFLY.SREQ" % USER, "rsp": "%s.ONFLY.SRSP" % USER},
+}
 BUZZ_JOB = "BUZZ"
-BUZZ_REQ = "%s.ONFLY.BREQ" % USER
-BUZZ_RSP = "%s.ONFLY.BRSP" % USER
+BUZZ_REQ = DEMOS["BUZZ"]["req"]
+BUZZ_RSP = DEMOS["BUZZ"]["rsp"]
 
 
 def install_eng_deck(opt=mvsbld.OPT):
@@ -519,7 +536,7 @@ def install_drv_deck():
                        nam_cards=name_cards("srext"), nam_dsn=NAM_DSN)
 
 
-def buzz_deck():
+def demo_deck(job="BUZZ"):
     """FR-BAT-01's three steps as one job, named BUZZ (FR-BAT-06).
 
     Exactly three EXEC steps after the scratch, because FR-BAT-01 says
@@ -538,7 +555,12 @@ def buzz_deck():
     `COND=(8,LE,STEP1)` -- skip when 8 <= the return code -- and "STEP3
     shall run only if STEP2 ended below 12" is `COND=(12,LE,STEP2)`.
     """
-    select("srext")
+    if job not in DEMOS:
+        raise RunError("unknown demonstration job %r; expected one of %s"
+                       % (job, sorted(DEMOS)))
+    spec = DEMOS[job]
+    select(spec["net"])
+    req_ds, rsp_ds = spec["req"], spec["rsp"]
     d = []
 
     def a(card):
@@ -547,12 +569,13 @@ def buzz_deck():
                            % (mvsbld.JCL_FIELD, card))
         d.append(card)
 
-    a("//%-8s JOB (001),'ONFLY BUZZ',CLASS=A,MSGCLASS=A," % BUZZ_JOB)
+    a("//%-8s JOB (001),'%s',CLASS=A,MSGCLASS=A,"
+      % (job, spec["title"]))
     a("//             USER=%s,PASSWORD=CUL8TR," % USER)
     a("//             REGION=8M,TIME=1440,MSGLEVEL=(1,1)")
     a("//*")
     a("//SCRATCH  EXEC PGM=IEFBR14")
-    for n, dsn in enumerate((BUZZ_REQ, BUZZ_RSP), 1):
+    for n, dsn in enumerate((req_ds, rsp_ds), 1):
         a("//D%d       DD DSN=%s,DISP=(MOD,DELETE)," % (n, dsn))
         a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
     a("//*")
@@ -561,7 +584,7 @@ def buzz_deck():
     a("//STEPLIB  DD DSN=%s,DISP=SHR" % LOADLIB)
     a("//SYSOUT   DD SYSOUT=*")
     a("//SYSPRINT DD SYSOUT=*")
-    a("//ONFREQ   DD DSN=%s,DISP=(,CATLG,DELETE)," % BUZZ_REQ)
+    a("//ONFREQ   DD DSN=%s,DISP=(,CATLG,DELETE)," % req_ds)
     a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
     a("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
     a("//ONFCTL   DD *")
@@ -577,8 +600,8 @@ def buzz_deck():
     a("//SYSIN    DD DUMMY")
     a("//ONFNET   DD UNIT=%s," % mvseng.READER_UNIT)
     a("//            DCB=(RECFM=F,LRECL=80,BLKSIZE=80)")
-    a("//ONFREQ   DD DSN=%s,DISP=SHR" % BUZZ_REQ)
-    a("//ONFRSP   DD DSN=%s,DISP=(,CATLG,DELETE)," % BUZZ_RSP)
+    a("//ONFREQ   DD DSN=%s,DISP=SHR" % req_ds)
+    a("//ONFRSP   DD DSN=%s,DISP=(,CATLG,DELETE)," % rsp_ds)
     a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
     a("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
     a("//*")
@@ -587,7 +610,7 @@ def buzz_deck():
     a("//STEPLIB  DD DSN=%s,DISP=SHR" % LOADLIB)
     a("//SYSOUT   DD SYSOUT=*")
     a("//SYSPRINT DD SYSOUT=*")
-    a("//ONFRSP   DD DSN=%s,DISP=SHR" % BUZZ_RSP)
+    a("//ONFRSP   DD DSN=%s,DISP=SHR" % rsp_ds)
     a("//ONFNAM   DD DSN=%s,DISP=SHR" % NAM_DSN)
     a("//ONFRPT   DD SYSOUT=*,DCB=(RECFM=FBA,LRECL=133,BLKSIZE=133)")
     a("//ONFCTL   DD *")
@@ -1023,8 +1046,9 @@ def print_perf_context():
 
 
 def run_buzz(argv):
-    """ACC-7: the BUZZ job end to end on TK5."""
-    deck = buzz_deck()
+    """ACC-7 for BUZZ; the same three steps for SUGR."""
+    job = "SUGR" if "--sugr" in argv else "BUZZ"
+    deck = demo_deck(job)
     mvsub.check_cards(deck)
     if "--print" in argv:
         sys.stdout.write("\n".join(deck) + "\n")
@@ -1038,14 +1062,15 @@ def run_buzz(argv):
                    % (mvseng.READER_DEV, staged.replace("\\", "/")))
     sys.stdout.write("mvsrun: reader %s loaded with %s\n"
                      % (mvseng.READER_DEV, staged))
-    out = run_simple(argv, deck, BUZZ_JOB, 3600,
-                     "FR-BAT-01 three steps, D-273 srext")
+    out = run_simple(argv, deck, job, 7200,
+                     "FR-BAT-01 three steps, %s"
+                     % DEMOS[job]["net"])
     if not isinstance(out, str):
         return out
 
     steps = {}
-    for m in re.finditer(r"IEF142I\s+BUZZ\s+(\S+)\s+-\s+STEP WAS EXECUTED"
-                         r"\s+-\s+COND CODE\s+(\d+)", out):
+    for m in re.finditer(r"IEF142I\s+" + job + r"\s+(\S+)\s+-\s+"
+                         r"STEP WAS EXECUTED\s+-\s+COND CODE\s+(\d+)", out):
         steps[m.group(1)] = int(m.group(2))
 
     # The step times MVS itself accounts for, and NFR-PERF-02's context
@@ -1057,7 +1082,8 @@ def run_buzz(argv):
         sys.stdout.write("  %-8s CPU %s min %s s   VIRT %s\n"
                          % (m.group(1), m.group(2), m.group(3), m.group(4)))
     print_perf_context()
-    sys.stdout.write("\n=== ACC-7: BUZZ end to end ===\n")
+    sys.stdout.write("\n=== %s end to end%s ===\n"
+                     % (job, " (ACC-7)" if job == "BUZZ" else ""))
     for name in ("SCRATCH", "STEP1", "STEP2", "STEP3"):
         sys.stdout.write("  %-8s COND CODE %s\n"
                          % (name, steps.get(name, "(not executed)")))
