@@ -72,12 +72,38 @@ NETDIR = os.path.join(ROOT, "data", "networks")
 MANIFEST = os.path.join(NETDIR, "MANIFEST.json")
 
 
+#: Read size for digests().  Any value works; 8 MiB simply keeps the
+#: number of system calls small without holding much.
+CHUNK = 8 << 20
+
+
 def digests(path):
-    """(bytes, CRC-32 as 8 hex digits, SHA-256 hex) for one file."""
-    data = io.open(path, "rb").read()
-    crc = "%08X" % (zlib.crc32(data) & 0xFFFFFFFF)
-    sha = hashlib.sha256(data).hexdigest() if hashlib else ""
-    return len(data), crc, sha
+    """(bytes, CRC-32 as 8 hex digits, SHA-256 hex) for one file.
+
+    Streamed rather than read whole.  This used to be
+    `io.open(path, "rb").read()`, which cannot verify the largest file
+    this module's own manifest describes: the MaleCNS connectome weights
+    are 1,051,241,946 bytes and a single read of that size fails on
+    Windows with `OSError: [Errno 22] Invalid argument` -- an error that
+    names neither the file nor its size, and which surfaced four frames
+    inside `matches()`.
+
+    Chunking also means the check no longer needs a gigabyte of resident
+    memory to decide whether a gigabyte on disk is the right gigabyte.
+    Both digests are incremental, so the result is identical to what the
+    whole-file version returned.
+    """
+    size, crc, sha = 0, 0, hashlib.sha256() if hashlib else None
+    with io.open(path, "rb") as fh:
+        while True:
+            block = fh.read(CHUNK)
+            if not block:
+                break
+            size += len(block)
+            crc = zlib.crc32(block, crc)
+            if sha is not None:
+                sha.update(block)
+    return size, "%08X" % (crc & 0xFFFFFFFF), sha.hexdigest() if sha else ""
 
 
 def matches(path, want):
