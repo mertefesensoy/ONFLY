@@ -215,12 +215,61 @@ bytes are **not** 80-byte records, and that `records()` makes them so. The
 synthetic test in §6.1 passed throughout, because it wrote its own names file
 with `ljust(80)` and no newline.
 
-### 6.2 What is NOT proven
+### 6.2 On TK5 — job ONFERPT
 
-- **Everything above is x86-64 GnuCOBOL 3.2.0 under `-std=ibm` and
-  `-std=ibm-strict`.** VL-02 stands: that is a proxy for Enterprise COBOL and
-  is not Enterprise COBOL, and it says nothing whatever about MVT COBOL. The
-  report has **not** been compiled by IKFCBL00 or printed on TK5.
+**Platform:** MVS 3.8j TK5 under Hercules 4.9.1.11612-SDL, **IKFCBL00** (the
+OS/360 MVT ANS COBOL compiler), reporting over the ONFRSP that GCCMVS's engine
+wrote in job ONFERUN.
+
+```
+python tools/mvsrun.py --net srext --report
+  IEF142I ONFERPT COB    - STEP WAS EXECUTED - COND CODE 0004
+  IEF142I ONFERPT LKED   - STEP WAS EXECUTED - COND CODE 0000
+  IEF142I ONFERPT WRITEN - STEP WAS EXECUTED - COND CODE 0000
+  IEF142I ONFERPT GO     - STEP WAS EXECUTED - COND CODE 0000
+  ok   21 line(s) identical
+```
+
+The report MVT COBOL printed, in full:
+
+```
+ONFLY REPORT (FR-BAT-04)
+REQUEST    1 CODE=SUGR     RATE=   0 MS=1000 SEED=        1 RC=   0 OUT=   2 STEPS=    10000
+  ONF301I  REQUEST COMPLETE                                 FP=6C3F7272
+  READOUT      1 ID=        9 MN9-10331       LAT-US=        -1 SPIKES=   0 HZ=      0.0
+  READOUT      2 ID=       88 MN9-16949       LAT-US=        -1 SPIKES=   0 HZ=      0.0
+REQUEST    3 CODE=SUGR     RATE= 200 MS=1000 SEED=        1 RC=   0 OUT=   2 STEPS=    10000
+  ONF301I  REQUEST COMPLETE                                 FP=F9C7EE77
+  READOUT      1 ID=        9 MN9-10331       LAT-US=      8600 SPIKES= 165 HZ=    165.0
+  READOUT      2 ID=       88 MN9-16949       LAT-US=     43400 SPIKES=  15 HZ=     15.0
+```
+
+(two of the five requests shown; columns elided for width — the comparison is
+on the full 132.)
+
+**All 21 lines are character-identical to the x86 GnuCOBOL reference.** VL-02
+says a proxy pass is not proof of anything about MVT COBOL; for this feature
+the proxy is no longer needed, because MVT COBOL itself agrees line for line.
+Request 1 is the ACC-2 case and both readouts come back `-1 / 0 / 0.0`.
+
+**A finding about the printer, not the program.** ONFRPT is RECFM=FBA and the
+driver writes byte 1 itself (VL-59). The Hercules line printer puts the **raw
+record** into the spool file, carriage control included: the title arrives as
+`1ONFLY REPORT (FR-BAT-04)` and the body as `" REQUEST ..."` with a *blank*
+control character. The blank one is what hid it — `strip()` removes it, so
+every body line matched and only the title did not, the comparison ran one
+line out of step, and it announced all 21 as differing while the content was
+identical throughout.
+
+### 6.3 What is NOT proven
+
+- **Enterprise COBOL is still untested.** VL-02 stands for that half: this
+  session ran GnuCOBOL's IBM dialect and MVT COBOL, and neither is Enterprise
+  COBOL.
+- The report has been printed for `srext` only. The `path` suite's ONF201W,
+  ONF202E and ONF203E lines have been produced by the **engine** on MVS but
+  have never been printed by ONFLYDRV there — that is D-274's SUGR job, built
+  and not submitted.
 - The `path` names file's rank pairing is **unchecked** — no recorded body
   list of length 913 exists. The derivation is the same one that is checked
   for `srext`, but that is an argument, not a measurement.
