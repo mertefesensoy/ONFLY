@@ -127,16 +127,20 @@ import mvsub                                          # noqa: E402
 #: other's listing.
 USER = "HERC01"
 NETS = {
-    "srext": {"req_job": "ONFEREQ", "run_job": "ONFERUN", "dsn": "EREQ"},
-    "path": {"req_job": "ONFPREQ", "run_job": "ONFPRUN", "dsn": "PREQ"},
+    "srext": {"req_job": "ONFEREQ", "run_job": "ONFERUN",
+              "rpt_job": "ONFERPT", "dsn": "EREQ", "rsp": "ERSP"},
+    "path": {"req_job": "ONFPREQ", "run_job": "ONFPRUN",
+             "rpt_job": "ONFPRPT", "dsn": "PREQ", "rsp": "PRSP"},
 }
 
 NETNAME = NETFILE = CARDFILE = REQ_JOB = RUN_JOB = REQ_DSN = None
+RPT_JOB = RSP_DSN = None
 
 
 def select(name):
     """Point this module at one of the two Section 8.4 networks."""
     global NETNAME, NETFILE, CARDFILE, REQ_JOB, RUN_JOB, REQ_DSN
+    global RPT_JOB, RSP_DSN
     if name not in NETS:
         raise RunError("unknown network %r; expected one of %s"
                        % (name, sorted(NETS)))
@@ -148,7 +152,9 @@ def select(name):
                             "onfnet-%s-cards.bin" % name)
     REQ_JOB = spec["req_job"]
     RUN_JOB = spec["run_job"]
+    RPT_JOB = spec["rpt_job"]
     REQ_DSN = "%s.ONFLY.%s" % (USER, spec["dsn"])
+    RSP_DSN = "%s.ONFLY.%s" % (USER, spec["rsp"])
 
 #: Members for the units mvseng.py does not link.  Eight characters,
 #: unique ignoring case (C-04).  The mapping is copied from
@@ -292,8 +298,13 @@ def run_deck(opt=mvsbld.OPT):
         "//ONFNET   DD UNIT=%s," % mvseng.READER_UNIT,
         "//            DCB=(RECFM=F,LRECL=80,BLKSIZE=80)",
         "//ONFREQ   DD DSN=%s,DISP=SHR" % REQ_DSN,
-        "//ONFRSP   DD DSN=&&ONFRSP,DISP=(,PASS),UNIT=SYSDA,",
-        "//            SPACE=(TRK,(2,1)),",
+        # CATALOGUED, not temporary.  FR-BAT-01's STEP3 is a separate
+        # job until slice 3 folds the three together, and a report has
+        # to have something to report over.  The SCRATCH step deletes
+        # it first (mvsbld.build's `scratch`), which is what keeps the
+        # job rerunnable.
+        "//ONFRSP   DD DSN=%s,DISP=(,CATLG,DELETE)," % RSP_DSN,
+        "//            UNIT=SYSDA,SPACE=(TRK,(2,1)),",
         "//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)",
     ]
     # COND=(8,LT): dump unless something has already failed at 12 or
@@ -304,14 +315,14 @@ def run_deck(opt=mvsbld.OPT):
         "//*",
         "//DUMP     EXEC PGM=IDCAMS,COND=(8,LT)",
         "//SYSPRINT DD SYSOUT=*",
-        "//ONFRSP   DD DSN=&&ONFRSP,DISP=(OLD,DELETE)",
+        "//ONFRSP   DD DSN=%s,DISP=SHR" % RSP_DSN,
         "//SYSIN    DD *",
         "  PRINT INFILE(ONFRSP) DUMP",
         "/*",
     ]
     return mvsbld.build(RUN_JOB, "ONFLY E1 SIMULATE", sources,
                         headers=HEADERS, go_dd=go_dd, post=post,
-                        opt=opt)
+                        scratch=[RSP_DSN], opt=opt)
 
 
 # --- reading the listing ---------------------------------------------------
@@ -414,6 +425,67 @@ def compare_records(got, want, what):
 
 
 GOLD_LINE = re.compile(r"^GOLD id=(\S+).*\bfp=([0-9A-F]{8})", re.M)
+
+
+def name_cards(label=None):
+    """The committed ONFNAM file as cards, for an inline DD * stream.
+
+    Read from `data/networks/onfnam-malecns-v1.0-<label>.txt` rather
+    than rebuilt, so what reaches MVS is the artifact `prep/names.py`
+    emitted and `tests/run_names.py` checks -- not a second rendering
+    of the same data that could differ from it.
+
+    Trailing blanks are stripped because a DD * card is text: IR-NAM-03
+    puts this file through an ASCII-to-EBCDIC conversion precisely
+    because it is text, and MVS pads a short card to LRECL on arrival.
+    """
+    label = NETNAME if label is None else label
+    path = os.path.join(ROOT, "data", "networks",
+                        "onfnam-malecns-v1.0-%s.txt" % label)
+    if not os.path.isfile(path):
+        raise RunError("no names file at %s; run `python prep/names.py`"
+                       % os.path.basename(path))
+    out = []
+    for line in io.open(path, encoding="ascii").read().splitlines():
+        line = line.rstrip()
+        if not line:
+            continue
+        if line.startswith("//") or line.startswith("/*"):
+            raise RunError("names row %r would end the inline stream"
+                           % line)
+        out.append(line)
+    return out
+
+
+def rpt_deck():
+    """Job ONF*RPT: FR-BAT-04's report on MVS (slice 2)."""
+    return mvscob.deck(rpt_only=True, rsp_dsn=RSP_DSN, job=RPT_JOB,
+                       title="ONFLY E2 REPORT", nam_cards=name_cards())
+
+
+def run_rpt(argv):
+    d = rpt_deck()
+    mvsub.check_cards(d)
+    if "--print" in argv:
+        sys.stdout.write("\n".join(d) + "\n")
+        return 0
+    sys.stdout.write("mvsrun: %s, %d cards, ONFRSP %s, %d ONFNAM rows\n"
+                     % (RPT_JOB, len(d), RSP_DSN, len(name_cards())))
+    t0 = time.time()
+    out = submit_and_collect(d, RPT_JOB, 900)
+    sys.stdout.write("mvsrun: %s finished in %.1f s\n"
+                     % (RPT_JOB, time.time() - t0))
+    sys.stdout.write("\n".join(mvsub.summarise(out)) + "\n")
+
+    # The report itself.  Printed whole: FR-BAT-04 is a requirement
+    # about what a person reads, so the evidence has to be the lines a
+    # person would read.
+    sys.stdout.write("\n=== FR-BAT-04 report, as MVT COBOL printed it ===\n")
+    keep = [l.rstrip() for l in out.splitlines()
+            if l.lstrip().startswith(("ONFLY REPORT", "REQUEST ",
+                                      "  ONF", "  READOUT"))]
+    sys.stdout.write("\n".join(keep) + "\n")
+    return 0 if keep else 1
 
 
 def read_records(path, reclen=None):
@@ -641,6 +713,8 @@ def main(argv):
         return run_req(argv)
     if "--run" in argv:
         return run_run(argv)
+    if "--report" in argv:
+        return run_rpt(argv)
     if "--compare" in argv:
         i = argv.index("--compare")
         return run_compare(argv[i + 1:])

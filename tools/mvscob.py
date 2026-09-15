@@ -114,7 +114,8 @@ def expected_records(cards=None):
 
 
 def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
-         job=None, title="ONFLY G4 COBOL"):
+         job=None, title="ONFLY G4 COBOL", rpt_only=False, rsp_dsn=None,
+         nam_cards=None):
     """Gate G4's COBOL job, or the same job over different control cards.
 
     The four keyword arguments exist for Phase E slice 1 (D-260), which
@@ -128,6 +129,19 @@ def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
     one tools/mvsbld.py's own docstring argues against: every line of
     this deck was paid for by a failure, and two copies of that would
     drift.
+
+    `rpt_only` reuses the same compile and link for Phase E slice 2's
+    FR-BAT-04 check: no MODE=REQ step, and one GO that reads `rsp_dsn`
+    as ONFRSP and `nam_cards` as ONFNAM.
+
+    **The names file travels as INLINE CARDS on purpose.**  IR-NAM-03
+    requires it to be "transferred in text mode so that ASCII-to-EBCDIC
+    conversion happens in transport", and a DD * stream is precisely
+    that: JES2 reads ASCII from the socket reader and stores EBCDIC.
+    The card reader path Gate G2 chose for the NETWORK is the opposite
+    of what this file wants -- it is binary-transparent (VL-52), which
+    is why the network survives it and why the names file must not use
+    it.
     """
     cards = CARDS if cards is None else cards
     req_dsn = REQ_DSN if req_dsn is None else req_dsn
@@ -143,8 +157,12 @@ def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
     a("//             USER=%s,PASSWORD=CUL8TR," % USER)
     a("//             REGION=4M,TIME=1440,MSGLEVEL=(1,1)")
     a("//*")
+    # In rpt_only mode the request dataset is an INPUT to some other
+    # job and must survive: scratching it here would delete the ONFREQ
+    # the engine step reads, from a job whose name says "report".
     a("//SCRATCH  EXEC PGM=IEFBR14")
-    for n, dsn in enumerate((LIB_DSN, SRC_DSN, req_dsn), 1):
+    kill = (LIB_DSN, SRC_DSN) if rpt_only else (LIB_DSN, SRC_DSN, req_dsn)
+    for n, dsn in enumerate(kill, 1):
         a("//D%d       DD DSN=%s,DISP=(MOD,DELETE)," % (n, dsn))
         a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
     a("//*")
@@ -192,6 +210,27 @@ def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
     a("//SYSUT1   DD UNIT=SYSDA,SPACE=(1024,(50,20))")
     a("//SYSPRINT DD SYSOUT=*")
     a("//*")
+    if rpt_only:
+        # FR-BAT-01 STEP3, on its own until slice 3 folds the three
+        # steps into one job.  ONFNAM is an inline DD * stream, so
+        # JES2 does IR-NAM-03's ASCII-to-EBCDIC conversion.
+        a("//GO       EXEC PGM=*.LKED.SYSLMOD,"
+          "COND=((5,LT,COB),(5,LT,LKED))")
+        a("//SYSOUT   DD SYSOUT=*")
+        a("//SYSPRINT DD SYSOUT=*")
+        a("//ONFRSP   DD DSN=%s,DISP=SHR" % rsp_dsn)
+        a("//ONFNAM   DD *")
+        for text in (nam_cards or []):
+            a(text)
+        a("/*")
+        a("//ONFRPT   DD SYSOUT=*,"
+          "DCB=(RECFM=FBA,LRECL=133,BLKSIZE=133)")
+        a("//ONFCTL   DD *")
+        a("MODE=RPT")
+        a("/*")
+        a("//")
+        return d
+
     # --- run, request mode ------------------------------------------
     a("//GO       EXEC PGM=*.LKED.SYSLMOD,COND=((5,LT,COB),(5,LT,LKED))")
     a("//SYSOUT   DD SYSOUT=*")

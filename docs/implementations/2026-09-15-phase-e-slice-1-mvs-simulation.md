@@ -224,11 +224,103 @@ G-13 rate=-1 (D-265)`, then `run_cob: PASS on x86 GnuCOBOL (cobc (GnuCOBOL)
 
 ### 6.2 On TK5 — see section 6.3 for what this does not prove
 
-*(filled in below)*
+**Platform for everything in this section:** MVS 3.8j TK5 under Hercules
+4.9.1.11612-SDL on this Windows host, Hercules codepage `819/1047` (VL-18),
+**GCCMVS 3.2.3 at `-O1`** (the VL-17 pin), float backend **SOFT2C** — the
+Release 2c fallback NR-03 puts there, since VL-21 answered "no" for 3e.
+
+**FR-BAT-01 STEP1 — job ONFEREQ.** Every step COND CODE 0000 except `COB`,
+which is 0004 (the eight `IKF4072I-W` warnings Gate G4 already recorded).
+
+```
+python tools/mvsrun.py --req
+  ONF302I STEP SUMMARY: 0005 OK, 0000 ERROR, 0000 ECHOED
+  note record 1: raw NO   binary(8..411) yes  translated yes
+         chr[0:8] got e2e4c7d940404040 ('SUGR    ' as EBCDIC), want 5355475220202020
+  raw=False  binary=True  translated=True
+```
+
+**FR-BAT-01 STEP2 — job ONFERUN. The first simulation ONFLY has ever run on
+a mainframe.** All thirteen compiles, all thirteen assemblies, `LKED`, `GO`
+and `DUMP` at COND CODE 0000:
+
+```
+python tools/mvsrun.py --run --out data/phase-e/mvs
+  mvsrun: ONFERUN, 8524 cards, 13 translation units, longest 80 columns, GCCMVS -O1
+  mvsrun: ONFERUN finished in 855.7 s
+  IEF142I ONFERUN COMP1 ... COMP13 / ASM1 ... ASM13 - COND CODE 0000
+  IEF142I ONFERUN LKED - STEP WAS EXECUTED - COND CODE 0000
+  IEF142I ONFERUN GO   - STEP WAS EXECUTED - COND CODE 0000
+  IEF142I ONFERUN DUMP - STEP WAS EXECUTED - COND CODE 0000
+  ONF302I STEP SUMMARY: 5 OK, 0 WARN, 0 ERROR
+  mvsrun: ONF301I request 1 FP=6C3F7272   ... 5 FP=C4C320BC
+```
+
+**TX-01 (MVS half) and ACC-5 row 6.**
+
+```
+python tools/mvsrun.py --compare data/phase-e/mvs data/phase-d/x86w
+  raw=False  binary=True  translated=True
+  ok   G-15  fp=6C3F7272  golden=6C3F7272
+  ok   G-16  fp=BAF81D91  golden=BAF81D91
+  ok   G-17  fp=F9C7EE77  golden=F9C7EE77
+  ok   G-18  fp=4FD0ED1E  golden=4FD0ED1E
+  ok   G-19  fp=C4C320BC  golden=C4C320BC
+  mvsrun: TX-01 PASS, ACC-5 row 6 PASS
+```
+
+G-15 is rate 0 and both readouts come back `lat=-1 spk=0`, so **ACC-2's exact
+silence holds on MVS** as well — by construction, since IR-NET-09 requires the
+compensating table's rate 0 row to be zero in every neuron.
+
+**Every condition code in the job is 0000** — `grep -c "COND CODE 0000"` over
+the saved listing returns **33**, which is exactly SCRATCH, ALLOC, WRITEH,
+WRITEC, thirteen COMPs, thirteen ASMs, LKED, GO and DUMP, and
+`grep "COND CODE" | grep -v 0000` returns nothing.
+
+**The v1.1 header was decoded by GCCMVS for the first time**, which the
+`srext` manifest entry in `data/networks/MANIFEST.json` still listed under
+`not_proven`:
+
+```
+ONF001I NETWORK LOADED N=501 E=10783 CRC=4577D74E
+ONF002I   N               501
+ONF002I   BIAS ROWS       9
+ONF002I   BYTES NEED      171768 255688
+```
+
+`BIAS ROWS 9` is the compensating-input table of D-190 read on MVS, and
+**`BYTES NEED ... 255688` is SR-EXT-03's decoded-size figure confirmed by the
+target platform's own engine** rather than by the x86 computation the SRS
+quotes it from — against TBD-14's measured 8M region (NFR-MEM-01).
+
+**Resource use, from the job listing.** `GO` reported `VIRT 1040K` and
+`CPU 13MIN 45.87SEC` — from which §4 derives 32.97 µs per neuron-step, and
+16.69 s for the entire compile, assemble and link.
 
 ### 6.3 What is NOT proven
 
-*(filled in below)*
+- **The `path` half of the golden suite has not run on MVS in this
+  section.** Row 6 of the Section 8.3 matrix is filled for `srext` only, and
+  FR-BAT-05's ONF201W, D-41's ONF203E and FR-SIM-06's ONF202E have never been
+  reached by the MVS engine.
+- **Row 7 is untouched.** Nothing here says anything about JCC (VL-03).
+- **Four Gate G1 workarounds are still load-bearing and still outside the
+  repository**: the `-O1` pin (VL-17), the `819/1047` codepage (VL-18), the
+  D-110 amalgamation and the D-111 renames. A checkout cannot reproduce this
+  run without them.
+- **ONFREQ was built by ONFLYDRV under MVT COBOL (D-260)**, so a defect common
+  to the driver and `tools/mkreq.py` would not show here. What bounds that is
+  Gate G4's VL-58 and the fact that the records match `req-srext.bin` byte for
+  byte after translation — not an independent transport.
+- **This is not ACC-6 and not NFR-PERF-01.** 825.87 s is an aggregate over five
+  requests. NFR-PERF-01 bounds *one* request at the standard duration, and a
+  per-request wall time was not measured. TX-04 remains owed, as VL-90 records.
+- **Nothing here is a z/OS or real-hardware result.** Hercules is an emulator;
+  VL-01's argument about QEMU applies here in the same form.
+- The run took place on a host that was simultaneously running this session's
+  x86 builds, so **elapsed** times are not clean measurements. The CPU times
+  quoted are Hercules' own accounting, which is what §4 uses.
 
 ## 7. Related docs
 

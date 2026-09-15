@@ -209,7 +209,7 @@ def amalgamated_order(relpath, include_map):
 
 def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
           asm_parm="DECK,NOLIST", region=REGION, go_parm=None,
-          go_dd=(), post=()):
+          go_dd=(), post=(), scratch=()):
     """Return a deck that compiles `sources`, links them and runs the result.
 
     sources     [(repo path OR cards, 8-char member)]  units, in link order
@@ -262,8 +262,15 @@ def build(job, title, sources, headers=(), vb_headers=(), opt=OPT,
     a("//*")
 
     # --- clear and allocate the libraries --------------------------------
+    # `scratch` names datasets the GO step will CATALOGUE, so they must
+    # be gone before it allocates them or a second run fails at
+    # allocation with NOT CATLGD 2 -- a JCL error, reported nowhere near
+    # the DD that caused it.  DISP=(MOD,DELETE) deletes one that exists
+    # and quietly creates-then-deletes one that does not, so the step is
+    # correct on a first run as well.
     a("//SCRATCH  EXEC PGM=IEFBR14")
-    for n, dsn in enumerate((HDR_DSN, VBH_DSN, SRC_DSN), 1):
+    for n, dsn in enumerate(tuple((HDR_DSN, VBH_DSN, SRC_DSN))
+                            + tuple(scratch), 1):
         a("//D%d       DD DSN=%s,DISP=(MOD,DELETE)," % (n, dsn))
         a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
     a("//*")

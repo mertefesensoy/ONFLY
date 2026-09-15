@@ -115,12 +115,21 @@ def main():
     check("GO carries no PARM, so onfeisv() reads SIMULATE",
           "PARM=" not in go[0], go[0].strip())
 
-    # 7
+    # 7  DUMP must read the dataset GO wrote, and SCRATCH must delete
+    #    it first -- otherwise the second run of the job fails at
+    #    allocation with NOT CATLGD 2, a JCL error reported nowhere
+    #    near the DD that caused it.
     dump = step_cards(run, "DUMP")
-    check("DUMP follows GO and reads &&ONFRSP",
-          bool(dump) and any("&&ONFRSP" in c for c in dump)
+    scratch = step_cards(run, "SCRATCH")
+    rsp = mvsrun.RSP_DSN
+    check("DUMP follows GO and reads the dataset GO wrote",
+          bool(dump) and any(rsp in c for c in dump)
+          and any(rsp in c for c in go)
           and run.index(dump[0]) > run.index(go[0]),
-          dump[0].strip() if dump else "absent")
+          rsp)
+    check("SCRATCH deletes it first, so the job reruns",
+          any(rsp in c and "DISP=(MOD,DELETE)" in c for c in scratch),
+          "%d scratch DDs" % sum(1 for c in scratch if " DD " in c))
 
     # 8
     cards = [t for t, _ in mvsrun.request_cards()]
@@ -188,9 +197,9 @@ def main():
 
     # 12
     src = [(["int main(void){return 0;}"], "TSTONE")]
-    check("regression: mvsbld.build(post=()) adds no card",
-          mvsbld.build("T", "T", src) == mvsbld.build("T", "T", src,
-                                                      post=()),
+    check("regression: build(post=(), scratch=()) adds no card",
+          mvsbld.build("T", "T", src)
+          == mvsbld.build("T", "T", src, post=(), scratch=()),
           "%d cards" % len(mvsbld.build("T", "T", src)))
 
     # 13
