@@ -360,29 +360,28 @@ def main():
         # the report -- every message and every readout -- would have
         # been dropped SILENTLY, and the comparison would have passed
         # on the title and the request echoes alone.
-        noise = ["IEF142I BUZZ STEP1 - STEP WAS EXECUTED - COND CODE 0000",
-                 "ONF302I STEP SUMMARY: 0005 OK, 0000 ERROR, 0000 ECHOED",
-                 "ONF001I NETWORK LOADED N=501 E=10783 CRC=4577D74E"]
-        lifted = mvsrun.report_from("\n".join(noise + good))
-        check("report_from lifts the whole report out of a listing",
-              lifted == good,
-              "%d of %d lines, from %d lines of listing"
-              % (len(lifted), len(good), len(noise) + len(good)))
-
         # As the MVS printer actually delivers it.  ONFRPT is RECFM=FBA
         # and the driver writes byte 1 itself (VL-59); the Hercules
-        # line printer puts the RAW record in the spool file, carriage
-        # control included -- "1ONFLY REPORT ..." for the title and
-        # " REQUEST ..." for the body.  Measured 2026-09-15; the blank
-        # one hid the problem, because strip() removes it, so only the
-        # title failed to match and the whole report came out one line
-        # out of step.
+        # line printer puts the RAW record into the spool file,
+        # carriage control included -- "1ONFLY REPORT ..." for the
+        # title and " REQUEST ..." for the body.  Measured 2026-09-15.
+        #
+        # The BLANK control character is what hid the defect: strip()
+        # removes it, so every body line matched and only the title,
+        # whose control character is '1', did not.  The comparison then
+        # ran one line out of step and reported all 21 as differing
+        # while the content was identical throughout.
+        noise = ["IEF142I BUZZ STEP1 - STEP WAS EXECUTED - COND CODE 0000",
+                 "ONF302I STEP SUMMARY: 0005 OK, 0000 ERROR, 0000 ECHOED",
+                 "ONF001I NETWORK LOADED N=501 E=10783 CRC=4577D74E",
+                 "1ONFLY SOMETHING ELSE ENTIRELY"]
         with_cc = ["1" + good[0]] + [" " + l for l in good[1:]]
         lifted = mvsrun.report_from("\n".join(noise + with_cc))
-        check("report_from strips ANSI carriage control (VL-59)",
+        check("report_from lifts a whole report, carriage control and all",
               lifted == good,
-              "%d lines, title CC '1' and body CC blank both removed"
-              % len(lifted))
+              "%d of %d lines from %d lines of listing; title CC '1' and "
+              "body CC blank both removed"
+              % (len(lifted), len(good), len(noise) + len(with_cc)))
     else:
         check("compare_report: exercised against the x86 reference", True,
               "SKIP: no %s; run `make cob`" % os.path.basename(ref))
