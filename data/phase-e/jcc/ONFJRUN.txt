@@ -1,38 +1,38 @@
-****A  START  JOB  300  ONFJRUN   ONFLY JCC ROW7        ROOM        8.52.35 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  300  START  A****
-****A  START  JOB  300  ONFJRUN   ONFLY JCC ROW7        ROOM        8.52.35 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  300  START  A****
-****A  START  JOB  300  ONFJRUN   ONFLY JCC ROW7        ROOM        8.52.35 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  300  START  A****
-****A  START  JOB  300  ONFJRUN   ONFLY JCC ROW7        ROOM        8.52.35 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  300  START  A****
+****A  START  JOB  301  ONFJRUN   ONFLY JCC ROW7        ROOM        9.11.09 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  301  START  A****
+****A  START  JOB  301  ONFJRUN   ONFLY JCC ROW7        ROOM        9.11.09 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  301  START  A****
+****A  START  JOB  301  ONFJRUN   ONFLY JCC ROW7        ROOM        9.11.09 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  301  START  A****
+****A  START  JOB  301  ONFJRUN   ONFLY JCC ROW7        ROOM        9.11.09 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  301  START  A****
 
                                                 J E S 2   J O B   L O G
 
 
- 8.38.40 JOB  300  $HASP373 ONFJRUN  STARTED - INIT  1 - CLASS A - SYS TK5R
- 8.38.40 JOB  300  IEF403I ONFJRUN - STARTED - TIME=08.38.40
- 8.38.40 JOB  300  IEFACTRT - Stepname  Procstep  Program   Retcode
- 8.38.40 JOB  300  ONFJRUN    SCRATCH             IEFBR14   RC= 0000
- 8.38.40 JOB  300  ONFJRUN    ALLOC               IEFBR14   RC= 0000
- 8.38.40 JOB  300  ONFJRUN    WRITEH              IEBUPDTE  RC= 0000
- 8.38.40 JOB  300  ONFJRUN    WRITEC              IEBUPDTE  RC= 0000
- 8.38.42 JOB  300  ONFJRUN    COMP1               JCC       RC= 0000
- 8.38.42 JOB  300  ONFJRUN    COMP2               JCC       RC= 0000
- 8.38.42 JOB  300  ONFJRUN    COMP3               JCC       RC= 0000
- 8.38.42 JOB  300  ONFJRUN    COMP4               JCC       RC= 0000
- 8.38.42 JOB  300  ONFJRUN    COMP5               JCC       RC= 0000
- 8.38.43 JOB  300  ONFJRUN    COMP6               JCC       RC= 0000
- 8.38.43 JOB  300  ONFJRUN    COMP7               JCC       RC= 0000
- 8.38.43 JOB  300  ONFJRUN    COMP8               JCC       RC= 0000
- 8.38.43 JOB  300  ONFJRUN    COMP9               JCC       RC= 0000
- 8.38.44 JOB  300  ONFJRUN    COMP10              JCC       RC= 0000
- 8.38.44 JOB  300  ONFJRUN    COMP11              JCC       RC= 0000
- 8.38.44 JOB  300  ONFJRUN    COMP12              JCC       RC= 0000
- 8.38.45 JOB  300  ONFJRUN    COMP13              JCC       RC= 0000
- 8.38.46 JOB  300  ONFJRUN    PRELINK             PRELINK   RC= 0000
- 8.38.46 JOB  300  ONFJRUN    LKED                IEWL      RC= 0000
- 8.38.46 JOB  300  ONFJRUN    SCRATCH2            IEFBR14   RC= 0000
- 8.52.35 JOB  300  ONFJRUN    GO                  PGM=*.DD  RC= 0000
- 8.52.35 JOB  300  ONFJRUN    DUMP                IDCAMS    RC= 0000
- 8.52.35 JOB  300  IEF404I ONFJRUN - ENDED - TIME=08.52.35
- 8.52.35 JOB  300  $HASP395 ONFJRUN  ENDED
+ 8.52.51 JOB  301  $HASP373 ONFJRUN  STARTED - INIT  1 - CLASS A - SYS TK5R
+ 8.52.51 JOB  301  IEF403I ONFJRUN - STARTED - TIME=08.52.51
+ 8.52.51 JOB  301  IEFACTRT - Stepname  Procstep  Program   Retcode
+ 8.52.51 JOB  301  ONFJRUN    SCRATCH             IEFBR14   RC= 0000
+ 8.52.51 JOB  301  ONFJRUN    ALLOC               IEFBR14   RC= 0000
+ 8.52.51 JOB  301  ONFJRUN    WRITEH              IEBUPDTE  RC= 0000
+ 8.52.51 JOB  301  ONFJRUN    WRITEC              IEBUPDTE  RC= 0000
+ 8.52.53 JOB  301  ONFJRUN    COMP1               JCC       RC= 0000
+ 8.52.53 JOB  301  ONFJRUN    COMP2               JCC       RC= 0000
+ 8.52.54 JOB  301  ONFJRUN    COMP3               JCC       RC= 0000
+ 8.52.54 JOB  301  ONFJRUN    COMP4               JCC       RC= 0000
+ 8.52.54 JOB  301  ONFJRUN    COMP5               JCC       RC= 0000
+ 8.52.54 JOB  301  ONFJRUN    COMP6               JCC       RC= 0000
+ 8.52.55 JOB  301  ONFJRUN    COMP7               JCC       RC= 0000
+ 8.52.55 JOB  301  ONFJRUN    COMP8               JCC       RC= 0000
+ 8.52.55 JOB  301  ONFJRUN    COMP9               JCC       RC= 0000
+ 8.52.55 JOB  301  ONFJRUN    COMP10              JCC       RC= 0000
+ 8.52.56 JOB  301  ONFJRUN    COMP11              JCC       RC= 0000
+ 8.52.56 JOB  301  ONFJRUN    COMP12              JCC       RC= 0000
+ 8.52.56 JOB  301  ONFJRUN    COMP13              JCC       RC= 0000
+ 8.52.57 JOB  301  ONFJRUN    PRELINK             PRELINK   RC= 0000
+ 8.52.57 JOB  301  ONFJRUN    LKED                IEWL      RC= 0000
+ 8.52.57 JOB  301  ONFJRUN    SCRATCH2            IEFBR14   RC= 0000
+ 9.11.09 JOB  301  ONFJRUN    GO                  PGM=*.DD  RC= 0000
+ 9.11.09 JOB  301  ONFJRUN    DUMP                IDCAMS    RC= 0000
+ 9.11.09 JOB  301  IEF404I ONFJRUN - ENDED - TIME=09.11.09
+ 9.11.09 JOB  301  $HASP395 ONFJRUN  ENDED
 
 
 ------ JES2 JOB STATISTICS ------
@@ -41,18 +41,18 @@
  15 SEP 26 JOB EXECUTION DATE
 
 
-     8,390 CARDS READ
+     8,383 CARDS READ
 
 
-    10,543 SYSOUT PRINT RECORDS
+    10,536 SYSOUT PRINT RECORDS
 
 
          0 SYSOUT PUNCH RECORDS
 
 
-     13.91 MINUTES EXECUTION TIME
+     18.30 MINUTES EXECUTION TIME
 
-    1     //ONFJRUN  JOB (001),'ONFLY JCC ROW7',CLASS=A,MSGCLASS=A,               JOB  300
+    1     //ONFJRUN  JOB (001),'ONFLY JCC ROW7',CLASS=A,MSGCLASS=A,               JOB  301
           //             USER=HERC01,PASSWORD=,
           //             REGION=8M,TIME=1440,MSGLEVEL=(1,1)
           ***
@@ -305,7 +305,7 @@
 
 IEF236I ALLOC. FOR ONFJRUN SCRATCH
 IEF237I 191  ALLOCATED TO D1
-IEF237I 190  ALLOCATED TO SYS00743
+IEF237I 190  ALLOCATED TO SYS00810
 IEF237I 192  ALLOCATED TO D2
 IEF142I ONFJRUN SCRATCH - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   HERC01.ONFLY.H                               UNCATALOGED   *--------0
@@ -318,11 +318,11 @@ IEF285I   HERC01.ONFLY.C                               UNCATALOGED   *--------0
 IEF285I   VOL SER NOS= TSO003.
 IEF285I   HERC01.ONFLY.C                               DELETED       *--------0
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /SCRATCH / START 26258.0838
-IEF374I STEP /SCRATCH / STOP  26258.0838 CPU    0MIN 00.00SEC SRB    0MIN 00.00SEC VIRT     4K SYS   264K
+IEF373I STEP /SCRATCH / START 26258.0852
+IEF374I STEP /SCRATCH / STOP  26258.0852 CPU    0MIN 00.00SEC SRB    0MIN 00.00SEC VIRT     4K SYS   264K
 IEF236I ALLOC. FOR ONFJRUN ALLOC
 IEF237I 191  ALLOCATED TO M1
-IEF237I 190  ALLOCATED TO SYS00744
+IEF237I 190  ALLOCATED TO SYS00811
 IEF237I 192  ALLOCATED TO M2
 IEF142I ONFJRUN ALLOC - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   HERC01.ONFLY.H                               CATALOGED     *--------0
@@ -331,70 +331,70 @@ IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
 IEF285I   HERC01.ONFLY.C                               CATALOGED     *--------0
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /ALLOC   / START 26258.0838
-IEF374I STEP /ALLOC   / STOP  26258.0838 CPU    0MIN 00.00SEC SRB    0MIN 00.00SEC VIRT     4K SYS   268K
+IEF373I STEP /ALLOC   / START 26258.0852
+IEF374I STEP /ALLOC   / STOP  26258.0852 CPU    0MIN 00.00SEC SRB    0MIN 00.00SEC VIRT     4K SYS   268K
 IEF236I ALLOC. FOR ONFJRUN WRITEH
 IEF237I JES2 ALLOCATED TO SYSPRINT
 IEF237I 191  ALLOCATED TO SYSUT2
-IEF237I 190  ALLOCATED TO SYS00746
+IEF237I 190  ALLOCATED TO SYS00813
 IEF237I JES2 ALLOCATED TO SYSIN
 IEF142I ONFJRUN WRITEH - STEP WAS EXECUTED - COND CODE 0000
-IEF285I   JES2.JOB00300.SO0104                         SYSOUT
+IEF285I   JES2.JOB00301.SO0104                         SYSOUT
 IEF285I   HERC01.ONFLY.H                               KEPT          *------117
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   JES2.JOB00300.SI0101                         SYSIN
-IEF373I STEP /WRITEH  / START 26258.0838
-IEF374I STEP /WRITEH  / STOP  26258.0838 CPU    0MIN 00.03SEC SRB    0MIN 00.01SEC VIRT    32K SYS   288K
+IEF285I   JES2.JOB00301.SI0101                         SYSIN
+IEF373I STEP /WRITEH  / START 26258.0852
+IEF374I STEP /WRITEH  / STOP  26258.0852 CPU    0MIN 00.04SEC SRB    0MIN 00.01SEC VIRT    32K SYS   288K
 ************************************************************************************************************************************
-*     3. Jobstep of job: ONFJRUN     Stepname: WRITEH      Program name: IEBUPDTE   Executed on 15.09.26 from 08.38.40 to 08.38.40 *
-*         elapsed time  00:00:00,07                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:00,04               Virtual Storage used:     32K         Page-out:      0                           *
-*           corr. CPU:  00:00:00,04   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*     3. Jobstep of job: ONFJRUN     Stepname: WRITEH      Program name: IEBUPDTE   Executed on 15.09.26 from 08.52.51 to 08.52.51 *
+*         elapsed time  00:00:00,09                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,05               Virtual Storage used:     32K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,05   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:   2468                                                                           *
 *     DMY.......0 191.....117 190.......0 DMY.......0                                                                              *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          0,06                                             *
+*                                          Charge for step (w/o SYSOUT):          0,08                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN WRITEC
 IEF237I JES2 ALLOCATED TO SYSPRINT
 IEF237I 192  ALLOCATED TO SYSUT2
-IEF237I 190  ALLOCATED TO SYS00748
+IEF237I 190  ALLOCATED TO SYS00815
 IEF237I JES2 ALLOCATED TO SYSIN
 IEF142I ONFJRUN WRITEC - STEP WAS EXECUTED - COND CODE 0000
-IEF285I   JES2.JOB00300.SO0105                         SYSOUT
+IEF285I   JES2.JOB00301.SO0105                         SYSOUT
 IEF285I   HERC01.ONFLY.C                               KEPT          *------187
 IEF285I   VOL SER NOS= TSO003.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   JES2.JOB00300.SI0102                         SYSIN
-IEF373I STEP /WRITEC  / START 26258.0838
-IEF374I STEP /WRITEC  / STOP  26258.0838 CPU    0MIN 00.05SEC SRB    0MIN 00.01SEC VIRT    32K SYS   292K
+IEF285I   JES2.JOB00301.SI0102                         SYSIN
+IEF373I STEP /WRITEC  / START 26258.0852
+IEF374I STEP /WRITEC  / STOP  26258.0852 CPU    0MIN 00.07SEC SRB    0MIN 00.01SEC VIRT    32K SYS   292K
 ************************************************************************************************************************************
-*     4. Jobstep of job: ONFJRUN     Stepname: WRITEC      Program name: IEBUPDTE   Executed on 15.09.26 from 08.38.40 to 08.38.40 *
-*         elapsed time  00:00:00,11                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:00,06               Virtual Storage used:     32K         Page-out:      0                           *
-*           corr. CPU:  00:00:00,06   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*     4. Jobstep of job: ONFJRUN     Stepname: WRITEC      Program name: IEBUPDTE   Executed on 15.09.26 from 08.52.51 to 08.52.51 *
+*         elapsed time  00:00:00,13                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,08               Virtual Storage used:     32K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,08   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
-*     Number of records read via DD * or DD DATA:   5668                                                                           *
+*     Number of records read via DD * or DD DATA:   5661                                                                           *
 *     DMY.......0 192.....187 190.......0 DMY.......0                                                                              *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          0,10                                             *
+*                                          Charge for step (w/o SYSOUT):          0,13                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP1
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00750
+IEF237I 298  ALLOCATED TO SYS00817
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00752
-IEF237I 291  ALLOCATED TO JCCOUTPT
+IEF237I 190  ALLOCATED TO SYS00819
+IEF237I 290  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
-IEF237I 293  ALLOCATED TO JCCOASM
+IEF237I 291  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
 IEF142I ONFJRUN COMP1 - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   JCC.LINKLIB                                  KEPT          *--------0
@@ -409,37 +409,37 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *--------0
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000001      DELETED       *--------0
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000001      DELETED       *--------0
+IEF285I   VOL SER NOS= WORK01.
+IEF285I   JES2.JOB00301.SO0106                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ1          PASSED        *-------20
 IEF285I   VOL SER NOS= WORK02.
-IEF285I   JES2.JOB00300.SO0106                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ1          PASSED        *-------20
-IEF285I   VOL SER NOS= WORK04.
 IEF285I   HERC01.ONFLY.C                               KEPT          *-------91
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP1   / START 26258.0838
-IEF374I STEP /COMP1   / STOP  26258.0838 CPU    0MIN 01.59SEC SRB    0MIN 00.01SEC VIRT  4296K SYS   288K
+IEF373I STEP /COMP1   / START 26258.0852
+IEF374I STEP /COMP1   / STOP  26258.0852 CPU    0MIN 01.74SEC SRB    0MIN 00.02SEC VIRT  4296K SYS   288K
 ************************************************************************************************************************************
-*     5. Jobstep of job: ONFJRUN     Stepname: COMP1       Program name: JCC        Executed on 15.09.26 from 08.38.40 to 08.38.42 *
-*         elapsed time  00:00:01,70                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:01,60               Virtual Storage used:   4296K         Page-out:      0                           *
-*           corr. CPU:  00:00:01,60   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*     5. Jobstep of job: ONFJRUN     Stepname: COMP1       Program name: JCC        Executed on 15.09.26 from 08.52.51 to 08.52.53 *
+*         elapsed time  00:00:01,89                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:01,76               Virtual Storage used:   4296K         Page-out:      0                           *
+*           corr. CPU:  00:00:01,76   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299.......0 299.......0 191.......0 190.......0 291.......0 DMY.......0 293......20 192......91      *
+*     299.......0 298.......0 299.......0 299.......0 191.......0 190.......0 290.......0 DMY.......0 291......20 192......91      *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          2,66                                             *
+*                                          Charge for step (w/o SYSOUT):          2,93                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP2
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00754
+IEF237I 298  ALLOCATED TO SYS00821
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00756
+IEF237I 190  ALLOCATED TO SYS00823
 IEF237I 291  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
-IEF237I 290  ALLOCATED TO JCCOASM
+IEF237I 293  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
 IEF142I ONFJRUN COMP2 - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   JCC.LINKLIB                                  KEPT          *--------0
@@ -454,37 +454,37 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *-------26
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000002      DELETED       *--------0
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000002      DELETED       *--------0
 IEF285I   VOL SER NOS= WORK02.
-IEF285I   JES2.JOB00300.SO0107                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ2          PASSED        *--------1
-IEF285I   VOL SER NOS= WORK01.
+IEF285I   JES2.JOB00301.SO0107                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ2          PASSED        *--------1
+IEF285I   VOL SER NOS= WORK04.
 IEF285I   HERC01.ONFLY.C                               KEPT          *--------6
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP2   / START 26258.0838
-IEF374I STEP /COMP2   / STOP  26258.0838 CPU    0MIN 00.11SEC SRB    0MIN 00.01SEC VIRT  1292K SYS   292K
+IEF373I STEP /COMP2   / START 26258.0852
+IEF374I STEP /COMP2   / STOP  26258.0852 CPU    0MIN 00.10SEC SRB    0MIN 00.01SEC VIRT  1292K SYS   292K
 ************************************************************************************************************************************
-*     6. Jobstep of job: ONFJRUN     Stepname: COMP2       Program name: JCC        Executed on 15.09.26 from 08.38.42 to 08.38.42 *
-*         elapsed time  00:00:00,23                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:00,12               Virtual Storage used:   1292K         Page-out:      0                           *
-*           corr. CPU:  00:00:00,12   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*     6. Jobstep of job: ONFJRUN     Stepname: COMP2       Program name: JCC        Executed on 15.09.26 from 08.52.53 to 08.52.53 *
+*         elapsed time  00:00:00,22                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,11               Virtual Storage used:   1292K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,11   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299.......5 299.......5 191......26 190.......0 291.......0 DMY.......0 290.......1 192.......6      *
+*     299.......0 298.......0 299.......5 299.......5 191......26 190.......0 291.......0 DMY.......0 293.......1 192.......6      *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          0,20                                             *
+*                                          Charge for step (w/o SYSOUT):          0,18                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP3
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00758
+IEF237I 298  ALLOCATED TO SYS00825
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00760
-IEF237I 290  ALLOCATED TO JCCOUTPT
+IEF237I 190  ALLOCATED TO SYS00827
+IEF237I 291  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
-IEF237I 293  ALLOCATED TO JCCOASM
+IEF237I 290  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
 IEF142I ONFJRUN COMP3 - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   JCC.LINKLIB                                  KEPT          *--------0
@@ -499,35 +499,35 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *-------11
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000003      DELETED       *--------0
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000003      DELETED       *--------0
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   JES2.JOB00301.SO0108                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ3          PASSED        *--------1
 IEF285I   VOL SER NOS= WORK01.
-IEF285I   JES2.JOB00300.SO0108                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ3          PASSED        *--------1
-IEF285I   VOL SER NOS= WORK04.
 IEF285I   HERC01.ONFLY.C                               KEPT          *--------3
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP3   / START 26258.0838
-IEF374I STEP /COMP3   / STOP  26258.0838 CPU    0MIN 00.05SEC SRB    0MIN 00.01SEC VIRT  1168K SYS   292K
+IEF373I STEP /COMP3   / START 26258.0852
+IEF374I STEP /COMP3   / STOP  26258.0852 CPU    0MIN 00.06SEC SRB    0MIN 00.01SEC VIRT  1168K SYS   292K
 ************************************************************************************************************************************
-*     7. Jobstep of job: ONFJRUN     Stepname: COMP3       Program name: JCC        Executed on 15.09.26 from 08.38.42 to 08.38.42 *
-*         elapsed time  00:00:00,16                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:00,06               Virtual Storage used:   1168K         Page-out:      0                           *
-*           corr. CPU:  00:00:00,06   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*     7. Jobstep of job: ONFJRUN     Stepname: COMP3       Program name: JCC        Executed on 15.09.26 from 08.52.53 to 08.52.54 *
+*         elapsed time  00:00:00,18                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,07               Virtual Storage used:   1168K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,07   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299.......2 299.......2 191......11 190.......0 290.......0 DMY.......0 293.......1 192.......3      *
+*     299.......0 298.......0 299.......2 299.......2 191......11 190.......0 291.......0 DMY.......0 290.......1 192.......3      *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          0,10                                             *
+*                                          Charge for step (w/o SYSOUT):          0,11                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP4
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00762
+IEF237I 298  ALLOCATED TO SYS00829
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00764
-IEF237I 293  ALLOCATED TO JCCOUTPT
+IEF237I 190  ALLOCATED TO SYS00831
+IEF237I 291  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
 IEF237I 290  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
@@ -544,37 +544,37 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *-------17
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000004      DELETED       *--------0
-IEF285I   VOL SER NOS= WORK04.
-IEF285I   JES2.JOB00300.SO0109                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ4          PASSED        *--------1
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000004      DELETED       *--------0
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   JES2.JOB00301.SO0109                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ4          PASSED        *--------1
 IEF285I   VOL SER NOS= WORK01.
 IEF285I   HERC01.ONFLY.C                               KEPT          *--------4
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP4   / START 26258.0838
-IEF374I STEP /COMP4   / STOP  26258.0838 CPU    0MIN 00.09SEC SRB    0MIN 00.01SEC VIRT  1212K SYS   300K
+IEF373I STEP /COMP4   / START 26258.0852
+IEF374I STEP /COMP4   / STOP  26258.0852 CPU    0MIN 00.08SEC SRB    0MIN 00.01SEC VIRT  1212K SYS   300K
 ************************************************************************************************************************************
-*     8. Jobstep of job: ONFJRUN     Stepname: COMP4       Program name: JCC        Executed on 15.09.26 from 08.38.42 to 08.38.42 *
+*     8. Jobstep of job: ONFJRUN     Stepname: COMP4       Program name: JCC        Executed on 15.09.26 from 08.52.54 to 08.52.54 *
 *         elapsed time  00:00:00,20                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:00,10               Virtual Storage used:   1212K         Page-out:      0                           *
-*           corr. CPU:  00:00:00,10   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*             CPU time  00:00:00,09               Virtual Storage used:   1212K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,09   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299.......4 299.......4 191......17 190.......0 293.......0 DMY.......0 290.......1 192.......4      *
+*     299.......0 298.......0 299.......4 299.......4 191......17 190.......0 291.......0 DMY.......0 290.......1 192.......4      *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          0,16                                             *
+*                                          Charge for step (w/o SYSOUT):          0,15                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP5
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00766
+IEF237I 298  ALLOCATED TO SYS00833
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00768
-IEF237I 291  ALLOCATED TO JCCOUTPT
+IEF237I 190  ALLOCATED TO SYS00835
+IEF237I 290  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
-IEF237I 293  ALLOCATED TO JCCOASM
+IEF237I 291  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
 IEF142I ONFJRUN COMP5 - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   JCC.LINKLIB                                  KEPT          *--------0
@@ -589,37 +589,37 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *--------8
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000005      DELETED       *--------0
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000005      DELETED       *--------0
+IEF285I   VOL SER NOS= WORK01.
+IEF285I   JES2.JOB00301.SO0110                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ5          PASSED        *--------1
 IEF285I   VOL SER NOS= WORK02.
-IEF285I   JES2.JOB00300.SO0110                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ5          PASSED        *--------1
-IEF285I   VOL SER NOS= WORK04.
 IEF285I   HERC01.ONFLY.C                               KEPT          *--------3
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP5   / START 26258.0838
-IEF374I STEP /COMP5   / STOP  26258.0838 CPU    0MIN 00.05SEC SRB    0MIN 00.01SEC VIRT  1168K SYS   304K
+IEF373I STEP /COMP5   / START 26258.0852
+IEF374I STEP /COMP5   / STOP  26258.0852 CPU    0MIN 00.05SEC SRB    0MIN 00.01SEC VIRT  1168K SYS   304K
 ************************************************************************************************************************************
-*     9. Jobstep of job: ONFJRUN     Stepname: COMP5       Program name: JCC        Executed on 15.09.26 from 08.38.42 to 08.38.42 *
+*     9. Jobstep of job: ONFJRUN     Stepname: COMP5       Program name: JCC        Executed on 15.09.26 from 08.52.54 to 08.52.54 *
 *         elapsed time  00:00:00,16                      CPU-Identifier:  TK5R           Page-in:      0                           *
 *             CPU time  00:00:00,06               Virtual Storage used:   1168K         Page-out:      0                           *
 *           corr. CPU:  00:00:00,06   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299.......2 299.......2 191.......8 190.......0 291.......0 DMY.......0 293.......1 192.......3      *
+*     299.......0 298.......0 299.......2 299.......2 191.......8 190.......0 290.......0 DMY.......0 291.......1 192.......3      *
 *                                                                                                                                  *
 *                                          Charge for step (w/o SYSOUT):          0,10                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP6
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00770
+IEF237I 298  ALLOCATED TO SYS00837
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00772
-IEF237I 293  ALLOCATED TO JCCOUTPT
+IEF237I 190  ALLOCATED TO SYS00839
+IEF237I 291  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
-IEF237I 290  ALLOCATED TO JCCOASM
+IEF237I 293  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
 IEF142I ONFJRUN COMP6 - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   JCC.LINKLIB                                  KEPT          *--------0
@@ -634,37 +634,37 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *-------55
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000006      DELETED       *--------0
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000006      DELETED       *--------0
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   JES2.JOB00301.SO0111                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ6          PASSED        *--------3
 IEF285I   VOL SER NOS= WORK04.
-IEF285I   JES2.JOB00300.SO0111                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ6          PASSED        *--------3
-IEF285I   VOL SER NOS= WORK01.
 IEF285I   HERC01.ONFLY.C                               KEPT          *-------11
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP6   / START 26258.0838
-IEF374I STEP /COMP6   / STOP  26258.0838 CPU    0MIN 00.27SEC SRB    0MIN 00.02SEC VIRT  1564K SYS   304K
+IEF373I STEP /COMP6   / START 26258.0852
+IEF374I STEP /COMP6   / STOP  26258.0852 CPU    0MIN 00.30SEC SRB    0MIN 00.02SEC VIRT  1564K SYS   304K
 ************************************************************************************************************************************
-*    10. Jobstep of job: ONFJRUN     Stepname: COMP6       Program name: JCC        Executed on 15.09.26 from 08.38.42 to 08.38.43 *
-*         elapsed time  00:00:00,40                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:00,29               Virtual Storage used:   1564K         Page-out:      0                           *
-*           corr. CPU:  00:00:00,29   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*    10. Jobstep of job: ONFJRUN     Stepname: COMP6       Program name: JCC        Executed on 15.09.26 from 08.52.54 to 08.52.54 *
+*         elapsed time  00:00:00,45                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,32               Virtual Storage used:   1564K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,32   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299......11 299......11 191......55 190.......0 293.......0 DMY.......0 290.......3 192......11      *
+*     299.......0 298.......0 299......11 299......11 191......55 190.......0 291.......0 DMY.......0 293.......3 192......11      *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          0,48                                             *
+*                                          Charge for step (w/o SYSOUT):          0,53                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP7
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00774
+IEF237I 298  ALLOCATED TO SYS00841
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00776
-IEF237I 293  ALLOCATED TO JCCOUTPT
+IEF237I 190  ALLOCATED TO SYS00843
+IEF237I 291  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
-IEF237I 290  ALLOCATED TO JCCOASM
+IEF237I 293  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
 IEF142I ONFJRUN COMP7 - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   JCC.LINKLIB                                  KEPT          *--------0
@@ -679,37 +679,37 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *--------9
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000007      DELETED       *--------0
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000007      DELETED       *--------0
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   JES2.JOB00301.SO0112                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ7          PASSED        *--------1
 IEF285I   VOL SER NOS= WORK04.
-IEF285I   JES2.JOB00300.SO0112                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ7          PASSED        *--------1
-IEF285I   VOL SER NOS= WORK01.
 IEF285I   HERC01.ONFLY.C                               KEPT          *--------2
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP7   / START 26258.0838
-IEF374I STEP /COMP7   / STOP  26258.0838 CPU    0MIN 00.04SEC SRB    0MIN 00.01SEC VIRT  1168K SYS   308K
+IEF373I STEP /COMP7   / START 26258.0852
+IEF374I STEP /COMP7   / STOP  26258.0852 CPU    0MIN 00.05SEC SRB    0MIN 00.01SEC VIRT  1168K SYS   308K
 ************************************************************************************************************************************
-*    11. Jobstep of job: ONFJRUN     Stepname: COMP7       Program name: JCC        Executed on 15.09.26 from 08.38.43 to 08.38.43 *
+*    11. Jobstep of job: ONFJRUN     Stepname: COMP7       Program name: JCC        Executed on 15.09.26 from 08.52.54 to 08.52.55 *
 *         elapsed time  00:00:00,16                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:00,05               Virtual Storage used:   1168K         Page-out:      0                           *
-*           corr. CPU:  00:00:00,05   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*             CPU time  00:00:00,06               Virtual Storage used:   1168K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,06   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299.......2 299.......2 191.......9 190.......0 293.......0 DMY.......0 290.......1 192.......2      *
+*     299.......0 298.......0 299.......2 299.......2 191.......9 190.......0 291.......0 DMY.......0 293.......1 192.......2      *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          0,08                                             *
+*                                          Charge for step (w/o SYSOUT):          0,10                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP8
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00778
+IEF237I 298  ALLOCATED TO SYS00845
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00780
-IEF237I 293  ALLOCATED TO JCCOUTPT
+IEF237I 190  ALLOCATED TO SYS00847
+IEF237I 290  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
-IEF237I 290  ALLOCATED TO JCCOASM
+IEF237I 291  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
 IEF142I ONFJRUN COMP8 - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   JCC.LINKLIB                                  KEPT          *--------0
@@ -724,37 +724,37 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *-------18
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000008      DELETED       *--------0
-IEF285I   VOL SER NOS= WORK04.
-IEF285I   JES2.JOB00300.SO0113                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ8          PASSED        *--------1
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000008      DELETED       *--------0
 IEF285I   VOL SER NOS= WORK01.
+IEF285I   JES2.JOB00301.SO0113                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ8          PASSED        *--------1
+IEF285I   VOL SER NOS= WORK02.
 IEF285I   HERC01.ONFLY.C                               KEPT          *--------2
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP8   / START 26258.0838
-IEF374I STEP /COMP8   / STOP  26258.0838 CPU    0MIN 00.06SEC SRB    0MIN 00.01SEC VIRT  1212K SYS   308K
+IEF373I STEP /COMP8   / START 26258.0852
+IEF374I STEP /COMP8   / STOP  26258.0852 CPU    0MIN 00.06SEC SRB    0MIN 00.01SEC VIRT  1212K SYS   308K
 ************************************************************************************************************************************
-*    12. Jobstep of job: ONFJRUN     Stepname: COMP8       Program name: JCC        Executed on 15.09.26 from 08.38.43 to 08.38.43 *
-*         elapsed time  00:00:00,17                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*    12. Jobstep of job: ONFJRUN     Stepname: COMP8       Program name: JCC        Executed on 15.09.26 from 08.52.55 to 08.52.55 *
+*         elapsed time  00:00:00,18                      CPU-Identifier:  TK5R           Page-in:      0                           *
 *             CPU time  00:00:00,07               Virtual Storage used:   1212K         Page-out:      0                           *
 *           corr. CPU:  00:00:00,07   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299.......4 299.......4 191......18 190.......0 293.......0 DMY.......0 290.......1 192.......2      *
+*     299.......0 298.......0 299.......4 299.......4 191......18 190.......0 290.......0 DMY.......0 291.......1 192.......2      *
 *                                                                                                                                  *
 *                                          Charge for step (w/o SYSOUT):          0,11                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP9
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00782
+IEF237I 298  ALLOCATED TO SYS00849
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00784
-IEF237I 291  ALLOCATED TO JCCOUTPT
+IEF237I 190  ALLOCATED TO SYS00851
+IEF237I 290  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
-IEF237I 293  ALLOCATED TO JCCOASM
+IEF237I 291  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
 IEF142I ONFJRUN COMP9 - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   JCC.LINKLIB                                  KEPT          *--------0
@@ -769,37 +769,37 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *-------44
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000009      DELETED       *--------0
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000009      DELETED       *--------0
+IEF285I   VOL SER NOS= WORK01.
+IEF285I   JES2.JOB00301.SO0114                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ9          PASSED        *--------2
 IEF285I   VOL SER NOS= WORK02.
-IEF285I   JES2.JOB00300.SO0114                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ9          PASSED        *--------2
-IEF285I   VOL SER NOS= WORK04.
 IEF285I   HERC01.ONFLY.C                               KEPT          *--------6
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP9   / START 26258.0838
-IEF374I STEP /COMP9   / STOP  26258.0838 CPU    0MIN 00.18SEC SRB    0MIN 00.01SEC VIRT  1348K SYS   312K
+IEF373I STEP /COMP9   / START 26258.0852
+IEF374I STEP /COMP9   / STOP  26258.0852 CPU    0MIN 00.20SEC SRB    0MIN 00.01SEC VIRT  1348K SYS   312K
 ************************************************************************************************************************************
-*    13. Jobstep of job: ONFJRUN     Stepname: COMP9       Program name: JCC        Executed on 15.09.26 from 08.38.43 to 08.38.43 *
-*         elapsed time  00:00:00,30                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:00,19               Virtual Storage used:   1348K         Page-out:      0                           *
-*           corr. CPU:  00:00:00,19   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*    13. Jobstep of job: ONFJRUN     Stepname: COMP9       Program name: JCC        Executed on 15.09.26 from 08.52.55 to 08.52.55 *
+*         elapsed time  00:00:00,33                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,21               Virtual Storage used:   1348K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,21   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299.......9 299.......9 191......44 190.......0 291.......0 DMY.......0 293.......2 192.......6      *
+*     299.......0 298.......0 299.......9 299.......9 191......44 190.......0 290.......0 DMY.......0 291.......2 192.......6      *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          0,31                                             *
+*                                          Charge for step (w/o SYSOUT):          0,35                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP10
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00786
+IEF237I 298  ALLOCATED TO SYS00853
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00788
-IEF237I 290  ALLOCATED TO JCCOUTPT
+IEF237I 190  ALLOCATED TO SYS00855
+IEF237I 293  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
-IEF237I 293  ALLOCATED TO JCCOASM
+IEF237I 291  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
 IEF142I ONFJRUN COMP10 - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   JCC.LINKLIB                                  KEPT          *--------0
@@ -814,35 +814,35 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *-------47
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000010      DELETED       *--------0
-IEF285I   VOL SER NOS= WORK01.
-IEF285I   JES2.JOB00300.SO0115                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ10         PASSED        *--------2
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000010      DELETED       *--------0
 IEF285I   VOL SER NOS= WORK04.
+IEF285I   JES2.JOB00301.SO0115                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ10         PASSED        *--------2
+IEF285I   VOL SER NOS= WORK02.
 IEF285I   HERC01.ONFLY.C                               KEPT          *--------5
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP10  / START 26258.0838
-IEF374I STEP /COMP10  / STOP  26258.0838 CPU    0MIN 00.16SEC SRB    0MIN 00.01SEC VIRT  1368K SYS   312K
+IEF373I STEP /COMP10  / START 26258.0852
+IEF374I STEP /COMP10  / STOP  26258.0852 CPU    0MIN 00.17SEC SRB    0MIN 00.01SEC VIRT  1368K SYS   312K
 ************************************************************************************************************************************
-*    14. Jobstep of job: ONFJRUN     Stepname: COMP10      Program name: JCC        Executed on 15.09.26 from 08.38.43 to 08.38.44 *
-*         elapsed time  00:00:00,27                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:00,17               Virtual Storage used:   1368K         Page-out:      0                           *
-*           corr. CPU:  00:00:00,17   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*    14. Jobstep of job: ONFJRUN     Stepname: COMP10      Program name: JCC        Executed on 15.09.26 from 08.52.55 to 08.52.55 *
+*         elapsed time  00:00:00,28                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,18               Virtual Storage used:   1368K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,18   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299.......9 299.......9 191......47 190.......0 290.......0 DMY.......0 293.......2 192.......5      *
+*     299.......0 298.......0 299.......9 299.......9 191......47 190.......0 293.......0 DMY.......0 291.......2 192.......5      *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          0,28                                             *
+*                                          Charge for step (w/o SYSOUT):          0,30                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP11
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00790
+IEF237I 298  ALLOCATED TO SYS00857
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00792
-IEF237I 291  ALLOCATED TO JCCOUTPT
+IEF237I 190  ALLOCATED TO SYS00859
+IEF237I 293  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
 IEF237I 290  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
@@ -859,34 +859,34 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *-------10
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000011      DELETED       *--------0
-IEF285I   VOL SER NOS= WORK02.
-IEF285I   JES2.JOB00300.SO0116                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ11         PASSED        *--------1
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000011      DELETED       *--------0
+IEF285I   VOL SER NOS= WORK04.
+IEF285I   JES2.JOB00301.SO0116                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ11         PASSED        *--------1
 IEF285I   VOL SER NOS= WORK01.
 IEF285I   HERC01.ONFLY.C                               KEPT          *--------3
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP11  / START 26258.0838
-IEF374I STEP /COMP11  / STOP  26258.0838 CPU    0MIN 00.06SEC SRB    0MIN 00.01SEC VIRT  1224K SYS   316K
+IEF373I STEP /COMP11  / START 26258.0852
+IEF374I STEP /COMP11  / STOP  26258.0852 CPU    0MIN 00.06SEC SRB    0MIN 00.01SEC VIRT  1224K SYS   316K
 ************************************************************************************************************************************
-*    15. Jobstep of job: ONFJRUN     Stepname: COMP11      Program name: JCC        Executed on 15.09.26 from 08.38.44 to 08.38.44 *
-*         elapsed time  00:00:00,15                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*    15. Jobstep of job: ONFJRUN     Stepname: COMP11      Program name: JCC        Executed on 15.09.26 from 08.52.55 to 08.52.56 *
+*         elapsed time  00:00:00,16                      CPU-Identifier:  TK5R           Page-in:      0                           *
 *             CPU time  00:00:00,07               Virtual Storage used:   1224K         Page-out:      0                           *
 *           corr. CPU:  00:00:00,07   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299.......2 299.......2 191......10 190.......0 291.......0 DMY.......0 290.......1 192.......3      *
+*     299.......0 298.......0 299.......2 299.......2 191......10 190.......0 293.......0 DMY.......0 290.......1 192.......3      *
 *                                                                                                                                  *
 *                                          Charge for step (w/o SYSOUT):          0,11                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP12
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00794
+IEF237I 298  ALLOCATED TO SYS00861
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00796
+IEF237I 190  ALLOCATED TO SYS00863
 IEF237I 293  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
 IEF237I 291  ALLOCATED TO JCCOASM
@@ -904,18 +904,18 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *-------34
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000012      DELETED       *--------0
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000012      DELETED       *--------0
 IEF285I   VOL SER NOS= WORK04.
-IEF285I   JES2.JOB00300.SO0117                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ12         PASSED        *-------11
+IEF285I   JES2.JOB00301.SO0117                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ12         PASSED        *-------11
 IEF285I   VOL SER NOS= WORK02.
 IEF285I   HERC01.ONFLY.C                               KEPT          *--------6
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP12  / START 26258.0838
-IEF374I STEP /COMP12  / STOP  26258.0838 CPU    0MIN 00.30SEC SRB    0MIN 00.01SEC VIRT  1708K SYS   316K
+IEF373I STEP /COMP12  / START 26258.0852
+IEF374I STEP /COMP12  / STOP  26258.0852 CPU    0MIN 00.30SEC SRB    0MIN 00.01SEC VIRT  1708K SYS   316K
 ************************************************************************************************************************************
-*    16. Jobstep of job: ONFJRUN     Stepname: COMP12      Program name: JCC        Executed on 15.09.26 from 08.38.44 to 08.38.44 *
-*         elapsed time  00:00:00,40                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*    16. Jobstep of job: ONFJRUN     Stepname: COMP12      Program name: JCC        Executed on 15.09.26 from 08.52.56 to 08.52.56 *
+*         elapsed time  00:00:00,41                      CPU-Identifier:  TK5R           Page-in:      0                           *
 *             CPU time  00:00:00,31               Virtual Storage used:   1708K         Page-out:      0                           *
 *           corr. CPU:  00:00:00,31   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
@@ -927,14 +927,14 @@ IEF374I STEP /COMP12  / STOP  26258.0838 CPU    0MIN 00.30SEC SRB    0MIN 00.01S
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN COMP13
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00798
+IEF237I 298  ALLOCATED TO SYS00865
 IEF237I 299  ALLOCATED TO JCCINCL
 IEF237I 299  ALLOCATED TO JCCINCS
 IEF237I 191  ALLOCATED TO ONFH
-IEF237I 190  ALLOCATED TO SYS00800
+IEF237I 190  ALLOCATED TO SYS00867
 IEF237I 293  ALLOCATED TO JCCOUTPT
 IEF237I JES2 ALLOCATED TO STDOUT
-IEF237I 291  ALLOCATED TO JCCOASM
+IEF237I 290  ALLOCATED TO JCCOASM
 IEF237I 192  ALLOCATED TO SYSIN
 IEF142I ONFJRUN COMP13 - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   JCC.LINKLIB                                  KEPT          *--------0
@@ -949,127 +949,127 @@ IEF285I   HERC01.ONFLY.H                               KEPT          *-------84
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000013      DELETED       *--------0
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000013      DELETED       *--------0
 IEF285I   VOL SER NOS= WORK04.
-IEF285I   JES2.JOB00300.SO0118                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ13         PASSED        *--------5
-IEF285I   VOL SER NOS= WORK02.
+IEF285I   JES2.JOB00301.SO0118                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ13         PASSED        *--------5
+IEF285I   VOL SER NOS= WORK01.
 IEF285I   HERC01.ONFLY.C                               KEPT          *-------19
 IEF285I   VOL SER NOS= TSO003.
-IEF373I STEP /COMP13  / START 26258.0838
-IEF374I STEP /COMP13  / STOP  26258.0838 CPU    0MIN 00.36SEC SRB    0MIN 00.02SEC VIRT  2044K SYS   320K
+IEF373I STEP /COMP13  / START 26258.0852
+IEF374I STEP /COMP13  / STOP  26258.0852 CPU    0MIN 00.36SEC SRB    0MIN 00.02SEC VIRT  2044K SYS   320K
 ************************************************************************************************************************************
-*    17. Jobstep of job: ONFJRUN     Stepname: COMP13      Program name: JCC        Executed on 15.09.26 from 08.38.44 to 08.38.45 *
+*    17. Jobstep of job: ONFJRUN     Stepname: COMP13      Program name: JCC        Executed on 15.09.26 from 08.52.56 to 08.52.56 *
 *         elapsed time  00:00:00,49                      CPU-Identifier:  TK5R           Page-in:      0                           *
 *             CPU time  00:00:00,38               Virtual Storage used:   2044K         Page-out:      0                           *
 *           corr. CPU:  00:00:00,38   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 299......31 299......16 191......84 190.......0 293.......0 DMY.......0 291.......5 192......19      *
+*     299.......0 298.......0 299......31 299......16 191......84 190.......0 293.......0 DMY.......0 290.......5 192......19      *
 *                                                                                                                                  *
 *                                          Charge for step (w/o SYSOUT):          0,63                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN PRELINK
 IEF237I 299  ALLOCATED TO STEPLIB
-IEF237I 298  ALLOCATED TO SYS00802
+IEF237I 298  ALLOCATED TO SYS00869
 IEF237I JES2 ALLOCATED TO STDOUT
 IEF237I 299  ALLOCATED TO L
-IEF237I 293  ALLOCATED TO I
-IEF237I 290  ALLOCATED TO
+IEF237I 291  ALLOCATED TO I
 IEF237I 293  ALLOCATED TO
 IEF237I 290  ALLOCATED TO
-IEF237I 293  ALLOCATED TO
-IEF237I 290  ALLOCATED TO
-IEF237I 290  ALLOCATED TO
-IEF237I 290  ALLOCATED TO
-IEF237I 293  ALLOCATED TO
-IEF237I 293  ALLOCATED TO
 IEF237I 290  ALLOCATED TO
 IEF237I 291  ALLOCATED TO
+IEF237I 293  ALLOCATED TO
+IEF237I 293  ALLOCATED TO
 IEF237I 291  ALLOCATED TO
+IEF237I 291  ALLOCATED TO
+IEF237I 291  ALLOCATED TO
+IEF237I 290  ALLOCATED TO
+IEF237I 291  ALLOCATED TO
+IEF237I 290  ALLOCATED TO
 IEF237I 292  ALLOCATED TO O
 IEF142I ONFJRUN PRELINK - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   JCC.LINKLIB                                  KEPT          *--------0
 IEF285I   VOL SER NOS= TK5002.
 IEF285I   SYS1.UCAT.TK5                                KEPT          *--------0
 IEF285I   VOL SER NOS= TK5001.
-IEF285I   JES2.JOB00300.SO0119                         SYSOUT
+IEF285I   JES2.JOB00301.SO0119                         SYSOUT
 IEF285I   JCC.OBJ                                      KEPT          *------564
 IEF285I   VOL SER NOS= TK5002.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ1          DELETED       *-------42
-IEF285I   VOL SER NOS= WORK04.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ2          DELETED       *--------4
-IEF285I   VOL SER NOS= WORK01.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ3          DELETED       *--------4
-IEF285I   VOL SER NOS= WORK04.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ4          DELETED       *--------4
-IEF285I   VOL SER NOS= WORK01.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ5          DELETED       *--------4
-IEF285I   VOL SER NOS= WORK04.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ6          DELETED       *--------8
-IEF285I   VOL SER NOS= WORK01.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ7          DELETED       *--------4
-IEF285I   VOL SER NOS= WORK01.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ8          DELETED       *--------4
-IEF285I   VOL SER NOS= WORK01.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ9          DELETED       *--------6
-IEF285I   VOL SER NOS= WORK04.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ10         DELETED       *--------6
-IEF285I   VOL SER NOS= WORK04.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ11         DELETED       *--------4
-IEF285I   VOL SER NOS= WORK01.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ12         DELETED       *-------24
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ1          DELETED       *-------42
 IEF285I   VOL SER NOS= WORK02.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJ13         DELETED       *-------12
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ2          DELETED       *--------4
+IEF285I   VOL SER NOS= WORK04.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ3          DELETED       *--------4
+IEF285I   VOL SER NOS= WORK01.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ4          DELETED       *--------4
+IEF285I   VOL SER NOS= WORK01.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ5          DELETED       *--------4
 IEF285I   VOL SER NOS= WORK02.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJMOD        PASSED        *------111
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ6          DELETED       *--------8
+IEF285I   VOL SER NOS= WORK04.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ7          DELETED       *--------4
+IEF285I   VOL SER NOS= WORK04.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ8          DELETED       *--------4
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ9          DELETED       *--------6
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ10         DELETED       *--------6
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ11         DELETED       *--------4
+IEF285I   VOL SER NOS= WORK01.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ12         DELETED       *-------24
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJ13         DELETED       *-------12
+IEF285I   VOL SER NOS= WORK01.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJMOD        PASSED        *------111
 IEF285I   VOL SER NOS= WORK03.
-IEF373I STEP /PRELINK / START 26258.0838
-IEF374I STEP /PRELINK / STOP  26258.0838 CPU    0MIN 00.66SEC SRB    0MIN 00.05SEC VIRT   536K SYS   324K
+IEF373I STEP /PRELINK / START 26258.0852
+IEF374I STEP /PRELINK / STOP  26258.0852 CPU    0MIN 00.62SEC SRB    0MIN 00.05SEC VIRT   536K SYS   324K
 ************************************************************************************************************************************
-*    18. Jobstep of job: ONFJRUN     Stepname: PRELINK     Program name: PRELINK    Executed on 15.09.26 from 08.38.45 to 08.38.46 *
-*         elapsed time  00:00:00,96                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:00,71               Virtual Storage used:    536K         Page-out:      0                           *
-*           corr. CPU:  00:00:00,71   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*    18. Jobstep of job: ONFJRUN     Stepname: PRELINK     Program name: PRELINK    Executed on 15.09.26 from 08.52.56 to 08.52.57 *
+*         elapsed time  00:00:00,91                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,67               Virtual Storage used:    536K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,67   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     299.......0 298.......0 DMY.......0 299.....564 293......42 290.......4 293.......4 290.......4 293.......4 290.......8      *
-*     290.......4 290.......4 293.......6 293.......6 290.......4 291......24 291......12 292.....111                              *
+*     299.......0 298.......0 DMY.......0 299.....564 291......42 293.......4 290.......4 290.......4 291.......4 293.......8      *
+*     293.......4 291.......4 291.......6 291.......6 290.......4 291......24 290......12 292.....111                              *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          1,18                                             *
+*                                          Charge for step (w/o SYSOUT):          1,11                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN LKED
 IEF237I 292  ALLOCATED TO SYSLIN
-IEF237I 293  ALLOCATED TO SYSUT1
+IEF237I 290  ALLOCATED TO SYSUT1
 IEF237I JES2 ALLOCATED TO SYSPRINT
-IEF237I 290  ALLOCATED TO SYSLMOD
+IEF237I 291  ALLOCATED TO SYSLMOD
 IEF142I ONFJRUN LKED - STEP WAS EXECUTED - COND CODE 0000
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.OBJMOD        DELETED       *------112
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.OBJMOD        DELETED       *------112
 IEF285I   VOL SER NOS= WORK03.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.R0000014      DELETED       *-------96
-IEF285I   VOL SER NOS= WORK04.
-IEF285I   JES2.JOB00300.SO0120                         SYSOUT
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.GOSET         PASSED        *-------70
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.R0000014      DELETED       *-------96
 IEF285I   VOL SER NOS= WORK01.
-IEF373I STEP /LKED    / START 26258.0838
-IEF374I STEP /LKED    / STOP  26258.0838 CPU    0MIN 00.04SEC SRB    0MIN 00.01SEC VIRT   260K SYS   316K
+IEF285I   JES2.JOB00301.SO0120                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.GOSET         PASSED        *-------70
+IEF285I   VOL SER NOS= WORK02.
+IEF373I STEP /LKED    / START 26258.0852
+IEF374I STEP /LKED    / STOP  26258.0852 CPU    0MIN 00.05SEC SRB    0MIN 00.01SEC VIRT   260K SYS   316K
 ************************************************************************************************************************************
-*    19. Jobstep of job: ONFJRUN     Stepname: LKED        Program name: IEWL       Executed on 15.09.26 from 08.38.46 to 08.38.46 *
-*         elapsed time  00:00:00,08                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:00:00,05               Virtual Storage used:    260K         Page-out:      0                           *
-*           corr. CPU:  00:00:00,05   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*    19. Jobstep of job: ONFJRUN     Stepname: LKED        Program name: IEWL       Executed on 15.09.26 from 08.52.57 to 08.52.57 *
+*         elapsed time  00:00:00,09                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:00:00,06               Virtual Storage used:    260K         Page-out:      0                           *
+*           corr. CPU:  00:00:00,06   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     292.....112 293......96 DMY.......0 290......70                                                                              *
+*     292.....112 290......96 DMY.......0 291......70                                                                              *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):          0,08                                             *
+*                                          Charge for step (w/o SYSOUT):          0,10                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN SCRATCH2
 IEF237I 191  ALLOCATED TO D1
-IEF237I 190  ALLOCATED TO SYS00804
+IEF237I 190  ALLOCATED TO SYS00871
 IEF142I ONFJRUN SCRATCH2 - STEP WAS EXECUTED - COND CODE 0000
 IEF285I   HERC01.ONFLY.JRSP                            UNCATALOGED   *--------0
 IEF285I   VOL SER NOS= TSO002.
@@ -1077,26 +1077,26 @@ IEF285I   HERC01.ONFLY.JRSP                            DELETED       *--------0
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF373I STEP /SCRATCH2/ START 26258.0838
-IEF374I STEP /SCRATCH2/ STOP  26258.0838 CPU    0MIN 00.00SEC SRB    0MIN 00.00SEC VIRT     4K SYS   268K
+IEF373I STEP /SCRATCH2/ START 26258.0852
+IEF374I STEP /SCRATCH2/ STOP  26258.0852 CPU    0MIN 00.00SEC SRB    0MIN 00.00SEC VIRT     4K SYS   268K
 IEF236I ALLOC. FOR ONFJRUN GO
-IEF237I 290  ALLOCATED TO PGM=*.DD
+IEF237I 291  ALLOCATED TO PGM=*.DD
 IEF237I JES2 ALLOCATED TO SYSPRINT
 IEF237I JES2 ALLOCATED TO STDOUT
 IEF237I JES2 ALLOCATED TO STDERR
 IEF237I JES2 ALLOCATED TO SYSTERM
 IEF237I DMY  ALLOCATED TO SYSIN
 IEF237I 192  ALLOCATED TO ONFNET
-IEF237I 190  ALLOCATED TO SYS00806
+IEF237I 190  ALLOCATED TO SYS00873
 IEF237I 192  ALLOCATED TO ONFREQ
 IEF237I 191  ALLOCATED TO ONFRSP
 IEF142I ONFJRUN GO - STEP WAS EXECUTED - COND CODE 0000
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.GOSET         KEPT          *--------0
-IEF285I   VOL SER NOS= WORK01.
-IEF285I   JES2.JOB00300.SO0121                         SYSOUT
-IEF285I   JES2.JOB00300.SO0122                         SYSOUT
-IEF285I   JES2.JOB00300.SO0123                         SYSOUT
-IEF285I   JES2.JOB00300.SO0124                         SYSOUT
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.GOSET         KEPT          *--------0
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   JES2.JOB00301.SO0121                         SYSOUT
+IEF285I   JES2.JOB00301.SO0122                         SYSOUT
+IEF285I   JES2.JOB00301.SO0123                         SYSOUT
+IEF285I   JES2.JOB00301.SO0124                         SYSOUT
 IEF285I   HERC01.ONFLY.ENET                            KEPT          *-------54
 IEF285I   VOL SER NOS= TSO003.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
@@ -1105,37 +1105,37 @@ IEF285I   HERC01.ONFLY.EREQ                            KEPT          *--------3
 IEF285I   VOL SER NOS= TSO003.
 IEF285I   HERC01.ONFLY.JRSP                            CATALOGED     *--------1
 IEF285I   VOL SER NOS= TSO002.
-IEF373I STEP /GO      / START 26258.0838
-IEF374I STEP /GO      / STOP  26258.0852 CPU   13MIN 46.50SEC SRB    0MIN 00.00SEC VIRT   964K SYS   332K
+IEF373I STEP /GO      / START 26258.0852
+IEF374I STEP /GO      / STOP  26258.0911 CPU   18MIN 08.05SEC SRB    0MIN 00.01SEC VIRT   964K SYS   332K
 ************************************************************************************************************************************
-*    21. Jobstep of job: ONFJRUN     Stepname: GO          Program name: PGM=*.DD   Executed on 15.09.26 from 08.38.46 to 08.52.35 *
-*         elapsed time  00:13:48,78                      CPU-Identifier:  TK5R           Page-in:      0                           *
-*             CPU time  00:13:46,50               Virtual Storage used:    964K         Page-out:      2                           *
-*           corr. CPU:  00:13:46,50   CPU time has been corrected by  1 / 1,0  multiplier                                          *
+*    21. Jobstep of job: ONFJRUN     Stepname: GO          Program name: PGM=*.DD   Executed on 15.09.26 from 08.52.57 to 09.11.09 *
+*         elapsed time  00:18:11,41                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*             CPU time  00:18:08,06               Virtual Storage used:    964K         Page-out:    130                           *
+*           corr. CPU:  00:18:08,06   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
 *     I/O Operation                                                                                                                *
 *     Number of records read via DD * or DD DATA:      0                                                                           *
-*     290.......0 DMY.......0 DMY.......0 DMY.......0 DMY.......0 DMY.......0 192......54 190.......0 192.......3 191.......1      *
+*     291.......0 DMY.......0 DMY.......0 DMY.......0 DMY.......0 DMY.......0 192......54 190.......0 192.......3 191.......1      *
 *                                                                                                                                  *
-*                                          Charge for step (w/o SYSOUT):      1.377,50                                             *
+*                                          Charge for step (w/o SYSOUT):      1.813,43                                             *
 ************************************************************************************************************************************
 IEF236I ALLOC. FOR ONFJRUN DUMP
 IEF237I JES2 ALLOCATED TO SYSPRINT
 IEF237I 191  ALLOCATED TO ONFRSP
-IEF237I 190  ALLOCATED TO SYS00808
+IEF237I 190  ALLOCATED TO SYS00875
 IEF237I JES2 ALLOCATED TO SYSIN
 IEF142I ONFJRUN DUMP - STEP WAS EXECUTED - COND CODE 0000
-IEF285I   JES2.JOB00300.SO0125                         SYSOUT
+IEF285I   JES2.JOB00301.SO0125                         SYSOUT
 IEF285I   HERC01.ONFLY.JRSP                            KEPT          *--------2
 IEF285I   VOL SER NOS= TSO002.
 IEF285I   SYS1.UCAT.TSO                                KEPT          *--------0
 IEF285I   VOL SER NOS= TSO001.
-IEF285I   JES2.JOB00300.SI0103                         SYSIN
-IEF373I STEP /DUMP    / START 26258.0852
-IEF374I STEP /DUMP    / STOP  26258.0852 CPU    0MIN 00.02SEC SRB    0MIN 00.00SEC VIRT   208K SYS   328K
+IEF285I   JES2.JOB00301.SI0103                         SYSIN
+IEF373I STEP /DUMP    / START 26258.0911
+IEF374I STEP /DUMP    / STOP  26258.0911 CPU    0MIN 00.02SEC SRB    0MIN 00.00SEC VIRT   208K SYS   328K
 ************************************************************************************************************************************
-*    22. Jobstep of job: ONFJRUN     Stepname: DUMP        Program name: IDCAMS     Executed on 15.09.26 from 08.52.35 to 08.52.35 *
-*         elapsed time  00:00:00,05                      CPU-Identifier:  TK5R           Page-in:      0                           *
+*    22. Jobstep of job: ONFJRUN     Stepname: DUMP        Program name: IDCAMS     Executed on 15.09.26 from 09.11.09 to 09.11.09 *
+*         elapsed time  00:00:00,09                      CPU-Identifier:  TK5R           Page-in:      0                           *
 *             CPU time  00:00:00,02               Virtual Storage used:    208K         Page-out:      0                           *
 *           corr. CPU:  00:00:00,02   CPU time has been corrected by  1 / 1,0  multiplier                                          *
 *                                                                                                                                  *
@@ -1145,13 +1145,13 @@ IEF374I STEP /DUMP    / STOP  26258.0852 CPU    0MIN 00.02SEC SRB    0MIN 00.00S
 *                                                                                                                                  *
 *                                          Charge for step (w/o SYSOUT):          0,03                                             *
 ************************************************************************************************************************************
-IEF237I 290  ALLOCATED TO SYS00001
-IEF285I   SYS26258.T085235.RA000.ONFJRUN.R0000001      KEPT          *--------0
-IEF285I   VOL SER NOS= WORK01.
-IEF285I   SYS26258.T083840.RA000.ONFJRUN.GOSET         DELETED
-IEF285I   VOL SER NOS= WORK01.
-IEF375I  JOB /ONFJRUN / START 26258.0838
-IEF376I  JOB /ONFJRUN / STOP  26258.0852 CPU   13MIN 50.62SEC SRB    0MIN 00.23SEC
+IEF237I 291  ALLOCATED TO SYS00001
+IEF285I   SYS26258.T091109.RA000.ONFJRUN.R0000001      KEPT          *--------0
+IEF285I   VOL SER NOS= WORK02.
+IEF285I   SYS26258.T085251.RA000.ONFJRUN.GOSET         DELETED
+IEF285I   VOL SER NOS= WORK02.
+IEF375I  JOB /ONFJRUN / START 26258.0852
+IEF376I  JOB /ONFJRUN / STOP  26258.0911 CPU   18MIN 12.38SEC SRB    0MIN 00.25SEC
 
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0001
 
@@ -7632,28 +7632,21 @@ IEB819I END OF JOB IEBUPDTE.
            } while ( 0 <= (sbits32) aSig0 );
            add64(
                aSig0, aSig1, alternateASig0, alternateASig1,
-               /* ONFLY D-285: (bits32 *) added.  sigMean0 is declared sbits32
-                  above and add64's fifth parameter is bits32 *, which JCC 1.50
-                  rejects outright -- it writes NO object for the whole
-                  translation unit, so F64ADD, F64SUB, F64MUL, F64LT and F64LE
-                  all vanish and ACC-5's row 7 cannot be linked.  The cast is
-                  semantically null on a two's-complement host: same address,
-                  same width, and the value is read back through the signed
-                  lvalue two lines below exactly as before.  Measured 2026-09-15
-                  on TK5 by tools/mvsjcc.py --mini. */
-               (bits32 *) &sigMean0, &sigMean1 );
+               (bits32 *) &sigMean0, /* D-285: JCC writes no object
+                                        without this cast */
+               &sigMean1 );
            if (    ( sigMean0 < 0 )
                 || ( ( ( sigMean0 | sigMean1 ) == 0 ) && ( q & 1 ) ) ) {
                aSig0 = alternateASig0;
                aSig1 = alternateASig1;
            }
-
            zSign = ( (sbits32) aSig0 < 0 );
            if ( zSign ) sub64( 0, 0, aSig0, aSig1, &aSig0, &aSig1 );
            return
                normalizeRoundAndPackFloat64( aSign ^ zSign, bExp - 4, aSig0, aSig1 );
 
        }
+
 
        /*----------------------------------------------------------------------------
        | Returns the square root of the double-precision floating-point value `a'.
@@ -7669,17 +7662,16 @@ IEB819I END OF JOB IEBUPDTE.
            bits32 rem0, rem1, rem2, rem3, term0, term1, term2, term3;
            float64 z;
 
-       SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0065
-
-
-
            aSig1 = extractFloat64Frac1( a );
            aSig0 = extractFloat64Frac0( a );
            aExp = extractFloat64Exp( a );
            aSign = extractFloat64Sign( a );
            if ( aExp == 0x7FF ) {
-
                if ( aSig0 | aSig1 ) return propagateFloat64NaN( a, a );
+
+       SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0065
+
+
                if ( ! aSign ) return a;
                goto invalid;
            }
@@ -7688,11 +7680,13 @@ IEB819I END OF JOB IEBUPDTE.
         invalid:
                float_raise( float_flag_invalid );
                z.low = float64_default_nan_low;
+
                z.high = float64_default_nan_high;
                return z;
            }
            if ( aExp == 0 ) {
                if ( ( aSig0 | aSig1 ) == 0 ) return packFloat64( 0, 0, 0, 0 );
+
                normalizeFloat64Subnormal( aSig0, aSig1, &aExp, &aSig0, &aSig1 );
            }
            zExp = ( ( aExp - 0x3FF )>>1 ) + 0x3FE;
@@ -7708,7 +7702,6 @@ IEB819I END OF JOB IEBUPDTE.
                --zSig0;
                doubleZSig0 -= 2;
                add64( rem0, rem1, 0, doubleZSig0 | 1, &rem0, &rem1 );
-
            }
            zSig1 = estimateDiv64To32( rem1, 0, doubleZSig0 );
            if ( ( zSig1 & 0x1FF ) <= 5 ) {
@@ -7723,13 +7716,10 @@ IEB819I END OF JOB IEBUPDTE.
                    term3 |= 1;
                    term2 |= doubleZSig0;
                    add96( rem1, rem2, rem3, 0, term2, term3, &rem1, &rem2, &rem3 );
+
                }
                zSig1 |= ( ( rem1 | rem2 | rem3 ) != 0 );
            }
-
-       SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0066
-
-
            shift64ExtraRightJamming( zSig0, zSig1, 0, 10, &zSig0, &zSig1, &zSig2 );
            return roundAndPackFloat64( 0, zExp, zSig0, zSig1, zSig2 );
 
@@ -7737,10 +7727,13 @@ IEB819I END OF JOB IEBUPDTE.
 
        /*----------------------------------------------------------------------------
        | Returns 1 if the double-precision floating-point value `a' is equal to
+
+       SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0066
+
+
        | the corresponding value `b', and 0 otherwise.  The comparison is performed
        | according to the IEEE Standard for Floating-Point Arithmetic.
        *----------------------------------------------------------------------------*/
-
 
        flag float64_eq( float64 a, float64 b )
        {
@@ -7756,6 +7749,7 @@ IEB819I END OF JOB IEBUPDTE.
                return 0;
            }
            return
+
                   ( a.low == b.low )
                && (    ( a.high == b.high )
                     || (    ( a.low == 0 )
@@ -7771,7 +7765,6 @@ IEB819I END OF JOB IEBUPDTE.
        *----------------------------------------------------------------------------*/
 
        flag float64_le( float64 a, float64 b )
-
        {
            flag aSign, bSign;
 
@@ -7784,17 +7777,18 @@ IEB819I END OF JOB IEBUPDTE.
                return 0;
            }
            aSign = extractFloat64Sign( a );
-
-       SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0067
-
-
            bSign = extractFloat64Sign( b );
            if ( aSign != bSign ) {
+
                return
                       aSign
                    || (    ( ( (bits32) ( ( a.high | b.high )<<1 ) ) | a.low | b.low )
                         == 0 );
            }
+
+       SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0067
+
+
            return
                  aSign ? le64( b.high, b.low, a.high, a.low )
                : le64( a.high, a.low, b.high, b.low );
@@ -7804,7 +7798,6 @@ IEB819I END OF JOB IEBUPDTE.
        /*----------------------------------------------------------------------------
        | Returns 1 if the double-precision floating-point value `a' is less than
        | the corresponding value `b', and 0 otherwise.  The comparison is performed
-
        | according to the IEEE Standard for Floating-Point Arithmetic.
        *----------------------------------------------------------------------------*/
 
@@ -7819,6 +7812,7 @@ IEB819I END OF JOB IEBUPDTE.
               ) {
                float_raise( float_flag_invalid );
                return 0;
+
            }
            aSign = extractFloat64Sign( a );
            bSign = extractFloat64Sign( b );
@@ -7829,7 +7823,6 @@ IEB819I END OF JOB IEBUPDTE.
                         != 0 );
            }
            return
-
                  aSign ? lt64( b.high, b.low, a.high, a.low )
                : lt64( a.high, a.low, b.high, b.low );
 
@@ -7840,11 +7833,8 @@ IEB819I END OF JOB IEBUPDTE.
        | the corresponding value `b', and 0 otherwise.  The invalid exception is
        | raised if either operand is a NaN.  Otherwise, the comparison is performed
        | according to the IEEE Standard for Floating-Point Arithmetic.
+
        *----------------------------------------------------------------------------*/
-
-
-       SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0068
-
 
        flag float64_eq_signaling( float64 a, float64 b )
        {
@@ -7853,6 +7843,10 @@ IEB819I END OF JOB IEBUPDTE.
                      && ( extractFloat64Frac0( a ) | extractFloat64Frac1( a ) ) )
                 || (    ( extractFloat64Exp( b ) == 0x7FF )
                      && ( extractFloat64Frac0( b ) | extractFloat64Frac1( b ) ) )
+
+       SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0068
+
+
               ) {
                float_raise( float_flag_invalid );
                return 0;
@@ -7862,7 +7856,6 @@ IEB819I END OF JOB IEBUPDTE.
                && (    ( a.high == b.high )
                     || (    ( a.low == 0 )
                          && ( (bits32) ( ( a.high | b.high )<<1 ) == 0 ) )
-
                   );
 
        }
@@ -7873,6 +7866,7 @@ IEB819I END OF JOB IEBUPDTE.
        | cause an exception.  Otherwise, the comparison is performed according to the
        | IEEE Standard for Floating-Point Arithmetic.
        *----------------------------------------------------------------------------*/
+
 
        flag float64_le_quiet( float64 a, float64 b )
        {
@@ -7892,7 +7886,6 @@ IEB819I END OF JOB IEBUPDTE.
            bSign = extractFloat64Sign( b );
            if ( aSign != bSign ) {
                return
-
                       aSign
                    || (    ( ( (bits32) ( ( a.high | b.high )<<1 ) ) | a.low | b.low )
                         == 0 );
@@ -7901,16 +7894,17 @@ IEB819I END OF JOB IEBUPDTE.
                  aSign ? le64( b.high, b.low, a.high, a.low )
                : le64( a.high, a.low, b.high, b.low );
 
-       SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0069
-
-
-
        }
+
 
        /*----------------------------------------------------------------------------
        | Returns 1 if the double-precision floating-point value `a' is less than
        | the corresponding value `b', and 0 otherwise.  Quiet NaNs do not cause an
        | exception.  Otherwise, the comparison is performed according to the IEEE
+
+       SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0069
+
+
        | Standard for Floating-Point Arithmetic.
        *----------------------------------------------------------------------------*/
 
@@ -7925,7 +7919,6 @@ IEB819I END OF JOB IEBUPDTE.
               ) {
                if ( float64_is_signaling_nan( a ) || float64_is_signaling_nan( b ) ) {
                    float_raise( float_flag_invalid );
-
                }
                return 0;
            }
@@ -7936,6 +7929,7 @@ IEB819I END OF JOB IEBUPDTE.
                       aSign
                    && (    ( ( (bits32) ( ( a.high | b.high )<<1 ) ) | a.low | b.low )
                         != 0 );
+
            }
            return
                  aSign ? lt64( b.high, b.low, a.high, a.low )
@@ -7958,7 +7952,6 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * ignoring case.  SoftFloat 2c exports 42 externals of which 38 collide
         * once GCCMVS truncates them: Assembler XF rejects the unit with
         * "IFO196 FLOAT64@ HAS BEEN PREVIOUSLY DEFINED" and its siblings (VL-25).
-
         *
         * These definitions rename them before upstream's source is read.  The
         * file under third_party/ is untouched and stays byte-identical to the
@@ -7969,6 +7962,7 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * exercised by the ordinary x86 suite.
         */
        #ifndef ONFLY_ONF2CNM_H
+
        #define ONFLY_ONF2CNM_H
 
 
@@ -7988,7 +7982,6 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        #define float32_is_signaling_nan       F32SNAN
        #define float32_round_to_int           F32RTI
        #define float32_to_int32               F32TOI32
-
        #define float32_to_int32_round_to_zero F32TOIZ
        #define float32_to_float64             F32TOF64
        #define float64_add                    F64ADD
@@ -7999,6 +7992,7 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        #define float64_sqrt                   F64SQRT
        #define float64_eq                     F64EQ
        #define float64_le                     F64LE
+
        #define float64_lt                     F64LT
        #define float64_eq_signaling           F64EQS
        #define float64_le_quiet               F64LEQ
@@ -8021,7 +8015,6 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        #define ONF_FP_SOFT2C 1
        /*
         * onffp2.c - SOFT2C backend: the ONFLY float API over Berkeley SoftFloat 2c.
-
         *
         * This is the backend MVS uses (D-105, NR-03).  Gate G1 measured that GCCMVS
         * cannot build Release 3e: its 64-bit addition ends in an internal compiler
@@ -8032,6 +8025,7 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         *
         * ------------------------------------------------------------------------
         * Why this backend is almost nothing
+
         * ------------------------------------------------------------------------
         * The 3e backend has to reassemble onf_f64's two halves into the single
         * uint64_t that SoftFloat 3e's float64_t wraps, and split it again on the way
@@ -8047,7 +8041,6 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * anywhere.  NR-04 permits 64-bit integers in the float layer; this backend
         * does not need the permission, and on MVS it must not take it.
         *
-
         * The copy is written out field by field rather than done with a cast or a
         * memcpy.  A cast between two structurally identical structs is not legal C89
         * and would be a pointer pun over a buffer besides, which FR-LOD-05 rules out
@@ -8056,6 +8049,7 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * sign and exponent, the first four bytes of the big-endian on-disk form
         * (IR-NET-01), and 2c calls that half `high`.
         *
+
         * ------------------------------------------------------------------------
         * NR-05 holds here
         * ------------------------------------------------------------------------
@@ -8081,13 +8075,13 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        #include "milieu.h"
        #include "softfloat.h"
 
-
        #include "onffp.h"
 
        /* onf_f64 -> SoftFloat 2c float64.  Field by field; see the note above. */
        static float64 onf_to2c(onf_f64 a)
        {
            float64 f;
+
 
            f.high = (bits32)a.hi;
            f.low = (bits32)a.lo;
@@ -8110,7 +8104,6 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        }
 
        onf_f64 onffsub(onf_f64 a, onf_f64 b)
-
        {
            return onf_fr2c(float64_sub(onf_to2c(a), onf_to2c(b)));
        }
@@ -8120,6 +8113,7 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            return onf_fr2c(float64_mul(onf_to2c(a), onf_to2c(b)));
 
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0073
+
 
 
        }
@@ -8143,7 +8137,6 @@ IEB817I MEMBER NAME (SF2C    ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            return float64_lt(onf_to2c(a), onf_to2c(b)) ? 1 : 0;
        }
 
-
        int onffle(onf_f64 a, onf_f64 b)
        {
            return float64_le(onf_to2c(a), onf_to2c(b)) ? 1 : 0;
@@ -8155,6 +8148,7 @@ IEB817I MEMBER NAME (ONFFP2C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
        ./ ADD NAME=ONFFPCC
        #define ONF_FP_SOFT2C 1
+
        /*
         * onffpc.c - backend-independent parts of the ONFLY float API.
         *
@@ -8177,7 +8171,6 @@ IEB817I MEMBER NAME (ONFFP2C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        {
            onf_f64 z;
 
-
            z.hi = a.hi & ~ONF_SIGNBIT;
            z.lo = a.lo;
            return z;
@@ -8185,6 +8178,7 @@ IEB817I MEMBER NAME (ONFFP2C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
        int onffnf(onf_f64 a)
        {
+
            /* FR-SIM-08: read the exponent field directly.  An all-ones exponent is
               infinity when the significand is zero and NaN otherwise; both are
               non-finite, and the caller treats them identically. */
@@ -8207,7 +8201,6 @@ IEB817I MEMBER NAME (ONFFP2C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        onf_f64 onffbit(onf_u32 hi, onf_u32 lo)
        {
 
-
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0075
 
 
@@ -8217,8 +8210,8 @@ IEB817I MEMBER NAME (ONFFP2C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            z.lo = lo;
            return z;
        }
-
 IEB817I MEMBER NAME (ONFFPCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
+
 
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0076
 
@@ -8231,6 +8224,7 @@ IEB817I MEMBER NAME (ONFFPCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * The fingerprint is the CRC-32 of a canonical byte string: the network payload
         * CRC, then the numeric stimulus ID, seed, rate, duration, return code, output
         * count and step count, then each output entry (ID, latency, spike count) for
+
         * entries below the output count -- every one of them a big-endian 32-bit
         * integer.
         *
@@ -8250,7 +8244,6 @@ IEB817I MEMBER NAME (ONFFPCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * 32 output slots, but the unused tail is not part of the answer, and hashing
         * it would make the fingerprint depend on whatever happened to be left in
         * memory.
-
         *
         * The network payload CRC is the first thing in the string, so a fingerprint
         * identifies the network as well as the request.  Two identical requests
@@ -8261,6 +8254,7 @@ IEB817I MEMBER NAME (ONFFPCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * floating-point hardware differs.
         */
        #include "onffpr.h"
+
        #include "onfcrc.h"
 
        /* Append one big-endian 32-bit integer to the canonical string. */
@@ -8283,7 +8277,6 @@ IEB817I MEMBER NAME (ONFFPCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        static onf_u32 twos(onf_i32 v)
        {
            if (v < 0) {
-
                return 0xFFFFFFFFUL - (onf_u32)(-(v + 1));
            }
            return (onf_u32)v;
@@ -8294,6 +8287,7 @@ IEB817I MEMBER NAME (ONFFPCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                       const onf_i32 *ids, const onf_i32 *lat, const onf_i32 *spk)
        {
            onf_u8 canon[ONF_FPR_MAXLEN];
+
            onf_i32 at, k;
 
            at = 0;
@@ -8313,7 +8307,6 @@ IEB817I MEMBER NAME (ONFFPCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            }
 
            return onfcrc(canon, at, 0UL);
-
        }
 IEB817I MEMBER NAME (ONFFPRC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
@@ -8327,6 +8320,7 @@ IEB817I MEMBER NAME (ONFFPRC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         *
         * Why bitwise rather than a 256-entry lookup table.  NFR-MNT-02 forbids
         * writable static data so that the engine is reentrant for the future CICS
+
         * path, which rules out building a table lazily at first use.  A const table
         * would satisfy that rule, but it costs 1 KB of storage in a 24-bit region
         * (C-01) and has to be generated and kept in step with the polynomial.  The
@@ -8346,7 +8340,6 @@ IEB817I MEMBER NAME (ONFFPRC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        #include "onfcrc.h"
 
        /* Reflected form of polynomial 0x04C11DB7, for the least-significant-bit-first
-
           algorithm that CRC-32/ISO-HDLC specifies (refin and refout both true). */
        #define ONF_CRCPOLY 0xEDB88320UL
 
@@ -8357,6 +8350,7 @@ IEB817I MEMBER NAME (ONFFPRC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        {
            onf_u32 reg;
            onf_i32 i;
+
            int bit;
 
            /* Undo the previous call's final XOR so that a running value resumes
@@ -8379,7 +8373,6 @@ IEB817I MEMBER NAME (ONFFPRC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
 
            return reg ^ ONF_CRCINIT;
-
        }
 IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
@@ -8393,6 +8386,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         *
         * NR-05: no float or double appears here.  binary64 values are lifted straight
         * out of the file as bit patterns and handed to onffbit; nothing in this file
+
         * can perform arithmetic on them.
         */
        #include "onfdec.h"
@@ -8412,7 +8406,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * relying on signed overflow.  These check before they compute, and saturate to
         * a sentinel that the caller treats as "does not fit".
         *
-
         * onfmul returns -1 on overflow, onfadd returns 0 on overflow, so a chain of
         * them short-circuits on the first term that does not fit.
         */
@@ -8423,6 +8416,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            }
            if (a != 0 && b > ONF_I32MAX / a) {
                return -1;
+
            }
            return a * b;
        }
@@ -8445,7 +8439,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
            onf_u32 v;
 
-
            v  = (onf_u32)b[o]     << 24;
            v |= (onf_u32)b[o + 1] << 16;
            v |= (onf_u32)b[o + 2] <<  8;
@@ -8457,9 +8450,9 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        {
            onf_u32 v;
 
+
            v  = (onf_u32)b[o] << 8;
            v |= (onf_u32)b[o + 1];
-
            return v;
        }
 
@@ -8480,6 +8473,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                *need = 0;
            }
 
+
            /* The file must at least contain a header before any field is read.  This
               is not one of FR-LOD-02's six checks; it is the precondition that makes
               reading them safe at all.  A file this short cannot carry a valid magic
@@ -8489,7 +8483,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            }
 
            /* --- FR-LOD-02 check 1: magic (IR-NET-03) --------------------------- */
-
            if (g32(buf, ONF_N_MAGIC) != ONF_NET_MAGIC) {
                return ONFD_MAGIC;
            }
@@ -8512,6 +8505,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            }
 
            /* --- check 4: header CRC over bytes 0..ONF_NHDR_CRCLEN-1 (IR-NET-07) - */
+
            hdrcrc = g32(buf, ONF_N_HDRCRC);
            if (onfcrc(buf, ONF_NHDR_CRCLEN, 0UL) != hdrcrc) {
                return ONFD_HCRC;
@@ -8522,7 +8516,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            e     = (onf_i32)g32(buf, ONF_N_E);
            ns    = (onf_i32)g32(buf, ONF_N_NS);
            nr    = (onf_i32)g32(buf, ONF_N_NR);
-
            delay = (onf_i32)g32(buf, ONF_N_DELAY);
            nbias = (onf_i32)g32(buf, ONF_N_NBIAS);
            paylen = g32(buf, ONF_N_PAYLEN);
@@ -8542,6 +8535,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
               it.  This sits between two of FR-LOD-02's checks but does not reorder
               them relative to one another. -------------------------------------- */
            if (delay < 1) {
+
                return ONFD_PLEN;       /* Appendix C requires D >= 1 */
            }
            /* FR-LOD-04 asks for the memory needed by the decoded network AND the
@@ -8551,7 +8545,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                 simulation state  u and g (8 bytes each per neuron), the delay ring
                                   (8 bytes per neuron per delay slot), and four int32
                                   arrays per neuron
-
 
               The network half dominates by an order of magnitude on a real connectome
               -- tens of millions of edges against a few hundred thousand neurons -- so
@@ -8575,6 +8568,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            }
 
            bytes = 0;
+
            if (!onfadd(&bytes, onfmul(n + 1, 4))          /* rowptr  */
                || !onfadd(&bytes, onfmul(e, 4))           /* target  */
                || !onfadd(&bytes, onfmul(e, 8))           /* weight  */
@@ -8585,7 +8579,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                || !onfadd(&bytes, onfmul(nbias, 4))       /* bias rates (v1.1) */
                || !onfadd(&bytes, onfmul(onfmul(nbias, n), 8))) {  /* bias rows */
                /* The requirement does not fit in a 32-bit byte count, so it exceeds
-
                   any limit a caller could have configured. */
                if (need != 0) {
                    *need = ONF_I32MAX;
@@ -8601,10 +8594,10 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
            /* --- check 6: payload CRC over exactly the declared length ---------- */
            paycrc = g32(buf, ONF_N_PAYCRC);
-
            if (onfcrc(buf + ONF_NHDR_LEN, (onf_i32)paylen, 0UL) != paycrc) {
                return ONFD_PCRC;
            }
+
 
            /* --- decode ---------------------------------------------------------
               Section pointers are absolute file offsets.  The arrays are big-endian
@@ -8614,6 +8607,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            net->n = n;
            net->e = e;
            net->ns = ns;
+
 
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0084
 
@@ -8634,7 +8628,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
               conversion into its own storage.  Leaving them null rather than pointing
               at raw file bytes means a caller that forgets to convert crashes
               immediately instead of simulating byte-swapped nonsense. */
-
            net->nbias = nbias;
            net->rowptr = 0;
            net->target = 0;
@@ -8646,6 +8639,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
            return ONFD_OK;
        }
+
 
        int onfldp(const onf_u8 *buf, struct onfnet *net,
                   onf_u32 *rowptr, onf_u32 *target, onf_f64 *weight,
@@ -8664,7 +8658,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
            /* IR-NET-05: every section starts on an 8-byte boundary.  A violation
               means the file was not produced by a conforming writer, so refuse it
-
               rather than reading at an offset the format forbids. */
            if ((orow % ONF_NET_ALIGN) != 0 || (otgt % ONF_NET_ALIGN) != 0
                || (owgt % ONF_NET_ALIGN) != 0 || (ostm % ONF_NET_ALIGN) != 0
@@ -8680,6 +8673,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            prev = 0UL;
            for (i = 0; i <= net->n; i++) {
                rowptr[i] = g32(buf, orow + i * 4);
+
                if (rowptr[i] < prev || (onf_i32)rowptr[i] > net->e) {
                    return ONFD_PLEN;
                }
@@ -8697,7 +8691,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            for (i = 0; i < net->n; i++) {
                onf_i32 k;
                for (k = (onf_i32)rowptr[i]; k < (onf_i32)rowptr[i + 1]; k++) {
-
                    target[k] = g32(buf, otgt + k * 4);
                    if ((onf_i32)target[k] >= net->n) {
                        return ONFD_PLEN;
@@ -8710,6 +8703,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
            for (i = 0; i < net->e; i++) {
                weight[i] = gf64(buf, owgt + i * 8);
+
            }
            for (i = 0; i < net->ns; i++) {
                stim[i] = g32(buf, ostm + i * 4);
@@ -8727,7 +8721,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            /* --- v1.1 compensating-input table (D-190, D-191) ------------------
               Laid out as nbias big-endian u32 rates, padded to the 8-byte boundary,
               then nbias rows of n binary64 values.  Three invariants are checked
-
               here rather than trusted, for the same reason the CSR structure is: a
               correct CRC proves the bytes arrived, not that the producer wrote a
 
@@ -8743,6 +8736,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            nb = net->nbias;
            if (nb > 0) {
                if ((obia % ONF_NET_ALIGN) != 0) {
+
                    return ONFD_PLEN;
                }
                /* The table's extent is producer-controlled through nbias, so it is
@@ -8760,7 +8754,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                    return ONFD_PLEN;
                }
                for (i = 0; i < nb; i++) {
-
                    brate[i] = g32(buf, obia + i * 4);
                    if (i > 0 && brate[i] <= brate[i - 1]) {
                        return ONFD_BIAS;   /* rates not strictly ascending */
@@ -8773,6 +8766,7 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                orow0 = obia + ((nb * 4 + ONF_NET_ALIGN - 1) / ONF_NET_ALIGN)
                        * ONF_NET_ALIGN;
                if (orow0 < obia || orow0 > pend
+
                    || net->n > (pend - orow0) / 8 / nb) {
                    return ONFD_PLEN;       /* the rows run past the payload */
                }
@@ -8793,7 +8787,6 @@ IEB817I MEMBER NAME (ONFCRCC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
                net->brate = 0;
                net->bias = 0;
-
            }
 
            net->rowptr = rowptr;
@@ -8809,6 +8802,7 @@ IEB817I MEMBER NAME (ONFDECC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
 
        ./ ADD NAME=ONFRNDC
+
        #define ONF_FP_SOFT2C 1
        /*
         * onfrnd.c - xorshift32 (NR-13, D-32).
@@ -8826,9 +8820,7 @@ IEB817I MEMBER NAME (ONFDECC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            } else {
                g->s = seed;
            }
-
        }
-
 
        onf_u32 onfrndn(struct onfrng *g)
        {
@@ -8840,6 +8832,7 @@ IEB817I MEMBER NAME (ONFDECC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            x ^= x << 5;
            g->s = x;
            return x;
+
        }
 IEB817I MEMBER NAME (ONFRNDC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
@@ -8853,6 +8846,7 @@ IEB817I MEMBER NAME (ONFRNDC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         */
        #include "onfstm.h"
 
+
        int onfstmd(struct onfrng *g, onf_u32 thresh)
        {
            onf_u32 r;
@@ -8862,7 +8856,6 @@ IEB817I MEMBER NAME (ONFRNDC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                if (r < ONF_STMREJ) {
                    if ((r % ONF_STMMOD) < thresh) {
                        return 1;
-
                    }
                    return 0;
                }
@@ -8886,6 +8879,7 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         *
         * NR-05: no float or double appears here.  onf_f64 is an opaque pair of 32-bit
         * halves; nothing in this file can do arithmetic on it except through onf_fp.
+
         */
        #include "onfker.h"
        #include "onfrnd.h"
@@ -8895,7 +8889,6 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                   onf_u32 seed, onf_i32 rate, onf_i32 steps)
        {
            struct onfrng gen;
-
            onf_f64 zero;
            onf_u32 thresh;
            onf_i32 t, i, k, s, slot, arrive, base;
@@ -8916,6 +8909,7 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                st->first[i] = -1;
                st->force[i] = 0;
                st->isstim[i] = 0;
+
            }
            /* D-68: stimulus neurons have no refractory period, matching Shiu's
               rfc = 0 for Poisson targets.  Marked once here rather than searched for
@@ -8925,7 +8919,6 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            }
            for (i = 0; i < net->delay * net->n; i++) {
                st->ring[i] = zero;
-
            }
 
 
@@ -8949,6 +8942,7 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                for (br = 0; br < net->nbias; br++) {
                    bd = (onf_i32)net->brate[br] - rate;
                    if (bd < 0) {
+
                        bd = -bd;
                    }
                    /* Strict <, so the first row at the minimum distance wins and
@@ -8958,7 +8952,6 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                        bbestd = bd;
                    }
                }
-
                brow = bbest * net->n;
            }
 
@@ -8979,6 +8972,7 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                } else {
                    for (i = 0; i < net->n; i++) {
                        st->g[i] = onffadd(st->g[i], st->ring[base + i]);
+
                        st->ring[base + i] = zero;
                        st->g[i] = onffadd(st->g[i], net->bias[brow + i]);
                    }
@@ -8991,10 +8985,8 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
                   Exactly one accepted draw per stimulus neuron per step, whether or
                   not that neuron is refractory.  That is what keeps the PRNG stream
-
                   aligned across platforms regardless of network state (FR-SIM-04):
                   if a refractory neuron skipped its draw, two hosts whose networks
-
                   had diverged would consume different numbers of draws. */
                for (s = 0; s < net->ns; s++) {
                    st->force[net->stim[s]] = onfstmd(&gen, thresh);
@@ -9007,6 +8999,7 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                        st->rfr[i] = st->rfr[i] - 1;
                        /* D-67: g is FROZEN while refractory, matching Shiu's
                           "(unless refractory)" on dg/dt.  u is held at U_reset.
+
                           Appendix C decayed it here until that amendment. */
                        was_rfr = 1;
                    } else {
@@ -9024,7 +9017,6 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                        st->g[i] = zero;
                    }
 
-
                    /* FR-SIM-08: detect NaN and infinity from the exponent bits.  A
                       float comparison would depend on the arithmetic under test. */
                    if (onffnf(st->u[i]) || onffnf(st->g[i])) {
@@ -9037,6 +9029,7 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                        st->u[i] = net->ureset;
                        /* D-67: g is reset on every spike (Shiu's
                           eq_rst 'g = 0*mV'). */
+
                        st->g[i] = zero;
                        /* D-68: stimulus neurons never become refractory. */
                        st->rfr[i] = st->isstim[i] ? 0 : net->refract;
@@ -9057,7 +9050,6 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                        arrive = base;
                        for (k = (onf_i32)net->rowptr[i];
                             k < (onf_i32)net->rowptr[i + 1]; k++) {
-
                            onf_i32 tgt = (onf_i32)net->target[k];
                            st->ring[arrive + tgt] =
                                onffadd(st->ring[arrive + tgt], net->weight[k]);
@@ -9070,6 +9062,7 @@ IEB817I MEMBER NAME (ONFSTMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
            return ONFK_OK;
        }
+
 IEB817I MEMBER NAME (ONFKERC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0094
@@ -9090,7 +9083,6 @@ IEB817I MEMBER NAME (ONFKERC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        #include "onfreq.h"
        #include "onffpr.h"
 
-
        /* NR-12's bound.  rate_hz * dt_us must not exceed one million, or the
           integer draw in onfstm.c cannot be exactly uniform. */
        #define ONFR_DRAW 1000000UL
@@ -9103,6 +9095,7 @@ IEB817I MEMBER NAME (ONFKERC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            /* const data, not writable static state: NFR-MNT-02 keeps the engine
               free of anything a reentrant CICS build could not share (Section 3.7). */
            static const struct onfnm {
+
                const char *nm;
                onf_i32 id;
            } tab[3] = {
@@ -9120,7 +9113,6 @@ IEB817I MEMBER NAME (ONFKERC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            for (k = 0; k < 3; k++) {
                if (code[0] == (onf_u8)tab[k].nm[0]
                 && code[1] == (onf_u8)tab[k].nm[1]
-
                 && code[2] == (onf_u8)tab[k].nm[2]
                 && code[3] == (onf_u8)tab[k].nm[3]) {
                    return tab[k].id;
@@ -9136,6 +9128,7 @@ IEB817I MEMBER NAME (ONFKERC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        void onfrqg(const onf_u8 *rec, struct onfrq *q)
        {
            q->stimid = onfsid(rec + ONF_O_STIMCODE);
+
            q->seed   = onfg32(rec, ONF_O_SEED);
            q->rate   = (onf_i32)onfg16(rec, ONF_O_STIMRATE);
            q->ms     = (onf_i32)onfg16(rec, ONF_O_SIMMS);
@@ -9153,7 +9146,6 @@ IEB817I MEMBER NAME (ONFKERC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
               binary field, because a CRC-32 does not fit S9(9) COMP and must not be
               reinterpreted as a negative number by COBOL (IR-COM-05). */
            rec[ONF_O_FPRINT]     = (onf_u8)((z->fp >> 24) & 0xFFUL);
-
            rec[ONF_O_FPRINT + 1] = (onf_u8)((z->fp >> 16) & 0xFFUL);
            rec[ONF_O_FPRINT + 2] = (onf_u8)((z->fp >>  8) & 0xFFUL);
            rec[ONF_O_FPRINT + 3] = (onf_u8)( z->fp        & 0xFFUL);
@@ -9166,6 +9158,7 @@ IEB817I MEMBER NAME (ONFKERC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                    onfp16(rec, off + ONF_OE_SPIKES, (onf_i16)z->ospk[i]);
                } else {
                    onfp32(rec, off + ONF_OE_ID,     0);
+
                    onfp32(rec, off + ONF_OE_LATUS,  0);
                    onfp16(rec, off + ONF_OE_SPIKES, 0);
                }
@@ -9183,7 +9176,6 @@ IEB817I MEMBER NAME (ONFKERC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            z->rc = ONFR_OK;
            z->bad = ONFR_F_NONE;
            z->outcount = 0;
-
            z->steps = 0;
 
            /* --- request validation, in the order the SRS fixes ----------------- */
@@ -9199,6 +9191,7 @@ IEB817I MEMBER NAME (ONFKERC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            } else if (q->stimid != ONF_STIM_SUGR) {
                /* FR-BAT-05: WATR and BITR are reserved, ONF201W, not simulated. */
                z->rc = ONFR_WARN;
+
            } else if (q->rate < 0 || q->rate > 9999) {
                z->rc = ONFR_ERR;                       /* ONF202E */
                z->bad = ONFR_F_RATE;
@@ -9215,7 +9208,6 @@ IEB817I MEMBER NAME (ONFKERC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                z->steps = q->ms * 1000 / net->dtus;
                if (onfrun(net, st, (onf_u32)q->seed, q->rate, z->steps) != ONFK_OK) {
                    z->rc = ONFR_SEV;                   /* ONF903S, FR-SIM-08 */
-
                    z->steps = 0;
                } else {
                    z->outcount = net->nr;
@@ -9229,9 +9221,11 @@ IEB817I MEMBER NAME (ONFKERC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                        z->ospk[i] = st->spikes[nix];
                    }
                }
+
            }
 
            /* A rejected request is fingerprinted too: FR-BAT-04 prints the
+
               fingerprint on every report line, and ACC-5 compares all of them. */
            z->fp = onffpr(paycrc, q->stimid, q->seed, q->rate, q->ms, z->rc,
                           z->outcount, z->steps, z->oid, z->olat, z->ospk);
@@ -9248,7 +9242,6 @@ IEB817I MEMBER NAME (ONFREQC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * Generated by layout/generate.py from layout/master.py.
         * master.py sha256
         *   cea5aae2e22ab5dcb85681aedd8397117e6ffca5532502893f0ec8bdc838235a
-
         * Edit layout/master.py and regenerate.
         * Hand edits are lost and are a requirements violation.
         */
@@ -9265,6 +9258,7 @@ IEB817I MEMBER NAME (ONFREQC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            v |= (onf_u32)b[o + 2] <<  8;
            v |= (onf_u32)b[o + 3];
            return v;
+
        }
 
        onf_i32 onfg32(const onf_u8 *b, onf_i32 off)
@@ -9278,7 +9272,6 @@ IEB817I MEMBER NAME (ONFREQC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            if (u <= 0x7FFFFFFFUL) {
                return (onf_i32)u;
            }
-
            return -(onf_i32)(0xFFFFFFFFUL - u) - 1;
        }
 
@@ -9296,6 +9289,7 @@ IEB817I MEMBER NAME (ONFREQC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        void onfp32(onf_u8 *b, onf_i32 off, onf_i32 v)
        {
 
+
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0098
 
 
@@ -9311,7 +9305,6 @@ IEB817I MEMBER NAME (ONFREQC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            b[off + 1] = (onf_u8)((u >> 16) & 0xFFUL);
            b[off + 2] = (onf_u8)((u >>  8) & 0xFFUL);
            b[off + 3] = (onf_u8)( u        & 0xFFUL);
-
        }
 
        void onfp16(onf_u8 *b, onf_i32 off, onf_i16 v)
@@ -9331,6 +9324,7 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
 
        ./ ADD NAME=ONFI32C
+
        /*
         * onfi32.c - TT-01/32, the 32-bit integer self-test (D-142, D-118, NR-14).
         *
@@ -9344,7 +9338,6 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * -----
         * `unsigned long` is used because C89 guarantees it is at least 32 bits
         * and PDPCLIB offers nothing else.  It is 32 bits on MVS and on the x86
-
         * host, but every result is masked to 32 bits anyway rather than
         * trusted to be -- an unmasked test would quietly pass on a 64-bit host
         * while testing something other than what it claims.
@@ -9361,6 +9354,7 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        /* The comparison result bits, matching what tools/gen32v.py emits. */
        #define C_LT 1UL
        #define C_LE 2UL
+
        #define C_EQ 4UL
        #define C_GT 8UL
        #define C_GE 16UL
@@ -9374,7 +9368,6 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * assume about the compiler it is testing.
         */
        static long onf32sg(unsigned long v)
-
        {
            v &= M32;
            if (v & 0x80000000UL) {
@@ -9383,7 +9376,6 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            }
            return (long)v;
        }
-
 
 
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0100
@@ -9395,6 +9387,7 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
            if (a < b) {
                f |= C_LT;
+
            }
            if (a <= b) {
                f |= C_LE;
@@ -9409,6 +9402,7 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                f |= C_GE;
            }
            if (a != b) {
+
                f |= C_NE;
            }
            return f;
@@ -9417,7 +9411,6 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        static unsigned long onf32cs(long a, long b)
        {
            unsigned long f = 0UL;
-
 
            if (a < b) {
                f |= C_LT;
@@ -9440,6 +9433,7 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            return f;
        }
 
+
        int onf32rn(int i, unsigned long *r, int *extra)
        {
 
@@ -9449,7 +9443,6 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            const struct onf32v *v;
            unsigned long a;
            unsigned long b;
-
 
            if (i < 0 || i >= ONF32_NVEC) {
                return ONF32_RANGE;
@@ -9472,6 +9465,7 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                break;
            case ONF32_SHL:
                /* NR-11: the count is masked, never left undefined, and the
+
                   value is unsigned so no shift here is on a negative. */
                *r = (a << (b & 31UL)) & M32;
                break;
@@ -9480,7 +9474,6 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                break;
            case ONF32_ADDC:
                *r = (a + b) & M32;
-
                *extra = (*r < a) ? 1 : 0;
                break;
            case ONF32_SUBB:
@@ -9505,6 +9498,7 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
 
            int extra;
+
            unsigned long r;
            const struct onf32v *v;
 
@@ -9513,7 +9507,6 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                    continue;
                }
                v = &onf32vec[i];
-
                if (r != (v->r & M32) || extra != v->extra) {
                    /* The same encoding onfitst() uses, so ONFLYENG reports
                       both widths through one message shape (D-142). */
@@ -9535,6 +9528,7 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            case ONF32_SHL:
                return "SHL";
            case ONF32_SHR:
+
                return "SHR";
            case ONF32_ADDC:
                return "ADDC";
@@ -9543,7 +9537,6 @@ IEB817I MEMBER NAME (ONFCOMC ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            case ONF32_CMPU:
                return "CMPU";
            case ONF32_CMPS:
-
                return "CMPS";
            default:
                return "?";
@@ -9568,6 +9561,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         *                 WIDTH by backend: 32-bit (TT-01/32) where NR-03's
         *                 fallback to SoftFloat 2c is in force and the engine
         *                 uses no 64-bit integer, 64-bit (TT-01) otherwise
+
         *   FR-LOD-01..05 read the network dataset and verify it, in the order
         *                 FR-LOD-02 fixes, reporting the first failing check
         *   NFR-OBS-01    print the run manifest to SYSPRINT before any work
@@ -9576,7 +9570,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         *   FR-BAT-01     STEP2: read ONFREQ, run each request, write ONFRSP, and
         *                 set the step return code of IR-JCL-04
         *
-
         * The request/response loop was NOT here until D-221.  Section 9.2 places
         * ONFLYDRV, the JCL and the BUZZ demonstration in Phase E, so D-78 built only
         * what IR-TRN-03 and NFR-OBS-01 name and a run without PARM='VERIFY' ended
@@ -9598,6 +9591,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * Return codes, from IR-JCL-04
         * ------------------------------------------------------------------------
         *    0   the network verified; under VERIFY the step succeeded, and in
+
         *        SIMULATE mode every request succeeded
         *    4   at least one request warned (ONF201W)
         *    8   at least one request was rejected (ONF202E, ONF203E)
@@ -9606,7 +9600,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         *
         * Invocation.  argv[1] is the PARM, argv[2] the network dataset, argv[3] the
         * request dataset and argv[4] the response dataset (D-223).  D-86: when an
-
         * argument is absent the program opens the corresponding "DD:" name, which is
 
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0104
@@ -9631,6 +9624,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        #include "onfnhd.h"
        #include "onfreq.h"   /* D-221, D-224: the request/response loop */
        /* D-142: only the width this platform's engine actually uses is
+
           compiled in.  On a 2c platform the 64-bit header must not be
           included at all -- VL-45 measured GCCMVS unable to compile its
           implementation, so linking it is not an option there. */
@@ -9640,14 +9634,12 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        #include "onfint.h"
        #endif
 
-
        /* IR-JCL-04 return codes. */
        #define RC_OK       0
        #define RC_WARN     4
        #define RC_REQ      8
        #define RC_INTEG   12
        #define RC_ENV     16
-
 
        /* Appendix E, added by D-85: the dataset could not be read at all. */
        #define ONFD_READ 108
@@ -9662,8 +9654,10 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        #define ONFM_RSVD 201           /* ONF201W, FR-BAT-05 */
        #define ONFM_FLD  202           /* ONF202E */
        #define ONFM_CODE 203           /* ONF203E */
+
        #define ONFM_NFIN 903           /* ONF903S, FR-SIM-08 */
        #define ONFM_RQDS 906           /* ONF906S, D-226 */
+
 
        /*
 
@@ -9682,7 +9676,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * vary by platform.
         */
 
-
        /*
         * Engine version.  Reported by the manifest so that a recorded result names
         * the engine that produced it (NFR-OBS-01).  Bumped by hand, deliberately:
@@ -9698,6 +9691,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * arithmetic of at least one of them is unproven.  A result that does not name
         * its compiler cannot be compared with another.
         */
+
        #if defined(__GNUC__)
        #define ONF_CCID "GCC"
        #elif defined(__IBMC__)
@@ -9711,7 +9705,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        /* The DD names IR-JCL-01 allocates, in PDPCLIB's spelling (D-86, D-223). */
        #define ONF_NETDD "DD:ONFNET"
        #define ONF_REQDD "DD:ONFREQ"
-
        #define ONF_RSPDD "DD:ONFRSP"
 
        /*
@@ -9731,6 +9724,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            case ONFD_VER:   return "UNSUPPORTED FORMAT VERSION";
            case ONFD_HCRC:  return "HEADER CRC MISMATCH";
            case ONFD_MEM:   return "NETWORK EXCEEDS MEMORY LIMIT";
+
            case ONFD_PLEN:  return "PAYLOAD LENGTH INCONSISTENT";
            case ONFD_PCRC:  return "PAYLOAD CRC MISMATCH";
            case ONFD_READ:  return "NETWORK DATASET UNREADABLE";
@@ -9744,7 +9738,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            default:         return "UNKNOWN LOAD FAILURE";
            }
        }
-
 
        /* Read a u32 from the raw header by explicit byte shifts (FR-LOD-05). */
        static onf_u32 onfehdr(const onf_u8 *buf, int off)
@@ -9762,6 +9755,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        {
            onf_u32 v;
 
+
            v =  (onf_u32)buf[off] << 8;
            v |= (onf_u32)buf[off + 1];
            return v;
@@ -9774,7 +9768,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * PARM='verify' means the same thing as one who types PARM='VERIFY', so the
         * comparison is case-insensitive.  Written out rather than using strcasecmp,
         * which is neither C89 nor provided by PDPCLIB (C-06).
-
         */
        static int onfeisv(const char *parm)
        {
@@ -9794,6 +9787,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                if (c >= 'a' && c <= 'z') {
                    c = (char)(c - 'a' + 'A');
                }
+
                if (c != want[i]) {
                    return 0;
                }
@@ -9807,9 +9801,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * Everything the requirement names, and nothing that would differ between two
         * runs of the same build on the same network, so two manifests can be compared
         * line by line.  Binary64 header values are printed as their 16 hexadecimal
-
         * digits: NR-05 forbids this program from holding a binary64 as a number, and
-
         * a bit pattern is in any case the only form in which two platforms can be
         * compared exactly.
         */
@@ -9824,6 +9816,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            printf("ONF002I   MODE            %s\n", verify ? "VERIFY" : "SIMULATE");
            printf("ONF002I   NET FORMAT      %lu.%lu\n",
                   (unsigned long)onfehd16(buf, ONF_N_VMAJOR),
+
                   (unsigned long)onfehd16(buf, ONF_N_VMINOR));
            printf("ONF002I   HEADER CRC      %08lX\n",
                   (unsigned long)onfehdr(buf, ONF_N_HDRCRC));
@@ -9839,7 +9832,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                   (unsigned long)onfehdr(buf, ONF_N_DT + 4));
            printf("ONF002I   DELAY REFRACT   %ld %ld STEPS\n",
                   (long)net->delay, (long)net->refract);
-
            /* v1.1 (D-190): how many compensating-input rows this network carries.
 
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0108
@@ -9857,6 +9849,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * Read the whole dataset.
         *
         * FR-LOD-03 and IR-NET-08: an FB dataset is padded to a record boundary, so
+
         * what is read here is at least the payload and usually more.  The size is
         * passed to onfdec only as the bound on what is available; the header's
         * declared length is what onfdec trusts.
@@ -9872,7 +9865,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            long size;
 
            *out = NULL;
-
            f = fopen(path, "rb");
            if (f == NULL) {
                return -1;
@@ -9887,6 +9879,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
             * reader deliver all 11,068 cards of the network and ONFLYENG
             * reject it with ONF108E before a single header check ran, because
             * the very first statement failed.  A seekable dataset hides the
+
             * difference, which is how it survived this long.
             *
             * So: read the fixed-size header, take the payload length from it,
@@ -9905,7 +9898,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            if (len != (onf_i32)ONF_NHDR_LEN) {
                free(buf);
                fclose(f);
-
                return -1;
            }
 
@@ -9920,6 +9912,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            size = (long)onfehdr(buf, ONF_N_PAYLEN);
            if (size < 0 || size > ONF_MAXPAY) {
                free(buf);
+
                fclose(f);
                return -1;
            }
@@ -9936,7 +9929,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                buf = whole;
            }
 
-
            /*
             * A SHORT READ IS NOT AN UNREADABLE DATASET, and treating it as one
             * is a regression TE-06 caught.  If the header declares more
@@ -9950,6 +9942,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
             *
             * So whatever arrived is returned, and the decoder compares it
             * against the declared length.
+
             */
            len = 0;
            if (size > 0) {
@@ -9968,7 +9961,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            return (onf_i32)ONF_NHDR_LEN + len;
        }
 
-
        #ifndef ONF_NOREQ
        /*
         * onfefld - the field name ONF202E prints (Appendix E).
@@ -9983,6 +9975,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                return "ONF-STIM-RATE";
            }
            if (bad == ONFR_F_MS) {
+
                return "ONF-SIM-MS";
            }
            if (bad == ONFR_F_CODE) {
@@ -9998,7 +9991,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * Why the records are streamed one at a time
         * ------------------------------------------------------------------------
         * A request record is 412 bytes and the response is the same record with its
-
         * response portion filled in (IR-JCL-03), so there is never a reason to hold
         * more than one.  On MVS that matters: C-01 gives the region single-digit
         * megabytes and the network already consumes most of it, so a design that
@@ -10013,6 +10005,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
         * IR-JCL-04: 0 if every request succeeded, 4 if any warned, 8 if any was
         * rejected, 16 for an environment failure.  The worst outcome wins, and
         * every request is attempted regardless -- a rejected request must not
+
         * suppress the ones after it, because FR-BAT-04's report shows all of them.
 
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0111
@@ -10031,9 +10024,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            onf_u8 rec[ONF_RECLEN];
            FILE *fq;
            FILE *fs;
-
            onf_u32 paycrc;
-
            onf_i32 maxms;
            long qlen, nreq, k;
            int step, nok, nwarn, nerr, rc;
@@ -10047,6 +10038,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), reqpath);
                return RC_ENV;
            }
+
            if (fseek(fq, 0L, SEEK_END) != 0) {
                fclose(fq);
                printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), reqpath);
@@ -10054,6 +10046,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            }
            qlen = ftell(fq);
            rewind(fq);
+
            if (qlen <= 0 || (qlen % (long)ONF_RECLEN) != 0) {
                fclose(fq);
                printf("ONF906S %s: %s (%ld BYTES)\n",
@@ -10063,7 +10056,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            nreq = qlen / (long)ONF_RECLEN;
 
            fs = fopen(rsppath, "wb");
-
            if (fs == NULL) {
                fclose(fq);
                printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), rsppath);
@@ -10087,6 +10079,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                bias  = (onf_f64 *)malloc(sizeof(onf_f64)
                                          * (size_t)net->nbias * (size_t)net->n);
            }
+
            su    = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net->n);
            sg    = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net->n);
            sring = (onf_f64 *)malloc(sizeof(onf_f64) * (size_t)net->delay
@@ -10096,7 +10089,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            sfst  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
            sfrc  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
            sstm  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
-
 
            if (rowptr == NULL || target == NULL || weight == NULL || stim == NULL
                || readout == NULL || su == NULL || sg == NULL || sring == NULL
@@ -10117,6 +10109,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            if (rc != ONFD_OK) {
                printf("ONF%03dE %s\n", rc, onfemsg(rc));
                fclose(fq);
+
                fclose(fs);
                return RC_INTEG;
            }
@@ -10126,7 +10119,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
            /* --- the loop ------------------------------------------------------- */
            step = RC_OK;
-
            nok = 0;
            nwarn = 0;
            nerr = 0;
@@ -10150,6 +10142,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                if (rz.rc == ONFR_OK) {
                    nok++;
                    printf("ONF301I REQUEST %ld COMPLETE FP=%08lX\n",
+
                           k + 1, (unsigned long)rz.fp);
                } else if (rz.rc == ONFR_WARN) {
                    nwarn++;
@@ -10159,7 +10152,6 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                    }
                } else if (rz.rc == ONFR_SEV) {
                    nerr++;
-
                    printf("ONF903S %s\n", onfemsg(ONFM_NFIN));
                    step = RC_ENV;
                } else if (rq.stimid == ONF_STIM_UNKNOWN) {
@@ -10180,6 +10172,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                    != (size_t)ONF_RECLEN) {
                    printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), rsppath);
                    fclose(fq);
+
                    fclose(fs);
                    return RC_ENV;
                }
@@ -10192,9 +10185,7 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
        SYSIN                            NEW MASTER                                        IEBUPDTE LOG PAGE 0114
 
 
-
            if (fclose(fs) != 0) {
-
                printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), rsppath);
                return RC_ENV;
            }
@@ -10214,17 +10205,18 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            onf_i32 len;
            onf_i32 need;
            int verify;
+
            int rc;
            int self;
 
            parm = (argc > 1) ? argv[1] : "";
            path = (argc > 2) ? argv[2] : ONF_NETDD;
            reqpath = (argc > 3) ? argv[3] : ONF_REQDD;
+
            rsppath = (argc > 4) ? argv[4] : ONF_RSPDD;
            verify = onfeisv(parm);
 
            /*
-
             * NR-14 and Section 8.1: level L0 passes before anything above it runs.
             * If the compiler's integer arithmetic is wrong, every number this
             * program could go on to produce would be wrong too, and quietly so.
@@ -10253,11 +10245,11 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
 
            if (self != 0) {
                printf("ONF901S 64-BIT INTEGER SELF-TEST FAILED: %s VECTOR %d\n",
+
                       onfignm(self / 1000), (self % 1000) - 1);
                return RC_ENV;
            }
        #endif
-
 
            len = onferead(path, &buf);
            if (len < 0) {
@@ -10283,11 +10275,11 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
                   (unsigned long)onfehdr(buf, ONF_N_PAYCRC));
            onfemft(buf, &net, len, need, verify);
 
+
            if (verify) {
                /* IR-TRN-03: report and stop.  No payload conversion, no simulation,
                   and above all no allocation proportional to E, which is what makes
                   this cheap enough to run after every transport attempt (P-06). */
-
                printf("ONF003I VERIFY-ONLY: NETWORK OK\n");
                free(buf);
                return RC_OK;
@@ -10316,11 +10308,11 @@ IEB817I MEMBER NAME (ONFI32C ) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
            rc = onferun(buf, &net, reqpath, rsppath);
            free(buf);
            return rc;
+
        #endif
        }
        ./ ENDUP
 IEB817I MEMBER NAME (ONFLYENG) NOT FOUND IN NM DIRECTORY.  STOWED WITH TTR.
-
 IEB818I HIGHEST CONDITION CODE WAS 00000000
 IEB819I END OF JOB IEBUPDTE.
 
@@ -10333,43 +10325,43 @@ IEB819I END OF JOB IEBUPDTE.
 //DDN:SYSIN:2710: warning: unsigned operand of unary -
 //DDN:SYSIN:2788: warning: overflow in converting constant expression from `int' to `unsigned int'
 Page Option Hint -z8096 (612 max. used of 4096)
-JCC-RC:0, 3407872 heap bytes used, 266240 stack bytes used, Total Time:1588ms
+JCC-RC:0, 3407872 heap bytes used, 266240 stack bytes used, Total Time:1748ms
 
 Page Option Hint -z8096 (204 max. used of 4096)
-JCC-RC:0, 331776 heap bytes used, 266240 stack bytes used, Total Time:116ms
+JCC-RC:0, 331776 heap bytes used, 266240 stack bytes used, Total Time:114ms
 
 Page Option Hint -z8096 (96 max. used of 4096)
-JCC-RC:0, 204800 heap bytes used, 266240 stack bytes used, Total Time:49ms
+JCC-RC:0, 204800 heap bytes used, 266240 stack bytes used, Total Time:58ms
 
 Page Option Hint -z8096 (336 max. used of 4096)
-JCC-RC:0, 249856 heap bytes used, 266240 stack bytes used, Total Time:98ms
+JCC-RC:0, 249856 heap bytes used, 266240 stack bytes used, Total Time:91ms
 
 Page Option Hint -z8096 (168 max. used of 4096)
-JCC-RC:0, 204800 heap bytes used, 266240 stack bytes used, Total Time:48ms
+JCC-RC:0, 204800 heap bytes used, 266240 stack bytes used, Total Time:52ms
 
 Page Option Hint -z8096 (784 max. used of 4096)
-JCC-RC:0, 610304 heap bytes used, 266240 stack bytes used, Total Time:297ms
+JCC-RC:0, 610304 heap bytes used, 266240 stack bytes used, Total Time:329ms
 
 Page Option Hint -z8096 (120 max. used of 4096)
-JCC-RC:0, 204800 heap bytes used, 266240 stack bytes used, Total Time:46ms
+JCC-RC:0, 204800 heap bytes used, 266240 stack bytes used, Total Time:48ms
 
 Page Option Hint -z8096 (148 max. used of 4096)
-JCC-RC:0, 249856 heap bytes used, 266240 stack bytes used, Total Time:66ms
+JCC-RC:0, 249856 heap bytes used, 266240 stack bytes used, Total Time:71ms
 
 Page Option Hint -z8096 (550 max. used of 4096)
-JCC-RC:0, 389120 heap bytes used, 266240 stack bytes used, Total Time:197ms
+JCC-RC:0, 389120 heap bytes used, 266240 stack bytes used, Total Time:227ms
 
 Page Option Hint -z8096 (572 max. used of 4096)
-JCC-RC:0, 409600 heap bytes used, 266240 stack bytes used, Total Time:175ms
+JCC-RC:0, 409600 heap bytes used, 266240 stack bytes used, Total Time:188ms
 
 Page Option Hint -z8096 (196 max. used of 4096)
-JCC-RC:0, 262144 heap bytes used, 266240 stack bytes used, Total Time:57ms
+JCC-RC:0, 262144 heap bytes used, 266240 stack bytes used, Total Time:58ms
 
 Page Option Hint -z8096 (636 max. used of 4096)
-JCC-RC:0, 757760 heap bytes used, 266240 stack bytes used, Total Time:308ms
+JCC-RC:0, 757760 heap bytes used, 266240 stack bytes used, Total Time:309ms
 
 Page Option Hint -z8096 (514 max. used of 4096)
-JCC-RC:0, 1101824 heap bytes used, 266240 stack bytes used, Total Time:396ms
+JCC-RC:0, 1101824 heap bytes used, 266240 stack bytes used, Total Time:398ms
 
 Mapping @@CRT0                                   ST000000
 Mapping @crt0                                    ST000001
@@ -11071,7 +11063,7 @@ Linking <//DDN:L(STRTOL)>
 Linking <//DDN:L(STRUPR)>
 Linking <//DDN:L(VFPRINTF)>
 Linking <//DDN:L(USSIO)>
-PLK-RC:0, Total Time:894ms
+PLK-RC:0, Total Time:836ms
 
 
 
@@ -11358,12 +11350,12 @@ ONF301I REQUEST 4 COMPLETE FP=4FD0ED1E
 ONF301I REQUEST 5 COMPLETE FP=C4C320BC
 ONF302I STEP SUMMARY: 5 OK, 0 WARN, 0 ERROR
 
-IDCAMS  SYSTEM SERVICES                                           TIME: 08:52:35        09/15/26     PAGE   1
+IDCAMS  SYSTEM SERVICES                                           TIME: 09:11:09        09/15/26     PAGE   1
 
 
   PRINT INFILE(ONFRSP) DUMP
 
-IDCAMS  SYSTEM SERVICES                                           TIME: 08:52:35        09/15/26     PAGE   2
+IDCAMS  SYSTEM SERVICES                                           TIME: 09:11:09        09/15/26     PAGE   2
 
 
 LISTING OF DATA SET -HERC01.ONFLY.JRSP
@@ -11418,7 +11410,7 @@ RECORD SEQUENCE NUMBER - 4
 000000  E2E4C7D9 40404040 00000001 270F03E8   00000002 4FD0ED1E 00002710 00000009   *SUGR    .......Y....|...........*
 000020  00002134 00BD0000 00000058 0000A08C   00180000 00000000 00000000 00000000   *................................*
 
-IDCAMS  SYSTEM SERVICES                                           TIME: 08:52:35        09/15/26     PAGE   3
+IDCAMS  SYSTEM SERVICES                                           TIME: 09:11:09        09/15/26     PAGE   3
 
 
 LISTING OF DATA SET -HERC01.ONFLY.JRSP
@@ -11456,7 +11448,7 @@ IDC0005I NUMBER OF RECORDS PROCESSED WAS 5
 
 IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 0
 
-IDCAMS  SYSTEM SERVICES                                           TIME: 08:52:35        09/15/26     PAGE   4
+IDCAMS  SYSTEM SERVICES                                           TIME: 09:11:09        09/15/26     PAGE   4
 
 
 
@@ -11478,21 +11470,21 @@ IDC0002I IDCAMS PROCESSING COMPLETE. MAXIMUM CONDITION CODE WAS 0
 
 
 
-                    JJJJJJJJJJ   3333333333     00000000      00000000                                 AAAAAAAAAA
-                    JJJJJJJJJJ  333333333333   0000000000    0000000000                               AAAAAAAAAAAA
-                        JJ      33        33  00      0000  00      0000                              AA        AA
-                        JJ                33  00     00 00  00     00 00                              AA        AA
-                        JJ                33  00    00  00  00    00  00                              AA        AA
-                        JJ             3333   00   00   00  00   00   00                              AAAAAAAAAAAA
-                        JJ             3333   00  00    00  00  00    00                              AAAAAAAAAAAA
-                        JJ                33  00 00     00  00 00     00                              AA        AA
-                  JJ    JJ                33  0000      00  0000      00                              AA        AA
-                  JJ    JJ      33        33  000       00  000       00                              AA        AA
-                  JJJJJJJJ      333333333333   0000000000    0000000000                               AA        AA
-                   JJJJJJ        3333333333     00000000      00000000                                AA        AA
+                    JJJJJJJJJJ   3333333333     00000000         11                                    AAAAAAAAAA
+                    JJJJJJJJJJ  333333333333   0000000000       111                                   AAAAAAAAAAAA
+                        JJ      33        33  00      0000     1111                                   AA        AA
+                        JJ                33  00     00 00       11                                   AA        AA
+                        JJ                33  00    00  00       11                                   AA        AA
+                        JJ             3333   00   00   00       11                                   AAAAAAAAAAAA
+                        JJ             3333   00  00    00       11                                   AAAAAAAAAAAA
+                        JJ                33  00 00     00       11                                   AA        AA
+                  JJ    JJ                33  0000      00       11                                   AA        AA
+                  JJ    JJ      33        33  000       00       11                                   AA        AA
+                  JJJJJJJJ      333333333333   0000000000    1111111111                               AA        AA
+                   JJJJJJ        3333333333     00000000     1111111111                               AA        AA
 
 
-****A   END   JOB  300  ONFJRUN   ONFLY JCC ROW7        ROOM        8.52.35 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  300   END   A****
-****A   END   JOB  300  ONFJRUN   ONFLY JCC ROW7        ROOM        8.52.35 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  300   END   A****
-****A   END   JOB  300  ONFJRUN   ONFLY JCC ROW7        ROOM        8.52.35 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  300   END   A****
-****A   END   JOB  300  ONFJRUN   ONFLY JCC ROW7        ROOM        8.52.35 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  300   END   A****
+****A   END   JOB  301  ONFJRUN   ONFLY JCC ROW7        ROOM        9.11.09 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  301   END   A****
+****A   END   JOB  301  ONFJRUN   ONFLY JCC ROW7        ROOM        9.11.09 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  301   END   A****
+****A   END   JOB  301  ONFJRUN   ONFLY JCC ROW7        ROOM        9.11.09 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  301   END   A****
+****A   END   JOB  301  ONFJRUN   ONFLY JCC ROW7        ROOM        9.11.09 AM 15 SEP 26  PRINTER1  SYS TK5R  JOB  301   END   A****

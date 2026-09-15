@@ -287,7 +287,59 @@ card reader — and `GO ... COND CODE 0012`.
 
 ### 6.4 Row 7 itself
 
-*(Filled in when the run from the committed source lands.)*
+`python tools/mvsjcc.py --run --out data/phase-e/jcc`, job ONFJRUN,
+8,383 cards, thirteen translation units. **Every one of its 22 steps
+ended `COND CODE 0000`:**
+
+```
+ 8.52.51 ONFJRUN SCRATCH  IEFBR14  RC= 0000     8.52.55 COMP9    JCC  RC= 0000
+ 8.52.51 ONFJRUN ALLOC    IEFBR14  RC= 0000     8.52.55 COMP10   JCC  RC= 0000
+ 8.52.51 ONFJRUN WRITEH   IEBUPDTE RC= 0000     8.52.56 COMP11   JCC  RC= 0000
+ 8.52.51 ONFJRUN WRITEC   IEBUPDTE RC= 0000     8.52.56 COMP12   JCC  RC= 0000
+ 8.52.53 ONFJRUN COMP1    JCC      RC= 0000     8.52.56 COMP13   JCC  RC= 0000
+ 8.52.53 ONFJRUN COMP2    JCC      RC= 0000     8.52.57 PRELINK       RC= 0000
+ 8.52.54 ONFJRUN COMP3..8 JCC      RC= 0000     8.52.57 LKED     IEWL RC= 0000
+                                                 8.52.57 SCRATCH2     RC= 0000
+                                                 9.11.09 GO           RC= 0000
+                                                 9.11.09 DUMP  IDCAMS RC= 0000
+ONF302I STEP SUMMARY: 5 OK, 0 WARN, 0 ERROR
+ONF301I request 1 FP=6C3F7272   2 FP=BAF81D91   3 FP=F9C7EE77
+        request 4 FP=4FD0ED1E   5 FP=C4C320BC
+```
+
+COMP1 is the SoftFloat 2c amalgamation, and RC 0000 is D-285 working:
+the same step read `COND CODE 0001` before the cast, and wrote no
+object.
+
+`python tools/mvsjcc.py --compare data/phase-e/jcc data/phase-d/x86w`:
+
+```
+=== ACC-5 row 7: TK5 MVS 3.8j / SOFT2C / JCC ===
+  note record 1..5: raw NO   binary(8..411) yes  translated yes
+         chr[0:8] got e2e4c7d940404040 ('SUGR    ' as EBCDIC), want 5355475220202020
+  raw=False  binary=True  translated=True
+
+=== ACC-5 row 7 vs the Section 8.4 fingerprints ===
+  ok   G-15  fp=6C3F7272  golden=6C3F7272
+  ok   G-16  fp=BAF81D91  golden=BAF81D91
+  ok   G-17  fp=F9C7EE77  golden=F9C7EE77
+  ok   G-18  fp=4FD0ED1E  golden=4FD0ED1E
+  ok   G-19  fp=C4C320BC  golden=C4C320BC
+mvsjcc: ACC-5 row 7 PASS
+```
+
+`raw=False` is expected and is not a weakening: the response record's
+one code-page-dependent field is `ONF-STIM-CODE`, and D-261 fixed how
+identity is judged across an EBCDIC and an ASCII host. Every other byte
+matches with no translation at all.
+
+**Two runs, not one.** The first ONFJRUN produced these same five
+fingerprints from a `softfloat/c2c/softfloat.c` that had been edited by
+hand. That file is generated, so the cast was moved into
+`softfloat/derive2c.py` and the job was submitted again from the
+regenerated text. The figures above are the second run's. The first is
+not cited anywhere, because a result from source the repository does not
+hold is not a result about the repository.
 
 ### 6.5 What is NOT proven
 
