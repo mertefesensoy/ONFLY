@@ -943,6 +943,17 @@ USAGE = ("usage: python tools/mvsjcc.py --probe | --ddprobe | --ccprobe "
 
 
 def main(argv):
+    # Row 7 is `srext` only, and this file takes no --net.  Saying so
+    # here rather than leaving it implicit: tools/mvsrun.py DOES take
+    # --net, the two modules share `select()` state, and a reader who
+    # assumed the option worked would get a job that silently ran the
+    # wrong network under the right job name.  `srext` is the network
+    # the MVP ships (D-205) and the only one row 7 claims.
+    if "--net" in argv:
+        sys.stderr.write("mvsjcc: --net is not accepted; row 7 is the "
+                         "srext half of Section 8.4 (D-259, D-273). Use "
+                         "tools/mvsrun.py for the path network.\n")
+        return 2
     if not argv:
         print(USAGE)
         return 2
