@@ -434,7 +434,26 @@ whose purpose is to be a different compiler is therefore the row that
 could not say so. D-291 resolves it by asking JCC which macros it does
 define, rather than asserting an answer from the deck.
 
-### 6.6 D-285 measured, not merely argued
+### 6.6 C-04, checked by a second toolchain's own symbol table
+
+`tools/lint_c04.py` enforces C-04 — external names at most eight
+characters, unique ignoring case — by reading ONFLY's objects on x86.
+Row 7 provides an independent check from the other end: PRELINK prints
+the name it assigns to every symbol it maps, so the constraint can be
+read off a different toolchain's own table rather than off the lint that
+is supposed to guarantee it.
+
+```
+PRELINK mapped 576 symbols
+ONFLY / float-API symbols: 58
+over 8 characters (C-04): none
+case-insensitive clashes : none
+```
+
+This matters because C-04 exists for the MVS linkage editor, and until
+row 7 only one MVS toolchain had ever been asked to link these names.
+
+### 6.7 D-285 measured, not merely argued
 
 Section 4 argues the cast cannot change generated code. Arguments of
 that shape are how silent numerical regressions get in, so it was also
@@ -462,7 +481,7 @@ run_names: 21 passed
 the templates*, which is what makes the first three lines a statement
 about the committed tree rather than about a working copy.
 
-### 6.7 What is NOT proven
+### 6.8 What is NOT proven
 
 - **Row 7 is one backend, one network and five requests.** It is
   SOFT2C only — NR-03 puts SoftFloat 2c on MVS and there is no 3e or
