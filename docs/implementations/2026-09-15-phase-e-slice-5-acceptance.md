@@ -288,6 +288,24 @@ on what it actually defines, rather than pass `-D` from the deck — the
 difference being whether the manifest reports what the compiler knows or
 what the deck asserted, and NFR-OBS-01 exists to provide the former.
 
+**D-292 — eight table rows that render wrongly.** Found while checking
+that this session's own thirteen decision rows were well formed; one of
+those, D-285, was not. The six pre-existing ones were brought to the
+owner rather than repaired unasked, because escaping characters inside a
+recorded decision is still editing a recorded decision. Every word is
+unchanged: 82,569 prose tokens before, 82,569 after.
+
+**Noted, not changed: P-13 is now partly stale.** Its text says *"ACC-6
+and ACC-7 remain genuinely unevaluated"*, which was true when it was
+written and stopped being true on 2026-09-15 when slice 3 measured both.
+D-292 authorised giving P-13 its missing **cell**, not rewriting its
+claims, so the sentence stands and this note records it. P-13's
+substance — that `MANIFEST.json`'s `srext.acceptance.not_proven` field
+is now false in three places, and that correcting it means either
+hand-editing a generated file or giving `prep/manifest.py` a way to
+amend an acceptance note without re-emitting the networks — is still an
+open owner decision.
+
 **Engineer's call, recorded not decided: ACC-2 is not given a run of its
 own.** Section 6.4 defines it as a property holding *on every platform
 and backend*, and G-01 and G-15 are rate-0 requests already present in
