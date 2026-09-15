@@ -559,6 +559,93 @@ MINI = {
 }
 
 
+#: Candidate predefined macros, for D-291.  Row 7's run manifest printed
+#: `COMPILER UNKNOWN` and `PLATFORM UNKNOWN`: `ONF_CCID` keys off
+#: `__GNUC__`, `__IBMC__` and `__MVS__`, `ONF_PLATID` off `__MVS__`,
+#: `__s390x__` and `_WIN32`, and JCC defines none of them.  NFR-OBS-01
+#: requires the manifest to carry compiler identification, and the one
+#: determinism row that exists to VARY the compiler was the row unable
+#: to name it.
+#:
+#: The list is deliberately wider than the guess.  JCC is an lcc
+#: derivative, so `__LCC__` is likely -- but a probe that tested only
+#: the likely answer would report "not defined" and leave the real one
+#: undiscovered, which is how one probe becomes three.
+CCMACROS = (
+    "__LCC__", "__JCC__", "JCC", "__lcc__",
+    "__MVS__", "__CMS__", "__370__", "__S370__", "__s390__", "__s390x__",
+    "__IBMC__", "__GNUC__", "__STDC__", "__STDC_VERSION__",
+    "MVS", "__EBCDIC__", "__BIG_ENDIAN__", "_MVS", "__TOS_MVS__",
+)
+
+
+def ccprobe_source():
+    """Print, for each candidate macro, whether JCC defines it and to what.
+
+    Every macro is reported -- defined or not -- because "absent from the
+    output" and "not defined" look the same in a listing, and the whole
+    point is to find the one that IS defined.  A macro that expands to
+    nothing is distinguished from one that expands to a value by the
+    stringised form, so `-D FOO` and `-D FOO=1` are not confused.
+    """
+    src = ["#include <stdio.h>", "", "#define STR(x) #x", "",
+           "int main(void)", "{"]
+    for m in CCMACROS:
+        src.append("#ifdef %s" % m)
+        src.append("    printf(\"CCPROBE %-20s DEFINED  <%%s>\\n\","
+                   % m)
+        src.append("           STR(%s));" % m)
+        src.append("#else")
+        src.append("    printf(\"CCPROBE %-20s -\\n\");" % m)
+        src.append("#endif")
+    src.append("    return 0;")
+    src.append("}")
+    return src
+
+
+def ccprobe_deck():
+    d = deck("ONFJCCP", [(ccprobe_source(), "CCPROBE")], (), prelink=True,
+             title="ONFLY JCC MACROS")
+    assert d[-1] == "//"
+    d = d[:-1]
+    d.append("//LKED     EXEC PGM=IEWL,COND=(4,LT),")
+    d.append("//            PARM='NCAL,MAP,LIST,XREF,NORENT'")
+    d.append("//SYSLIN   DD DSN=&&OBJMOD,DISP=(OLD,DELETE)")
+    d.append("//SYSUT1   DD UNIT=SYSDA,SPACE=(CYL,(5,2))")
+    d.append("//SYSPRINT DD SYSOUT=*")
+    d.append("//SYSLMOD  DD DSN=&&GOSET(GO),UNIT=SYSDA,")
+    d.append("//            SPACE=(4096,(100,20,1)),DISP=(,PASS),")
+    d.append("//            DCB=(RECFM=U,BLKSIZE=4096)")
+    d.append("//*")
+    d.append("//GO       EXEC PGM=*.LKED.SYSLMOD,COND=(4,LT)")
+    d.append("//STDOUT   DD SYSOUT=*")
+    d.append("//STDERR   DD SYSOUT=*")
+    d.append("//SYSPRINT DD SYSOUT=*")
+    d.append("//")
+    return d
+
+
+def run_ccprobe(argv):
+    d = ccprobe_deck()
+    sys.stdout.write("mvsjcc: ccprobe %d cards, %d candidate macros\n"
+                     % (len(d), len(CCMACROS)))
+    before = mvsub.submit(d)
+    out = mvsub.collect("ONFJCCP", before, timeout=1800)
+    if out is None:
+        sys.stderr.write("mvsjcc: TIMEOUT waiting for ONFJCCP\n")
+        return 1
+    hits = 0
+    for line in out.splitlines():
+        s = line.rstrip()
+        if "CCPROBE " in s and "printf" not in s and "#" not in s:
+            sys.stdout.write(s.strip() + "\n")
+            if "DEFINED" in s:
+                hits += 1
+    sys.stdout.write("mvsjcc: %d of %d candidate macros defined\n"
+                     % (hits, len(CCMACROS)))
+    return 0
+
+
 def mini_deck(which):
     """Compile, prelink, link and run one MINI program.
 
@@ -828,8 +915,9 @@ def run_compare(argv):
     return 0 if ok else 1
 
 
-USAGE = ("usage: python tools/mvsjcc.py --probe | --ddprobe | --run "
-         "[--out DIR] | --compare <jccdir> <refdir>")
+USAGE = ("usage: python tools/mvsjcc.py --probe | --ddprobe | --ccprobe "
+         "| --rdrprobe | --mini <which> | --run [--out DIR] "
+         "| --compare <jccdir> <refdir>")
 
 
 def main(argv):
@@ -840,6 +928,8 @@ def main(argv):
         return run_probe(argv[1:])
     if argv[0] == "--ddprobe":
         return run_ddprobe(argv[1:])
+    if argv[0] == "--ccprobe":
+        return run_ccprobe(argv[1:])
     if argv[0] == "--rdrprobe":
         return run_rdrprobe(argv[1:])
     if argv[0] == "--mini":
