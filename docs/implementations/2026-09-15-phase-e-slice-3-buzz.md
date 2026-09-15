@@ -185,7 +185,75 @@ starting:
 
 BUZZ reached STEP2 immediately, so SCRATCH and STEP1 had already run — meaning
 **`PGM=ONFLYDRV` resolved through `STEPLIB` and MVT COBOL's driver ran from a
-library rather than from `&&GODATA`**, and `PGM=ONFLYENG` allocated. 
+library rather than from `&&GODATA`**, and `PGM=ONFLYENG` allocated.
+
+**ACC-7 PASS.**
+
+```
+python tools/mvsrun.py --buzz
+  SCRATCH  COND CODE 0
+  STEP1    COND CODE 0
+  STEP2    COND CODE 0
+  STEP3    COND CODE 0
+  SCRATCH  CPU 0 min 00.00 s   VIRT   4K
+  STEP1    CPU 0 min 00.01 s   VIRT  52K
+  STEP2    CPU 16 min 07.72 s  VIRT 1040K
+  STEP3    CPU 0 min 00.01 s   VIRT  68K
+  mvsrun: ACC-7 PASS -- three steps all executed, worst COND CODE 0
+```
+
+ACC-7 asks for "return code 0 and a readable report". The worst condition code
+in the job is **0**, and the report is **character-identical, all 21 lines**,
+to the x86 GnuCOBOL reference — checked with `compare_report`, saved as
+`data/phase-e/mvs/rpt-buzz-2c.txt`.
+
+**STEP1 and STEP3 cost 0.01 s of CPU each**, because nothing is compiled. That
+is the whole point of §3.1: the demonstration is the simulation and the report,
+not a build.
+
+### 6.4 TX-04 / ACC-6 (D-276)
+
+On a **quiet host** — which matters, see §6.2c — one request at the standard
+duration, run as BUZZ's own three steps so that what is timed is STEP2 and not
+a special harness:
+
+```
+python tools/mvsrun.py --buzz --tx04
+  one SUGR request, 200 Hz, 1000 ms, seed 1, srext (501 neurons)
+  STEP2 CPU     166.17 s
+  STEP2 elapsed 166 s
+  bound         600 s (NFR-PERF-01, D-133)
+  ACC-6 PASS
+  NFR-PERF-02 context -- host CPU 13th Gen Intel(R) Core(TM) i7-13650HX;
+                         Hercules 4.9.1.11612-SDL-gee86c4de
+```
+
+That discharges what VL-90 has carried forward since Gate G3 closed on figures
+from a synthetic network predating format v1.1.
+
+**A defect in the reporting, caught before it was believed.** The elapsed time
+was first read with a plain search, which takes the *first* `elapsed time` in
+the listing — SCRATCH's, reading `00:00:00`. The verdict printed
+`STEP2 elapsed 0 s` and passed partly on a number that is not the one
+NFR-PERF-01 bounds. The search is scoped to STEP2's own accounting block now,
+and the real figure agrees with the CPU time to within a second.
+
+### 6.5 What is NOT proven
+
+- **D-274's SUGR job has been built and never submitted.** So the ONF201W,
+  ONF203E and ONF202E lines have been produced by the **engine** on MVS
+  (job ONFPRUN, `ONF302I STEP SUMMARY: 11 OK, 1 WARN, 2 ERROR`) but have never
+  been **printed by the driver** there.
+- **ACC-6 rests on one sample of one request.** NFR-PERF-01 is a bound, not a
+  distribution, and 166 s against 600 s has margin — but it is one run, on one
+  host, on one day, and §6.2c of the slice 1 document shows the same work
+  measuring 23% apart under load.
+- **ACC-7 is BUZZ over `srext` only**, which is what D-273 amended FR-BAT-06
+  to mean. A demonstration over the whole Section 8.4 suite would end
+  `COND CODE 0008`, and ACC-7 as written would fail it.
+- Nothing here is a z/OS, real-hardware, Enterprise COBOL or JCC result, and
+  Hercules is an emulator — VL-01's argument about QEMU applies in the same
+  form.
 
 ## 7. Related docs
 
