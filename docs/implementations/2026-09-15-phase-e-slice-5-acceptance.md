@@ -350,6 +350,43 @@ network (D-286), so the compiler is the only difference between them.
 
 *(filled in as they land)*
 
+### 6.5 What is NOT proven, per claim
+
+Stated per claim rather than as a list of caveats, because a caveat that
+does not say *which result* it limits is not a limit.
+
+**ACC-1 and ACC-2 (§6.1)** — x86-64 Windows 11, mingw32 gcc, **NATIVE**
+backend, on `srext` only, 30 seeds per rate. ACC-1's own comparand is
+the Shiu reference from the D-164 re-run, itself an x86 measurement
+under brian2 — and brian2 is gone from this host (VL-88, D-243), so that
+comparand cannot be regenerated here. ACC-2's claim is broader than this
+run: Section 6.4 requires it on *every platform and backend*, and what
+supports that is the rate-0 request appearing in the x86, s390x and both
+MVS suites, not this pass alone.
+
+**ACC-3 (§6.2)** — the same platform and backend. The comparand is the
+full brain's own means from `acc4.json`, so ACC-3 says the 501-neuron
+subcircuit reproduces the 184,099-neuron model; it says nothing about
+whether either matches a fly. That is ACC-4's question, and ACC-4 is the
+one that fails. The 10 Hz row is **excluded, not passed**, and any
+citation of ACC-3 that omits that is incomplete.
+
+**ACC-5 rows 6 and 7 (§6.3)** — TK5 MVS 3.8j under Hercules 4.9.1,
+**SOFT2C** only, GCCMVS 3.2.3 at `-O1` and JCC 1.50.00. Hercules is an
+emulator; VL-01's argument about QEMU applies in the same form. `raw`
+identity is not achieved and cannot be between an EBCDIC and an ASCII
+host — D-261 fixes what identity means, and `binary` and `translated`
+both hold.
+
+**D-285's neutrality** — evidenced on x86 by TestFloat over 260,376 and
+781,128 cases, and on MVS by both rows reproducing their fingerprints.
+It is *not* evidenced on any platform not re-run.
+
+**Everything here is one network version.** All of it is format v1.1
+`srext`, payload CRC `4577D74E`, 501 neurons and 10,783 edges. A
+different network is a different set of golden entries (Section 8.4),
+not a repeat of these.
+
 ## 7. Related docs
 
 - SRS Section 6.4 (ACC-1 … ACC-7), 6.2 (SR-CAL-05), 7 (NFR-PERF-01),
