@@ -237,6 +237,22 @@ pins it to FR-BAT-01's exactly three EXEC steps — so it recovers no
 records to compare, and ONFPRUN runs the engine alone, so it prints no
 report. About 130 minutes between them, which the owner accepted.
 
+**D-290 — the s390x rows.** See §3.3. Asked because starting a VM is a
+lab action; it then turned out not to need starting, only feeding.
+
+**D-291 — NFR-OBS-01 under JCC.** Row 7's own run manifest printed
+`COMPILER UNKNOWN` and `PLATFORM UNKNOWN`. `ONF_CCID` keys off
+`__GNUC__`, `__IBMC__` and `__MVS__`; `ONF_PLATID` off `__MVS__`,
+`__s390x__` and `_WIN32`; JCC defines none of them. The comment above
+`ONF_CCID` states the field's purpose exactly: *the same source produces
+different object code under GCCMVS, JCC, gcc and clang … a result that
+does not name its compiler cannot be compared with another.* So the one
+determinism row that exists to vary the compiler was the row unable to
+name it. The owner chose to probe JCC's predefines and key the branches
+on what it actually defines, rather than pass `-D` from the deck — the
+difference being whether the manifest reports what the compiler knows or
+what the deck asserted, and NFR-OBS-01 exists to provide the former.
+
 **Engineer's call, recorded not decided: ACC-2 is not given a run of its
 own.** Section 6.4 defines it as a property holding *on every platform
 and backend*, and G-01 and G-15 are rate-0 requests already present in
