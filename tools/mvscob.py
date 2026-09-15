@@ -115,7 +115,7 @@ def expected_records(cards=None):
 
 def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
          job=None, title="ONFLY G4 COBOL", rpt_only=False, rsp_dsn=None,
-         nam_cards=None):
+         nam_cards=None, nam_dsn=None):
     """Gate G4's COBOL job, or the same job over different control cards.
 
     The four keyword arguments exist for Phase E slice 1 (D-260), which
@@ -131,21 +131,32 @@ def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
     drift.
 
     `rpt_only` reuses the same compile and link for Phase E slice 2's
-    FR-BAT-04 check: no MODE=REQ step, and one GO that reads `rsp_dsn`
-    as ONFRSP and `nam_cards` as ONFNAM.
+    FR-BAT-04 check: no MODE=REQ step and no dump, an IEBGENER step
+    that writes `nam_cards` into `nam_dsn`, and one GO that reads
+    `rsp_dsn` as ONFRSP and that dataset as ONFNAM.
 
-    **The names file travels as INLINE CARDS on purpose.**  IR-NAM-03
-    requires it to be "transferred in text mode so that ASCII-to-EBCDIC
-    conversion happens in transport", and a DD * stream is precisely
-    that: JES2 reads ASCII from the socket reader and stores EBCDIC.
-    The card reader path Gate G2 chose for the NETWORK is the opposite
-    of what this file wants -- it is binary-transparent (VL-52), which
-    is why the network survives it and why the names file must not use
-    it.
+    **The names file travels as inline cards through IEBGENER, into a
+    catalogued dataset.**  IR-NAM-03 requires it to be "transferred in
+    text mode so that ASCII-to-EBCDIC conversion happens in transport",
+    and a DD * stream is exactly that: JES2 reads ASCII from the socket
+    reader and stores EBCDIC.  The card reader Gate G2 chose for the
+    NETWORK is the opposite of what this file wants -- it is
+    binary-transparent (VL-52), which is why the network survives it
+    and why the names file must not use it.
+
+    It is copied into a DATASET rather than read from the stream
+    directly for a reason found by reading the FDs: ONFCTL declares
+    `LABEL RECORDS ARE OMITTED` precisely because it is an instream
+    file, while ONFNAM declares `STANDARD` -- it was written when
+    nothing opened it.  Rather than guess which the OS/360 compiler
+    tolerates for a `DD *`, the file is made into the labelled disk
+    dataset its FD already describes, which is also the shape the MVP
+    wants: ONFNAM transported once and read by every run.
     """
     cards = CARDS if cards is None else cards
     req_dsn = REQ_DSN if req_dsn is None else req_dsn
     job = JOB if job is None else job
+    nam_dsn = ("%s.ONFLY.ONFNAM" % USER) if nam_dsn is None else nam_dsn
     d = []
 
     def a(card):
@@ -161,7 +172,8 @@ def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
     # job and must survive: scratching it here would delete the ONFREQ
     # the engine step reads, from a job whose name says "report".
     a("//SCRATCH  EXEC PGM=IEFBR14")
-    kill = (LIB_DSN, SRC_DSN) if rpt_only else (LIB_DSN, SRC_DSN, req_dsn)
+    kill = ((LIB_DSN, SRC_DSN, nam_dsn) if rpt_only
+            else (LIB_DSN, SRC_DSN, req_dsn))
     for n, dsn in enumerate(kill, 1):
         a("//D%d       DD DSN=%s,DISP=(MOD,DELETE)," % (n, dsn))
         a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
@@ -211,18 +223,28 @@ def deck(parm=DEFAULT_PARM, with_rpt=True, cards=None, req_dsn=None,
     a("//SYSPRINT DD SYSOUT=*")
     a("//*")
     if rpt_only:
+        # IR-NAM-03's transport: inline cards (ASCII on the wire,
+        # EBCDIC once JES2 has read them) copied by IEBGENER into the
+        # labelled FB/80 dataset ONFNAM's FD describes.
+        a("//WRITEN   EXEC PGM=IEBGENER")
+        a("//SYSPRINT DD SYSOUT=*")
+        a("//SYSIN    DD DUMMY")
+        a("//SYSUT2   DD DSN=%s,DISP=(,CATLG,DELETE)," % nam_dsn)
+        a("//            UNIT=SYSDA,SPACE=(TRK,(1,1)),")
+        a("//            DCB=(RECFM=FB,LRECL=80,BLKSIZE=3200)")
+        a("//SYSUT1   DD *")
+        for text in (nam_cards or []):
+            a(text)
+        a("/*")
+        a("//*")
         # FR-BAT-01 STEP3, on its own until slice 3 folds the three
-        # steps into one job.  ONFNAM is an inline DD * stream, so
-        # JES2 does IR-NAM-03's ASCII-to-EBCDIC conversion.
+        # steps into one job.
         a("//GO       EXEC PGM=*.LKED.SYSLMOD,"
           "COND=((5,LT,COB),(5,LT,LKED))")
         a("//SYSOUT   DD SYSOUT=*")
         a("//SYSPRINT DD SYSOUT=*")
         a("//ONFRSP   DD DSN=%s,DISP=SHR" % rsp_dsn)
-        a("//ONFNAM   DD *")
-        for text in (nam_cards or []):
-            a(text)
-        a("/*")
+        a("//ONFNAM   DD DSN=%s,DISP=SHR" % nam_dsn)
         a("//ONFRPT   DD SYSOUT=*,"
           "DCB=(RECFM=FBA,LRECL=133,BLKSIZE=133)")
         a("//ONFCTL   DD *")
