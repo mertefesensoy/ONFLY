@@ -831,6 +831,16 @@ names:
 # checkout, and a test target must not do that on its own.  Run it when
 # `test` complains, or `fixtures-check` to diagnose without changing
 # anything.
+# D-388, D-389: the two recorded clips of the Phase G live view, both from
+# real engine streams.  `short` is the explainer -- 60 ms at K=5, where the
+# arrival, the propagation and MN9 crossing threshold at 25.8 ms are all
+# visible.  `standard` is the D-73 duration at the D-376 chunk size, which is
+# what says the explainer is a real standard request and not a shrunken one.
+# Neither is built by `make test`: they need an engine and take about 20 s.
+clips: eng
+	$(PYTHON) tools/liveview.py --engine $(BUILD)/onflyeng_nat.exe 	  --rate 40 --ms 60 --k 5 --fps 12 	  --save docs/media/onfly-live-short.gif
+	$(PYTHON) tools/liveview.py --engine $(BUILD)/onflyeng_nat.exe 	  --rate 40 --ms 1000 --k 50 --every 2 --fps 10 	  --save docs/media/onfly-live-standard.gif
+
 fixtures:
 	$(PYTHON) tools/fixtures.py
 
