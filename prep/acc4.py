@@ -84,6 +84,75 @@ def select_variant(stim, name):
     return bodies, desc
 
 
+def load_json(path, default):
+    """Read a JSON file, or return `default` when it is not there.
+
+    Local rather than imported from prep/extract.py: that module pulls
+    in the whole extraction pipeline, and --reeval must be cheap enough
+    to run without a connectome on disk.
+    """
+    if not os.path.isfile(path):
+        return default
+    return json.loads(io.open(path, encoding="utf-8").read())
+
+
+def reeval(path):
+    """Re-state ACC-4's verdict from an existing acc4.json (D-341).
+
+    WHY THIS EXISTS RATHER THAN A RE-RUN
+
+    D-341 changed which clause of ACC-4 is the criterion. It changed no
+    measurement: the same 150 full-brain runs, the same per-rate means
+    and standard errors, the same reference. Re-running 6,971 s of
+    simulation to watch identical numbers come back would not be
+    evidence of anything the recorded run is not already evidence of.
+
+    What it would give is a tool-printed verdict rather than a human
+    reinterpreting a file, and THAT is worth having -- so this reads the
+    recorded run and applies the amended rule to it, printing the same
+    lines a fresh run would print. The provenance is stated in the
+    output: it says which file it read and when that file was written.
+    """
+    d = load_json(path, None)
+    if d is None:
+        raise SystemExit("no such record: %s" % path)
+    a = d["acc4"]
+    per = d["per_rate"]
+    rates = sorted((int(r) for r in per), key=int)
+    shape_ok, onset_ok = a["shape_pass"], a["onset_pass"]
+    acc4 = shape_ok and onset_ok
+    print("re-evaluating %s under ACC-4 as amended (D-341)"
+          % os.path.basename(path))
+    print("  the measurement is unchanged: %s"
+          % d.get("platform", "(platform not recorded)"))
+    print("%6s %10s %8s %8s %10s %8s %6s"
+          % ("rate", "onfly", "sd", "se", "reference", "tol", "mag"))
+    for r in rates:
+        v = per[str(r)]
+        print("%6d %10.2f %8.2f %8.2f %10.2f %8.2f %6s"
+              % (r, v["onfly_mean_hz"], v["onfly_sd_hz"], v["onfly_se_hz"],
+                 v["reference_hz"], v["tolerance_hz"],
+                 "PASS" if v["magnitude_pass"] else "FAIL"))
+    print("ACC-4 shape %s (onset onfly %s Hz, reference %s Hz: %s); "
+          "ACC-4 %s  [the shape clause is the criterion, D-341]"
+          % ("PASS" if shape_ok else "FAIL", a["onset_onfly_hz"],
+             a["onset_reference_hz"], "PASS" if onset_ok else "FAIL",
+             "PASS" if acc4 else "FAIL"))
+    outside = [r for r in rates if not per[str(r)]["magnitude_pass"]]
+    if outside:
+        print("ACC-4 magnitude REPORTED, not tested (D-341): outside "
+              "tolerance at %s Hz"
+              % ", ".join(str(r) for r in outside))
+        for r in outside:
+            v = per[str(r)]
+            print("    %4d Hz  onfly %.2f  reference %.2f  tolerance "
+                  "%.2f  deviation %+.2f"
+                  % (r, v["onfly_mean_hz"], v["reference_hz"],
+                     v["tolerance_hz"],
+                     v["onfly_mean_hz"] - v["reference_hz"]))
+    return 0 if acc4 else 1
+
+
 def discard(path, keep):
     """Delete the emitted candidate network unless `keep` (D-320).
 
@@ -188,6 +257,9 @@ def main():
                     help="keep the emitted candidate network on disk")
     ap.add_argument("--no-window", action="store_true",
                     help="do not open a progress window (D-323)")
+    ap.add_argument("--reeval", default=None, metavar="JSON",
+                    help="re-state the verdict from a recorded run "
+                         "under ACC-4 as amended (D-341); runs nothing")
     ap.add_argument("--variant", default=None,
                     help="stimulus-set variant: right, phg9 or tpgrn (D-176)")
     a = ap.parse_args()
@@ -213,6 +285,10 @@ def main():
     # specified" naming neither the file nor the fix -- and only AFTER
     # load_cache() has spent several minutes building the 594 MB signed
     # cache.  Measured 2026-09-15 on a fresh worktree.
+    if a.reeval:
+        return reeval(a.reeval if os.path.isabs(a.reeval)
+                      else os.path.join(cal.CAL_DIR, a.reeval))
+
     if not a.no_window:
         sys.path.insert(0, os.path.join(cal.ROOT, "tools"))
         import progress as _pg
@@ -288,7 +364,21 @@ def main():
         onset_ok = abs(rates.index(onset_onfly) - rates.index(onset_ref)) <= 1
 
     magnitude_ok = all(v["magnitude_pass"] for v in per_rate.values())
-    acc4 = shape_ok and onset_ok and magnitude_ok
+    # D-341: ACC-4 is the SHAPE clause.  The magnitude comparison is
+    # reported, and a deviation does not by itself fail the criterion.
+    #
+    # This is a LOWERED BAR and the code says so where the verdict is
+    # computed, not only in the SRS.  The grounds are VL-06 -- the Shiu
+    # reference is a model calibrated on a female connectome and ONFLY
+    # runs a male one -- and the measurement is VL-103, VL-108 and
+    # VL-109: no W_syn satisfies the magnitude clause for ANY stimulus
+    # set considered, because the dose-response curves differ in shape
+    # and W_syn is one scalar.
+    #
+    # magnitude_ok is still computed and still recorded, and every
+    # failing rate is still printed, so the amendment reclassifies the
+    # deviation rather than hiding it.
+    acc4 = shape_ok and onset_ok
 
     ro0 = res0[(0, 1)]["readouts"]
     acc2 = all(x["spikes"] == 0 for x in ro0)
@@ -323,10 +413,27 @@ def main():
                  v["reference_hz"], v["tolerance_hz"],
                  "PASS" if v["magnitude_pass"] else "FAIL"))
     print("ACC-4 shape %s (onset onfly %s Hz, reference %s Hz: %s); "
-          "magnitude %s; ACC-4 %s"
+          "ACC-4 %s  [the shape clause is the criterion, D-341]"
           % ("PASS" if shape_ok else "FAIL", onset_onfly, onset_ref,
-             "PASS" if onset_ok else "FAIL",
-             "PASS" if magnitude_ok else "FAIL", "PASS" if acc4 else "FAIL"))
+             "PASS" if onset_ok else "FAIL", "PASS" if acc4 else "FAIL"))
+    # Reported, never silent: the rates outside tolerance are named on
+    # every run, pass or fail, which is what D-341 kept when it stopped
+    # them failing the criterion.
+    outside = [r for r in rates if not per_rate[str(r)]["magnitude_pass"]]
+    if outside:
+        print("ACC-4 magnitude REPORTED, not tested (D-341): outside "
+              "tolerance at %s Hz"
+              % ", ".join(str(r) for r in outside))
+        for r in outside:
+            v = per_rate[str(r)]
+            print("    %4d Hz  onfly %.2f  reference %.2f  tolerance "
+                  "%.2f  deviation %+.2f"
+                  % (r, v["onfly_mean_hz"], v["reference_hz"],
+                     v["tolerance_hz"],
+                     v["onfly_mean_hz"] - v["reference_hz"]))
+    else:
+        print("ACC-4 magnitude REPORTED (D-341): every rate within "
+              "tolerance")
     print("ACC-2 x86 NATIVE rate 0: readout spikes %s -> %s"
           % ([x["spikes"] for x in ro0], "PASS" if acc2 else "FAIL"))
     print("ACC-1 preview (full brain, x86, not the subcircuit): %s"
