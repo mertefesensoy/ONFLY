@@ -187,133 +187,69 @@ def _bar(done, total, width=24):
 # means "this is what the machine looks like".
 CALDIR = os.path.join(ROOT, "data", "calibration")
 
+# --- one process snapshot per refresh (D-335) ------------------------
+#
+# This file used to spawn a separate PowerShell subprocess for each
+# thing it wanted: the runnet workers, the wsens/calibrate job and its
+# arguments, the worker count, and the Hercules CPU. Four spawns every
+# refresh, per open window, with two or three windows open against a job
+# that was itself recycling sixteen worker processes continuously.
+#
+# On 2026-09-16 at 12:40:04 the Hercules HTTP server died with
+# HHC01800E -- select() failing for want of socket buffer space -- and
+# took the console with it, which stopped every MVS submission. That
+# this tool caused it is NOT established and is not claimed. That the
+# churn was real, unnecessary and mine is established, and one
+# Get-CimInstance returns everything needed: command lines, creation
+# times, and KernelModeTime/UserModeTime for the CPU figure.
+#
+# Cached for a short TTL so several consumers in one render share it.
+_SNAP = {"at": 0.0, "procs": None}
+_SNAP_TTL = 3.0
 
-def _worker_count():
-    """Live `runnet` processes, or None if it cannot be determined.
 
-    Matched on the process NAME.  Deliberately not `pgrep -f runnet`:
-    -f matches whole command lines and the shell running the search
-    contains the pattern, so it finds itself and reports a worker that
-    is the search.  That produced a contradictory reading during the
-    2026-09-15 lab shutdown; it is avoided here rather than rediscovered.
+def _snapshot(force=False):
+    """Every process this tool cares about, in one query.
+
+    Returns a list of dicts: name, pid, argv, started (epoch), cpu (s).
+    Empty on any failure -- the callers already treat "nothing found"
+    as "cannot tell", which is the honest reading when the query fails.
     """
-    import subprocess as sp
-    try:
-        if os.name == "nt":
-            out = sp.run(["tasklist", "/FI", "IMAGENAME eq runnet.exe",
-                          "/NH"], stdout=sp.PIPE, stderr=sp.DEVNULL,
-                         timeout=30).stdout.decode("ascii", "replace")
-            return sum(1 for ln in out.splitlines()
-                       if ln.strip().lower().startswith("runnet"))
-        out = sp.run(["pgrep", "-c", "-x", "runnet"], stdout=sp.PIPE,
-                     stderr=sp.DEVNULL, timeout=30).stdout
-        return int(out.decode("ascii", "replace").strip() or 0)
-    except Exception:
-        return None
-
-
-def _running_jobs():
-    """The wsens/calibrate processes alive now, with their arguments.
-
-    THE POINT OF THIS, which the first version of infer() missed.
-
-    A job that left no status file has not left NO information. Its own
-    command line carries every parameter it was started with -- the W_syn
-    list, the rates, the seed count -- and the operating system records
-    when it started. That is not guessing; it is reading the job's own
-    invocation. The first fallback reported `point ?` and called the
-    total unknowable, which was wrong: it was merely unlooked-for.
-
-    Returns a list of dicts with `argv` and `started`, or [] if the
-    process table cannot be read.
-    """
-    import subprocess as sp
+    now = _now()
+    if (not force and _SNAP["procs"] is not None
+            and now - _SNAP["at"] < _SNAP_TTL):
+        return _SNAP["procs"]
     out = []
     try:
+        import subprocess as sp
         if os.name == "nt":
-            # Separator is a single SPACE, not a tab.  PowerShell's
-            # backtick escapes do not apply inside a single-quoted
-            # string, so '{0}`t{1}' emits the two literal characters
-            # `t -- which is what the first version of this did, and why
-            # it silently found nothing.  The epoch has no spaces, so
-            # splitting on the first one is unambiguous.
-            ps = ("Get-CimInstance Win32_Process | "
-                  "Where-Object { $_.CommandLine -like '*prep/wsens.py*' "
-                  "-or $_.CommandLine -like '*prep/calibrate.py*' } | "
-                  "ForEach-Object { "
-                  "'{0} {1}' -f "
-                  "([DateTimeOffset]::new($_.CreationDate)"
-                  ".ToUnixTimeSeconds()), "
-                  "$_.CommandLine }")
+            ps = (
+                "Get-CimInstance Win32_Process | Where-Object { "
+                "$_.Name -like 'runnet*' -or $_.Name -like 'hercules*' "
+                "-or ($_.Name -like 'python*' -and ("
+                "$_.CommandLine -like '*prep/wsens.py*' -or "
+                "$_.CommandLine -like '*prep/calibrate.py*')) } | "
+                "ForEach-Object { '{0}|{1}|{2}|{3}|{4}' -f "
+                "$_.Name, $_.ProcessId, "
+                "([DateTimeOffset]::new($_.CreationDate)"
+                ".ToUnixTimeSeconds()), "
+                "(($_.KernelModeTime + $_.UserModeTime)/10000000), "
+                "$_.CommandLine }")
             txt = sp.run(["powershell", "-NoProfile", "-Command", ps],
                          stdout=sp.PIPE, stderr=sp.DEVNULL,
                          timeout=60).stdout.decode("utf-8", "replace")
             for line in txt.splitlines():
-                if " " not in line:
-                    continue
-                ts, cmd = line.split(" ", 1)
-                argv = cmd.strip().split()
-                # The shell that LAUNCHED the job also matches, because
-                # its own command line quotes the whole invocation.  Its
-                # argv is a shell snapshot, and reading --seeds out of it
-                # would be reading the wrong process.  The interpreter is
-                # always argv[0] of the real one.
-                if not argv or "python" not in argv[0].lower():
+                f = line.split("|", 4)
+                if len(f) < 5:
                     continue
                 try:
-                    out.append({"started": float(ts), "argv": argv})
+                    out.append({"name": f[0], "pid": int(f[1]),
+                                "started": float(f[2]),
+                                "cpu": float(f[3]),
+                                "argv": f[4].strip().split()})
                 except ValueError:
                     continue
-            return out
-        for pid in os.listdir("/proc"):
-            if not pid.isdigit():
-                continue
-            try:
-                raw = io.open("/proc/%s/cmdline" % pid, "rb").read()
-                argv = [a for a in raw.split(b"\0") if a]
-                argv = [a.decode("utf-8", "replace") for a in argv]
-                if not any("wsens.py" in a or "calibrate.py" in a
-                           for a in argv):
-                    continue
-                out.append({"started": os.path.getmtime("/proc/%s" % pid),
-                            "argv": argv})
-            except Exception:
-                continue
-    except Exception:
-        return []
-    return out
-
-
-def _workers():
-    """What every live runnet worker is computing, right now.
-
-    THIS IS THE REAL WINDOW INTO A RUNNING JOB, and it was available
-    from the start. prep/acc4.py's run_many spawns
-
-        runnet.exe <network> <rate_hz> <sim_ms> <seed>
-
-    one process per run, so the process table states exactly which
-    (rate, seed) pairs are in flight and against which network. Nothing
-    has to be inferred from elapsed time, and nothing has to be guessed:
-    the dispatch order is [(r, s) for r in rates for s in seeds], so the
-    furthest-advanced worker gives the job's exact dispatch position
-    within its current W_syn point.
-
-    Returns a list of {net, w_syn, label, rate, ms, seed, pid}.
-    """
-    import subprocess as sp
-    out = []
-    try:
-        if os.name == "nt":
-            ps = ("Get-CimInstance Win32_Process -Filter "
-                  "\"Name='runnet.exe'\" | ForEach-Object { "
-                  "'{0} {1}' -f $_.ProcessId, $_.CommandLine }")
-            txt = sp.run(["powershell", "-NoProfile", "-Command", ps],
-                         stdout=sp.PIPE, stderr=sp.DEVNULL,
-                         timeout=60).stdout.decode("utf-8", "replace")
-            rows = [ln for ln in txt.splitlines() if ln.strip()]
         else:
-            rows = []
             for pid in os.listdir("/proc"):
                 if not pid.isdigit():
                     continue
@@ -321,34 +257,90 @@ def _workers():
                     raw = io.open("/proc/%s/cmdline" % pid, "rb").read()
                     argv = [a.decode("utf-8", "replace")
                             for a in raw.split(b"\0") if a]
-                    if argv and "runnet" in argv[0]:
-                        rows.append("%s %s" % (pid, " ".join(argv)))
+                    if not argv:
+                        continue
+                    base = os.path.basename(argv[0])
+                    keep = ("runnet" in base or "hercules" in base
+                            or any("wsens.py" in a or "calibrate.py" in a
+                                   for a in argv))
+                    if not keep:
+                        continue
+                    out.append({"name": base, "pid": int(pid),
+                                "started": os.path.getmtime(
+                                    "/proc/%s" % pid),
+                                "cpu": 0.0, "argv": argv})
                 except Exception:
                     continue
     except Exception:
-        return []
+        out = []
+    _SNAP["at"], _SNAP["procs"] = now, out
+    return out
 
-    for ln in rows:
-        parts = ln.split()
-        # pid, exe, network, rate, ms, seed -- the last four are what
-        # matter and are always the final four tokens.
-        if len(parts) < 6:
+
+def _worker_count():
+    """Live `runnet` processes, from the shared snapshot (D-335).
+
+    Was a PowerShell spawn of its own.  Still matched on the process
+    NAME and never on a command line: `pgrep -f runnet` finds the shell
+    running the search, because -f matches whole command lines and that
+    shell contains the pattern.  It cost a contradictory reading during
+    the 2026-09-15 lab shutdown.
+    """
+    procs = _snapshot()
+    if not procs:
+        return None
+    return sum(1 for w in procs if w["name"].lower().startswith("runnet"))
+
+def _running_jobs():
+    """The wsens/calibrate processes alive now, from the snapshot.
+
+    A job that left no status file has not left NO information: its own
+    command line carries the W_syn list, the rates and the seed count,
+    and the OS records when it started.  That is reading the job's own
+    invocation, not guessing.
+
+    Only real interpreters count.  The shell that LAUNCHED the job also
+    matches on command line, because its own quotes the whole
+    invocation, and its argv is a shell snapshot -- so --seeds would be
+    read off the wrong process.  The snapshot filters by name.
+    """
+    return [{"started": pr["started"], "argv": pr["argv"]}
+            for pr in _snapshot()
+            if pr["name"].lower().startswith("python")]
+
+def _workers():
+    """What every live runnet worker is computing, from the snapshot.
+
+    prep/acc4.py's run_many spawns one process per run,
+
+        runnet <network> <rate_hz> <sim_ms> <seed>
+
+    so the process table states exactly which (rate, seed) pairs are in
+    flight and against which network.  The dispatch order is
+    [(r, s) for r in rates for s in seeds], so the furthest-advanced
+    worker gives the exact dispatch position within the W_syn point --
+    no timing estimate is involved.
+    """
+    out = []
+    for pr in _snapshot():
+        if not pr["name"].lower().startswith("runnet"):
+            continue
+        parts = pr["argv"]
+        if len(parts) < 5:
             continue
         try:
-            pid = int(parts[0])
-            seed, ms, rate = int(parts[-1]), int(parts[-2]), int(parts[-3])
+            seed, ms, rate = (int(parts[-1]), int(parts[-2]),
+                              int(parts[-3]))
         except ValueError:
             continue
-        net = parts[-4]
-        stem = os.path.basename(net)
+        stem = os.path.basename(parts[-4])
         if stem.startswith("net-") and stem.endswith(".bin"):
             stem = stem[len("net-"):-len(".bin")]
         label, wtxt = (stem.rsplit("-", 1) if "-" in stem
                        else ("calibration", stem))
-        out.append({"pid": pid, "label": label, "w_syn": wtxt,
+        out.append({"pid": pr["pid"], "label": label, "w_syn": wtxt,
                     "rate": rate, "ms": ms, "seed": seed})
     return out
-
 
 def _inside(label, par):
     """Exact dispatch position within the current W_syn point.
@@ -459,41 +451,27 @@ _HERC = {"cpu": None, "at": None}
 def herc_rate():
     """Fraction of one core Hercules has used since the last call.
 
-    THIS IS THE LIVENESS SIGNAL FOR AN MVS JOB, and it is needed because
-    the obvious one is absent. On x86 a job proves it is alive by having
-    sixteen worker processes churn; an MVS job's STEP2 can run for forty
-    minutes without MVS printing a single line, so a step list that has
-    not changed looks identical to a job that has died.
+    The liveness signal for an MVS job, because the obvious one is
+    absent: an MVS STEP2 can run forty minutes without MVS printing a
+    line, so a step list that has not changed looks exactly like a job
+    that has died.  About one core means the simulation is running.
 
-    Hercules' host CPU distinguishes them: a compute-bound guest keeps
-    one emulated CPU busy, so ~100% of a core means the simulation is
-    running even though nothing has been printed. Same clock
-    mvsprf.trust() certifies ACC-6 on, used here only to answer "is it
-    doing anything", not to time anything.
-
-    Sampled ACROSS calls, so in a --watch loop it costs nothing: the
-    previous reading and its timestamp are kept between iterations.
+    The CPU figure comes from the shared snapshot's KernelModeTime plus
+    UserModeTime (D-335), not from a PowerShell spawn of its own.  Same
+    clock mvsprf.trust() certifies ACC-6 on, used here only to answer
+    "is it doing anything", never to time anything.
     """
-    import subprocess as sp
     now, cpu = _now(), None
-    try:
-        if os.name == "nt":
-            out = sp.run(["powershell", "-NoProfile", "-Command",
-                          "(Get-Process hercules -ErrorAction "
-                          "SilentlyContinue).CPU"],
-                         stdout=sp.PIPE, stderr=sp.DEVNULL,
-                         timeout=30).stdout.decode("ascii", "replace")
-            cpu = float(out.strip().splitlines()[0]) if out.strip() \
-                else None
-    except Exception:
-        cpu = None
+    for pr in _snapshot():
+        if pr["name"].lower().startswith("hercules"):
+            cpu = pr["cpu"]
+            break
     prev, prev_at = _HERC["cpu"], _HERC["at"]
     _HERC["cpu"], _HERC["at"] = cpu, now
     if cpu is None or prev is None or prev_at is None:
         return None
     span = now - prev_at
     return ((cpu - prev) / span) if span > 0.5 else None
-
 
 def render_mvs(jobs):
     lines = []
