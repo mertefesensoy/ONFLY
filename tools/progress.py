@@ -154,6 +154,186 @@ def _bar(done, total, width=24):
     return "#" * n + "." * (width - n)
 
 
+# --- inference, for jobs with no tracker file (D-319) ----------------
+#
+# A job already in flight when this tool was written has no status file,
+# and a Tracker whose write fails goes silent by design (D-315).  What
+# is still observable from outside the process is the filesystem and the
+# process table, and that is enough for a coarse but honest answer.
+#
+# Everything here is labelled INFERRED wherever it is shown.  It is a
+# different kind of claim from a tick the job itself wrote, and the two
+# must never be confused: a tick means "the job says so", an inference
+# means "this is what the machine looks like".
+CALDIR = os.path.join(ROOT, "data", "calibration")
+
+
+def _worker_count():
+    """Live `runnet` processes, or None if it cannot be determined.
+
+    Matched on the process NAME.  Deliberately not `pgrep -f runnet`:
+    -f matches whole command lines and the shell running the search
+    contains the pattern, so it finds itself and reports a worker that
+    is the search.  That produced a contradictory reading during the
+    2026-09-15 lab shutdown; it is avoided here rather than rediscovered.
+    """
+    import subprocess as sp
+    try:
+        if os.name == "nt":
+            out = sp.run(["tasklist", "/FI", "IMAGENAME eq runnet.exe",
+                          "/NH"], stdout=sp.PIPE, stderr=sp.DEVNULL,
+                         timeout=30).stdout.decode("ascii", "replace")
+            return sum(1 for ln in out.splitlines()
+                       if ln.strip().lower().startswith("runnet"))
+        out = sp.run(["pgrep", "-c", "-x", "runnet"], stdout=sp.PIPE,
+                     stderr=sp.DEVNULL, timeout=30).stdout
+        return int(out.decode("ascii", "replace").strip() or 0)
+    except Exception:
+        return None
+
+
+def _known_points(label):
+    """The W_syn list a PREVIOUS run of this label used, or None.
+
+    Only a completed run records its points, so this answers "point i of
+    n" when one exists and declines to guess when none does.  Inferring
+    n from a single file on disk would be inventing it.
+    """
+    for name in sorted(os.listdir(CALDIR)) if os.path.isdir(CALDIR) else []:
+        if not (name.startswith("wsens-%s-" % label)
+                and name.endswith(".json")):
+            continue
+        try:
+            d = json.loads(io.open(os.path.join(CALDIR, name),
+                                   encoding="utf-8").read())
+            pts = [p["w_syn"] for p in d.get("points", [])]
+            if pts:
+                return sorted(pts)
+        except Exception:
+            continue
+    return None
+
+
+def infer():
+    """Coarse progress for candidate runs that left no status file.
+
+    A W_syn point emits `net-<label>-<w>.bin` and deletes it when the
+    point is done (prep/calibrate.py emit_candidate), so exactly one
+    exists while a point is running and its name says which point.
+    """
+    out = []
+    if not os.path.isdir(CALDIR):
+        return out
+    # Queried once.  It is a host-wide count and cannot be attributed to
+    # a particular job anyway, so asking per candidate would be slower
+    # and no more informative.
+    workers = _worker_count()
+    for name in sorted(os.listdir(CALDIR)):
+        if not (name.startswith("net-") and name.endswith(".bin")):
+            continue
+        stem = name[len("net-"):-len(".bin")]
+        if "-" in stem:
+            label, wtxt = stem.rsplit("-", 1)
+        else:
+            label, wtxt = "calibration", stem
+        path = os.path.join(CALDIR, name)
+        try:
+            since = os.path.getmtime(path)
+        except OSError:
+            continue
+        pts = _known_points(label)
+        idx = None
+        if pts:
+            try:
+                idx = (pts.index(float(wtxt)) + 1, len(pts))
+            except ValueError:
+                idx = None
+        out.append({"job": "wsens-%s" % label, "inferred": True,
+                    "w_syn": wtxt, "point": idx, "since": since,
+                    "workers": workers, "stale": _is_stale(since, workers)})
+    return out
+
+
+# The longest W_syn point ever measured is 2,777 s (VL-103, 30 seeds at
+# --jobs 16).  Three times that is comfortably beyond any real point and
+# well short of "left over from yesterday".
+STALE_AFTER_S = 3 * 2777
+
+
+def _is_stale(since, workers):
+    """Is this file a leftover rather than a point in progress?
+
+    Two independent signs, either of which is enough:
+
+      * no `runnet` process is alive anywhere, so nothing is running;
+      * the file is older than any W_syn point has ever taken.
+
+    This check exists because the first version of infer() did not have
+    it and reported a 299 MB network ACC-4 abandoned 15.8 hours earlier
+    as a job that was 15.8 hours into its current point.  Presenting a
+    leftover as live work is worse than reporting nothing: it is the one
+    failure mode that would make this tool untrustworthy, since the
+    reader has no way to tell the two apart from the output.
+    """
+    if workers == 0:
+        return True
+    return (_now() - since) > STALE_AFTER_S
+
+
+def render_inferred(items):
+    lines = []
+    for it in items:
+        pt = ("point %d of %d" % it["point"]) if it["point"] \
+            else "point (total unknown)"
+        if it["stale"]:
+            lines.append("%-16s LEFTOVER -- not running" % it["job"])
+            lines.append("    net-...-%s.bin, last written %s ago; no "
+                         "W_syn point has ever taken that long"
+                         % (it["w_syn"], _dur(_now() - it["since"])))
+            lines.append("    299 MB; safe to delete once no run wants it")
+            continue
+        lines.append("%-16s INFERRED -- no status file"
+                     % it["job"])
+        lines.append("    W_syn %s, %s" % (it["w_syn"], pt))
+        lines.append("    at this point for %s"
+                     % _dur(_now() - it["since"]))
+        lines.append("    %s runnet workers alive on this HOST -- the "
+                     "count is not attributable to one job"
+                     % (it["workers"] if it["workers"] is not None
+                        else "?"))
+        lines.append("    read from the emitted network on disk and the "
+                     "process table, not from the job")
+    return lines
+
+
+def render_brief(states, items):
+    """One line per job, for a status bar or a watch loop."""
+    out = []
+    for st in states:
+        done, total = st.get("done") or 0, st.get("total")
+        pct = ("%d%%" % round(100.0 * done / total)) if total else "?%"
+        out.append("%s: %s %s/%s, %s elapsed, eta %s%s"
+                   % (st.get("job", "?"), pct, done,
+                      total if total is not None else "?",
+                      _dur(st["updated_at"] - st["started_at"]),
+                      _dur(_eta(st)),
+                      "" if st.get("status") == "running"
+                      else " [%s]" % st.get("status")))
+    for it in items:
+        if it["stale"]:
+            out.append("%s: LEFTOVER net-...-%s.bin, %s old, not running"
+                       % (it["job"], it["w_syn"],
+                          _dur(_now() - it["since"])))
+            continue
+        pt = ("point %d/%d" % it["point"]) if it["point"] else "point ?"
+        out.append("%s: %s (W_syn %s), %s at this point, %s host workers,"
+                   " INFERRED"
+                   % (it["job"], pt, it["w_syn"],
+                      _dur(_now() - it["since"]),
+                      it["workers"] if it["workers"] is not None else "?"))
+    return out or ["no jobs running"]
+
+
 def read_all():
     out = []
     if not os.path.isdir(DIR):
@@ -204,6 +384,7 @@ def render(states):
 
 def main(argv):
     watch = "--watch" in argv
+    brief = "--brief" in argv
     every = 5.0
     for i, a in enumerate(argv):
         if a == "--watch" and i + 1 < len(argv):
@@ -212,7 +393,24 @@ def main(argv):
             except ValueError:
                 pass
     while True:
-        text = "\n".join(render(read_all()))
+        states = read_all()
+        # Inference is a FALLBACK, not a supplement: a job that reports
+        # for itself is not also guessed at, or the same run would be
+        # listed twice saying two different things.
+        reported = set(st.get("job") for st in states)
+        items = [it for it in infer() if it["job"] not in reported]
+        if brief:
+            text = "\n".join(render_brief(states, items))
+        else:
+            lines = []
+            if states:
+                lines += render(states)
+            if items:
+                lines += render_inferred(items)
+            if not lines:
+                lines = ["progress: nothing running, and nothing on disk "
+                         "to infer from"]
+            text = "\n".join(lines)
         if watch:
             sys.stdout.write("\x1b[2J\x1b[H")
         sys.stdout.write(text + "\n")
