@@ -1236,14 +1236,26 @@ def run_buzz(argv):
     # Only ONFTX04 is bracketed: BUZZ and SUGR are correctness runs whose
     # verdict is a set of condition codes and a report, and a sleep makes
     # those slower without making them wrong.
-    hcpu0 = wall0 = None
-    if job == "ONFTX04":
-        hcpu0, wall0 = mvsprf.herc_cpu(), time.time()
+    # D-325: EVERY job is bracketed now, not only ONFTX04.
+    #
+    # What the guard is FOR differs by job, and conflating the two would
+    # be wrong in both directions:
+    #
+    #   ONFTX04  ACC-6 is a timing verdict, so a run the host did not
+    #            execute throughout is not a measurement at all and the
+    #            verdict is withheld.
+    #   BUZZ     ACC-7's verdict is a set of condition codes and a
+    #   SUGR     printed report.  A host sleep makes those SLOWER, not
+    #            wrong, so it must not fail them.  But the step times
+    #            printed beside them are guest clocks that inflate
+    #            through a sleep, and VL-104 quotes one.  So the check
+    #            runs and is reported against the TIMES, and the
+    #            correctness verdict is left alone.
+    hcpu0, wall0 = mvsprf.herc_cpu(), time.time()
     out = run_simple(argv, deck, job, 7200,
                      "FR-BAT-01 three steps, %s"
                      % DEMOS[job]["net"])
-    hcpu1, wall1 = (mvsprf.herc_cpu(), time.time()) \
-        if job == "ONFTX04" else (None, None)
+    hcpu1, wall1 = mvsprf.herc_cpu(), time.time()
     if not isinstance(out, str):
         return out
 
@@ -1260,6 +1272,41 @@ def run_buzz(argv):
                          r"(\d+)MIN (\S+)SEC.*?VIRT\s+(\S+)", out):
         sys.stdout.write("  %-8s CPU %s min %s s   VIRT %s\n"
                          % (m.group(1), m.group(2), m.group(3), m.group(4)))
+    # D-325: say whether those times can be believed.
+    #
+    # They are all guest clocks, and mvsprf.trust() records that guest
+    # clocks inflate TOGETHER through a host sleep -- a contaminated run
+    # reported CPU 61MIN 21.92SEC against 61 min 32 s elapsed, a ratio of
+    # 1.00, with 38 of those minutes asleep.  Nothing in the block above
+    # would look wrong.  For ONFTX04 this gates the ACC-6 verdict lower
+    # down; here it annotates the numbers, for every job, so a figure
+    # quoted from this output carries its own certification.
+    if job != "ONFTX04":
+        used = (hcpu1 - hcpu0) if (hcpu0 is not None
+                                   and hcpu1 is not None) else None
+        span = wall1 - wall0
+        if used is None:
+            sys.stdout.write("  (the Hercules process CPU could not be "
+                             "read, so the times above are not "
+                             "certified)\n")
+        else:
+            frac = used / span if span > 0 else 0.0
+            sys.stdout.write("  host CPU charged to Hercules: %.1f s "
+                             "over %.1f s elapsed => %.0f%% of one "
+                             "core\n" % (used, span, frac * 100.0))
+            if frac < 0.70:
+                sys.stdout.write("  *** the times above are NOT "
+                                 "trustworthy: the host stopped "
+                                 "executing the guest for about "
+                                 "%.0f%% of the run.\n"
+                                 % ((1.0 - frac) * 100.0))
+                sys.stdout.write("  The condition codes and the report "
+                                 "below are still valid -- a sleep "
+                                 "makes a run slower, not wrong.\n")
+            else:
+                sys.stdout.write("  the host executed the guest "
+                                 "throughout, so the times above are "
+                                 "real elapsed work\n")
     print_perf_context()
     sys.stdout.write("\n=== %s end to end%s ===\n"
                      % (job, " (ACC-7)" if job == "BUZZ" else ""))
