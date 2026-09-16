@@ -124,23 +124,31 @@ class Network(object):
         return self.bias_rows[best]
 
 
-def run(net, seed, rate_hz, steps):
-    """Run the kernel and return (spikes, first_us) for every neuron.
+class _State(object):
+    """Everything the step loop carries from one step to the next.
 
-    Arguments:
-      net       a :class:`Network`
-      seed      request seed; 0 is remapped per NR-13/D-32
-      rate_hz   stimulus rate in Hz
-      steps     number of timesteps to simulate
+    This exists for D-140.  A run is driven in chunks -- the caller loops
+    the kernel for K steps at a time -- and TBD-19 closed requiring the
+    response fingerprint to be independent of K and of where the chunk
+    boundaries fall.  That is only testable if the state a chunk hands to
+    the next one is a THING rather than a set of locals, so it is named
+    here and nowhere else.
 
-    Returns:
-      spikes    list of int, length net.n
-      first_us  list of int, length net.n; first-spike latency in microseconds,
-                or -1 if the neuron never spiked (FR-SIM-05)
-
-    Side effects: none.  The generator is created internally so a run is fully
-    determined by (net, seed, rate_hz, steps).
+    `t` is the GLOBAL step index, and it is the subtle one.  The loop body
+    uses it three times -- `t % net.delay` to pick the arrival slot,
+    `(t + net.delay) % net.delay` to pick the emission slot, and
+    `(t + 1) * net.dt_us` for the first-spike latency.  A driver that
+    restarted `t` at zero each chunk would rotate the delay ring and
+    mis-date every latency, and would do so silently.  tests/test_chunk.py
+    is what says so.
     """
+
+    __slots__ = ("u", "g", "rfr", "spikes", "first", "force", "is_stim",
+                 "ring", "gen", "threshold", "bias", "t")
+
+
+def _init(net, seed, rate_hz):
+    """Build the initial state.  Pure; no I/O."""
     n = net.n
     threshold = _stimulus.check_threshold(rate_hz, net.dt_us)
     gen = _prng.Xorshift32(seed)
@@ -168,7 +176,32 @@ def run(net, seed, rate_hz, steps):
     # anything reads g, which is the order Appendix C fixes.
     bias = net.bias_row(rate_hz)
 
-    for t in range(steps):
+
+    st = _State()
+    st.u, st.g, st.rfr = u, g, rfr
+    st.spikes, st.first, st.force = spikes, first, force
+    st.is_stim, st.ring, st.gen = is_stim, ring, gen
+    st.threshold, st.bias, st.t = threshold, bias, 0
+    return st
+
+
+def _advance(net, st, nsteps):
+    """Run `nsteps` more steps from `st`, in place.
+
+    The locals below are bound from the state so that the step loop reads
+    exactly as it did when it was inline -- they are the same list
+    objects, so `u[i] = ...` still mutates the state.  Rebinding them is
+    not an optimisation; it is what keeps this refactor free of
+    transcription risk in a kernel whose every line is normative
+    (Appendix C).
+    """
+    n = net.n
+    u, g, rfr = st.u, st.g, st.rfr
+    spikes, first, force = st.spikes, st.first, st.force
+    is_stim, ring, gen = st.is_stim, st.ring, st.gen
+    threshold, bias = st.threshold, st.bias
+
+    for t in range(st.t, st.t + nsteps):
         # --- 1. ARRIVALS ------------------------------------------------
         slot = t % net.delay
         row = ring[slot]
@@ -228,4 +261,50 @@ def run(net, seed, rate_hz, steps):
 
             force[i] = False
 
-    return spikes, first
+    st.t += nsteps
+
+
+def run(net, seed, rate_hz, steps):
+    """Run the kernel and return (spikes, first_us) for every neuron.
+
+    Arguments:
+      net       a :class:`Network`
+      seed      request seed; 0 is remapped per NR-13/D-32
+      rate_hz   stimulus rate in Hz
+      steps     number of timesteps to simulate
+
+    Returns:
+      spikes    list of int, length net.n
+      first_us  list of int, length net.n; first-spike latency in
+                microseconds, or -1 if the neuron never spiked
+                (FR-SIM-05)
+
+    Side effects: none.  The generator is created internally so a run is
+    fully determined by (net, seed, rate_hz, steps).
+    """
+    st = _init(net, seed, rate_hz)
+    _advance(net, st, steps)
+    return st.spikes, st.first
+
+
+def run_chunked(net, seed, rate_hz, steps, k):
+    """Exactly :func:`run`, driven in chunks of `k` steps (D-140).
+
+    Returns the same (spikes, first_us) for every k >= 1, which is the
+    property TBD-19 carried forward and tests/test_chunk.py asserts.
+
+    This is the REFERENCE shape of D-140's mechanism, not its
+    implementation: the engine's chunked entry point is Phase G's, and
+    nothing here emits anything between chunks.  What it establishes is
+    that the algorithm itself carries no hidden per-call state, so a
+    Phase G driver that gets the carry right cannot change a fingerprint.
+    """
+    if k < 1:
+        raise ValueError("chunk size k must be >= 1, got %r" % (k,))
+    st = _init(net, seed, rate_hz)
+    left = steps
+    while left > 0:
+        n = min(k, left)
+        _advance(net, st, n)
+        left -= n
+    return st.spikes, st.first

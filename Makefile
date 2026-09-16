@@ -613,6 +613,7 @@ prep:
 	$(PYTHON) tests/test_bias.py
 	$(PYTHON) tests/test_fixt.py
 	$(PYTHON) tests/test_varnt.py
+	$(PYTHON) tests/test_chunk.py
 
 # --- TE-09: ONFLYENG, verify-only mode and the run manifest ---------------
 # The minimal engine level of D-78: the self-test, the FR-LOD-02 load checks,
