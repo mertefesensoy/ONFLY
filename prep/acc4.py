@@ -84,6 +84,37 @@ def select_variant(stim, name):
     return bodies, desc
 
 
+def discard(path, keep):
+    """Delete the emitted candidate network unless `keep` (D-320).
+
+    prep/calibrate.py has always done this -- `if not keep: os.remove()`
+    in evaluate() -- and this file never did, so every ACC-4 run left a
+    **299 MB** network behind.  One was found on 2026-09-16 still on disk
+    from the previous night, and it was found by accident, because
+    tools/progress.py mistook it for a job in progress.
+
+    Deleted AFTER the runs, never before: the file is what every worker
+    reads, and the figures it produced are already in `res` by then.
+
+    It is regenerable -- `cal.emit_candidate` rebuilds it byte-for-byte
+    from the signed cache and W_syn, and the manifest records its SHA-256
+    and CRC-32 -- so nothing is lost by removing it.  `--keep` exists for
+    the case where a run is being debugged and the exact input matters.
+
+    Failure to delete is reported, not raised: a run whose science is
+    finished must not fail because a file was locked.
+    """
+    if keep:
+        print("keeping %s (--keep)" % path.replace("\\", "/"))
+        return
+    try:
+        size = os.path.getsize(path)
+        os.remove(path)
+        print("removed %s (%d bytes)" % (path.replace("\\", "/"), size))
+    except OSError as exc:
+        print("could not remove %s: %s" % (path.replace("\\", "/"), exc))
+
+
 def run_many(path, jobs, rates, seeds, tracker=None):
     """Run every (rate, seed) pair, at most `jobs` at a time.
 
@@ -139,6 +170,10 @@ def main():
     ap.add_argument("--jobs", type=int, default=9)
     ap.add_argument("--w-syn", type=float, default=None,
                     help="override the calibrate.py choice")
+    # Spelled exactly as prep/calibrate.py spells it, so the two tools
+    # that emit candidate networks behave the same way (D-320).
+    ap.add_argument("--keep", action="store_true",
+                    help="keep the emitted candidate network on disk")
     ap.add_argument("--variant", default=None,
                     help="stimulus-set variant: right, phg9 or tpgrn (D-176)")
     a = ap.parse_args()
@@ -186,6 +221,7 @@ def main():
     res = run_many(path, a.jobs, VAL_RATES, seeds)
     res0 = run_many(path, a.jobs, (0,), (1,))
     elapsed = time.time() - t0
+    discard(path, a.keep)
 
     per_rate = {}
     for r in VAL_RATES:
