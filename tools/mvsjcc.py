@@ -959,6 +959,17 @@ def main(argv):
     if argv[0] == "--mini":
         return run_mini(argv[1:])
     if argv[0] == "--run":
+        # D-328.  Only --run: it is the ACC-5 row 7 job, 22 steps and
+        # about 16 minutes of TK5.  The probes above finish in a minute
+        # or two and a window for one would outlive the thing it watches.
+        if "--print" not in argv and "--no-window" not in argv:
+            try:
+                sys.path.insert(0, os.path.join(ROOT, "tools"))
+                import progress as _pg
+                _pg.spawn_window()
+            except Exception as exc:
+                sys.stdout.write("mvsjcc: no progress window (%s)\n"
+                                 % exc)
         return run_run(argv[1:])
     if argv[0] == "--compare":
         return run_compare(argv[1:])

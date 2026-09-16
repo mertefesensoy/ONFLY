@@ -1397,6 +1397,28 @@ def main(argv):
     sys.stdout.write("mvsrun: network %s, jobs %s/%s, ONFREQ %s\n"
                      % (NETNAME, REQ_JOB, RUN_JOB, REQ_DSN))
 
+    # D-328: a job that will occupy TK5 for the best part of an hour
+    # opens its own progress window, the same as the x86 jobs do under
+    # D-323.
+    #
+    # Only the paths that SUBMIT are covered.  --cards, --compare,
+    # --recover, --report and --print are local operations over files
+    # that are finished in seconds, and opening a window for one would
+    # be a window that says "no jobs running" and then sits there.
+    # --print is excluded for the same reason it is excluded everywhere:
+    # it emits a deck to stdout and submits nothing.
+    submits = any(f in argv for f in ("--req", "--run", "--buzz",
+                                      "--install-net", "--install-eng",
+                                      "--install-drv"))
+    if (submits and "--print" not in argv
+            and "--no-window" not in argv):
+        try:
+            sys.path.insert(0, os.path.join(ROOT, "tools"))
+            import progress as _pg
+            _pg.spawn_window()
+        except Exception as exc:
+            sys.stdout.write("mvsrun: no progress window (%s)\n" % exc)
+
     if "--cards" in argv:
         n, pad, cards = write_cards()
         sys.stdout.write("mvsrun: %s -> %d bytes + %d pad = %d cards\n"
