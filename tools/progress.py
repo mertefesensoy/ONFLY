@@ -52,6 +52,7 @@ Usage
 import io
 import json
 import os
+import re
 import sys
 import time
 
@@ -379,6 +380,116 @@ def _inside(label, par):
             "per_point": len(rates) * seeds, "by_rate": by_rate}
 
 
+# --- MVS jobs on TK5 (D-327) ----------------------------------------
+#
+# The x86 side of this tool watches worker PROCESSES. There are none for
+# an MVS job: `tools/mvsrun.py` submits a card deck through the reader
+# and then polls, so from the host all that exists is one python process
+# waiting. The work is inside Hercules.
+#
+# What Hercules does expose is its console log, and MVS narrates itself
+# there in a fixed form -- every step completion is one IEFACTRT line
+# carrying the step name, the program and the return code. That is a
+# better progress signal than anything the x86 side has, because it
+# reports outcomes and not merely activity.
+MVS_JOBS = ("BUZZ", "SUGR", "ONFTX04", "ONFPRUN", "ONFERUN", "ONFJRUN")
+
+
+def _tk5_log():
+    root = os.environ.get("ONFLY_TK5", r"C:\hercules-lab\mvs-tk5")
+    path = os.path.join(root, "log", "hardcopy.log")
+    return path if os.path.isfile(path) else None
+
+
+def mvs_jobs(tail_bytes=400000):
+    """Any ONFLY job MVS has started and not yet ended.
+
+    Read from the end of the console log, because it grows without bound
+    and only the recent part can matter. A job is "running" when its
+    $HASP373 START has been seen and no $HASP395 ENDED follows it.
+
+    The log is opened with FileShare.ReadWrite semantics implicitly --
+    Python's read mode does not lock -- which matters because Hercules
+    holds the file open for writing the whole time.
+    """
+    path = _tk5_log()
+    if not path:
+        return []
+    try:
+        size = os.path.getsize(path)
+        with io.open(path, "rb") as fh:
+            if size > tail_bytes:
+                fh.seek(size - tail_bytes)
+            text = fh.read().decode("latin-1", "replace")
+    except Exception:
+        return []
+
+    state = {}
+    for line in text.splitlines():
+        m = re.search(r"\$HASP373 (\S+)\s+STARTED", line)
+        if m and m.group(1) in MVS_JOBS:
+            state[m.group(1)] = {"job": m.group(1), "steps": [],
+                                 "started_txt": _clock(line),
+                                 "ended": False, "alloc": None}
+            continue
+        m = re.search(r"\$HASP395 (\S+)\s+ENDED", line)
+        if m and m.group(1) in state:
+            state[m.group(1)]["ended"] = True
+            continue
+        m = re.search(r"IEF236I ALLOC\. FOR (\S+)\s+(\S+)", line)
+        if m and m.group(1) in state:
+            state[m.group(1)]["alloc"] = m.group(2)
+            continue
+        # IEFACTRT: "<JOB>   <STEP>   <PROGRAM>   RC= nnnn"
+        m = re.search(r"\s(\S+)\s+(\S+)\s+(\S+)\s+RC=\s*(\d+)\s*$", line)
+        if m and m.group(1) in state:
+            state[m.group(1)]["steps"].append(
+                (m.group(2), m.group(3), int(m.group(4))))
+    return [v for v in state.values() if not v["ended"]]
+
+
+def _clock(line):
+    m = re.search(r"\s(\d?\d\.\d\d\.\d\d)\s", line)
+    return m.group(1).replace(".", ":") if m else "?"
+
+
+def render_mvs(jobs):
+    lines = []
+    for j in jobs:
+        lines.append("%s on TK5 (MVS 3.8j under Hercules) -- started %s "
+                     "guest time" % (j["job"], j["started_txt"]))
+        if j["steps"]:
+            lines.append("  steps finished:")
+            for name, prog, rc in j["steps"]:
+                flag = "ok " if rc == 0 else ("warn" if rc == 4
+                                              else "ERR ")
+                lines.append("    %s %-9s %-9s COND CODE %04d"
+                             % (flag, name, prog, rc))
+        worst = max([rc for _n, _p, rc in j["steps"]] or [0])
+        if j["alloc"] and not any(s[0] == j["alloc"] for s in j["steps"]):
+            lines.append("  now running: %s (allocated, not yet finished)"
+                         % j["alloc"])
+        lines.append("  %d step(s) done, worst COND CODE %04d so far"
+                     % (len(j["steps"]), worst))
+        lines.append("  read from the Hercules console log; MVS reports "
+                     "each step as it completes,")
+        lines.append("  so these are outcomes, not activity.")
+    return lines
+
+
+def render_mvs_brief(jobs):
+    out = []
+    for j in jobs:
+        worst = max([rc for _n, _p, rc in j["steps"]] or [0])
+        cur = j["alloc"] if (j["alloc"] and not any(
+            s[0] == j["alloc"] for s in j["steps"])) else "?"
+        out.append("%s on TK5: %d steps done, now in %s, worst COND CODE "
+                   "%04d, started %s guest time"
+                   % (j["job"], len(j["steps"]), cur, worst,
+                      j["started_txt"]))
+    return out
+
+
 def _opt(argv, name):
     for i, a in enumerate(argv):
         if a == name and i + 1 < len(argv):
@@ -676,13 +787,17 @@ def render_brief(states, items):
                                    (min(ins["by_rate"][cur]),
                                     max(ins["by_rate"][cur]))),
                           _dur(el), left))
-        elif it.get("between"):
+        elif it.get("between"):  # noqa: E501 - kept adjacent to its twin
             out.append("%s: between W_syn points, emitting the next "
                        "network, %s elapsed" % (it["job"], _dur(el)))
         else:
             out.append("%s: W_syn %s, %s elapsed, no workers running"
                        % (it["job"], it["w_syn"], _dur(el)))
-    return out or ["no jobs running"]
+    # No placeholder here.  MVS lines are appended by the caller, and a
+    # "no jobs running" emitted from this side printed directly above a
+    # TK5 job that was plainly running.  The caller decides when there is
+    # genuinely nothing, because only the caller sees every source.
+    return out
 
 
 def read_all():
@@ -906,14 +1021,20 @@ def main(argv):
         # listed twice saying two different things.
         reported = set(st.get("job") for st in states)
         items = [it for it in infer() if it["job"] not in reported]
+        mvs = mvs_jobs()
         if brief:
-            text = "\n".join(render_brief(states, items))
+            rows = render_brief(states, items) + render_mvs_brief(mvs)
+            text = "\n".join(rows or ["no jobs running"])
         else:
             lines = []
             if states:
                 lines += render(states)
             if items:
                 lines += render_inferred(items)
+            if mvs:
+                if lines:
+                    lines.append("")
+                lines += render_mvs(mvs)
             if not lines:
                 lines = ["progress: nothing running, and nothing on disk "
                          "to infer from"]
@@ -934,6 +1055,8 @@ def main(argv):
         for it in items:
             if not it.get("stale"):
                 live.add(it.get("job"))
+        for j in mvs:
+            live.add("%s (TK5)" % j["job"])
         seen |= live
 
         if watch:
