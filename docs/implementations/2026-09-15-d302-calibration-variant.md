@@ -199,13 +199,89 @@ protected, which is the whole reason D-292 existed — reports:
 A first version of that scan honoured code spans and wrongly reported two
 survivors. The verdict rests on the corrected one.
 
-### 6.4 ACC-4 re-run and the variant calibration
+### 6.4 ACC-4 re-run, and what the investigation actually cost
 
-*(Pending — see §6.5.)*
+Platform x86-64 Windows 11, mingw32 gcc, **NATIVE** backend throughout.
+
+    python prep/acc4.py --jobs 14                    # 6,971 s
+
+    rate      onfly       sd       se  reference      tol    mag
+      10       3.67     4.22     0.77       0.00     2.00   FAIL
+      40      14.35     8.45     1.54       4.73     2.00   FAIL
+      60      28.38     7.85     1.43      32.07     8.02   PASS
+     120      68.38     8.19     1.50      64.43    16.11   PASS
+     200      88.80     5.07     0.93      77.57    19.39   PASS
+    ACC-4 shape PASS ...; magnitude FAIL; ACC-4 FAIL
+
+This reproduces VL-64's 2026-09-12 measurement **bit-for-bit**: a `git
+diff` of `data/calibration/acc4.json` against the committed record shows
+**one changed field, `elapsed_s`**. That is a determinism result as well
+as a finding, and it re-confirms D-285's cast neutral on this platform.
+
+The full D-302 programme was never run, and did not need to be. D-306
+redirected it to the question the answer actually turns on, and D-309
+then repeated that at ACC-4's own seed count:
+
+    python prep/wsens.py --variant tpgrn \
+        --w-syn 0.26,0.28,0.2969,0.32 --rates 40,60,120 \
+        --seeds 30 --jobs 16            # 360 runs, 11,047 s
+
+       W_syn          40 Hz         60 Hz        120 Hz
+      0.2600     5.60+-0.50   10.28+-0.77   28.80+-0.62
+      0.2800     6.97+-0.63   17.53+-0.86   38.42+-0.70
+      0.2969     7.78+-0.78   24.55+-1.24   49.10+-1.00
+      0.3200    11.82+-1.44   34.37+-1.16   63.02+-1.22
+
+Every rate is monotonic in W_syn, so each ACC-4 band becomes a one-sided
+constraint on it:
+
+       40 Hz is ABOVE its band at 0.2969 (7.78 > 6.73): W_syn <= 0.2766
+       60 Hz is INSIDE its band  (24.55 in [24.05, 40.08]): W_syn >= 0.2957
+      120 Hz is INSIDE its band  (49.10 in [48.32, 80.54]): W_syn >= 0.2957
+
+      feasible W_syn window: 0.2957 .. 0.2766
+      EMPTY -- disjoint by 0.0191 mV (6.9% of W_syn).
+
+**No W_syn satisfies ACC-4 for this variant** (VL-103). The failure is
+not a mis-set gain: W_syn is a single scalar, and the variant's
+dose-response curve has the wrong *shape* against Shiu's — too much
+response at 40 Hz for the amount it delivers at 60 and 120 Hz. A scalar
+cannot change a shape. This is the evidence risk R-03 asserts and which
+D-177 had to decide without.
+
+**A correction, and the reason D-307 was right.** A first pass at four
+seeds (VL-100) reported the 40 Hz column as non-monotonic — 3.88, 8.50,
+7.00, 8.75 — and read that as 40 Hz being insensitive to W_syn. At thirty
+seeds it is 5.60, 6.97, 7.78, 11.82 and cleanly monotonic. **The verdict
+was right and the mechanism was wrong**, and the owner's decision under
+D-307 not to settle ACC-4's disposition on the weaker evidence is what
+caught it. Cross-check: the 30-seed 0.2969 row reproduces VL-65's
+independently measured values (7.78 / 24.55 / 49.10) exactly.
 
 ### 6.5 What this does **not** prove
 
-To be completed with the runs.
+- **Four W_syn points with linear interpolation between them, not a
+  search.** The crossings 0.2766 and 0.2957 locate the window; they do
+  not bound it to four decimal places, and VL-79 measured this model
+  swinging sharply below the fourth decimal. The disjointness, at 6.9%,
+  is far larger than that uncertainty — which is why the conclusion holds
+  even though the crossings are approximate.
+- **No recalibrated W_syn was produced.** D-302's `--variant` switch
+  makes a variant calibration possible; this investigation deliberately
+  did not run one, because the sensitivity measurement answered the
+  question at about a tenth of the cost.
+- **Only the `tpgrn` variant was probed.** VL-65's other candidate, the
+  unilateral `right` set, was not, and its half of that sentence is still
+  open. It fails at 60, 120 and 200 Hz by four- to sixfold at the shipped
+  W_syn, so it is unlikely — but unlikely is not measured.
+- **x86-64 NATIVE only.** Nothing here was run on MVS, s390x or either
+  soft backend, and nothing here bears on them.
+- **Three rates, not five.** The probe ran 40, 60 and 120 Hz, the three
+  that bound the window. 10 and 200 Hz were not measured across W_syn.
+- **Nothing shipped was touched.** The stimulus set is still D-52's
+  fourteen neurons on both hemispheres and W_syn is still 0.2969 mV in
+  every emitted network; the probe writes only
+  `data/calibration/wsens-tpgrn-s4.json` and `-s30.json`.
 
 ## 7. Related docs
 
