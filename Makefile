@@ -747,8 +747,15 @@ sub:
 # two additive changes this slice made -- mvsbld.build(post=...) and
 # the keyword arguments on mvscob.deck() -- against altering any
 # existing caller's deck.  Pure Python; no cobc, no Hercules.
+#
+# D-312 adds tests/test_trust.py beside it: ACC-6's external-clock guard.
+# Its failure mode is silence -- an unreadable Hercules process would let
+# an unguarded implementation certify nothing while appearing to certify
+# -- so what is pinned is that it REFUSES, on a sleep and on a clock it
+# cannot read.  Synthetic numbers only; no Hercules, milliseconds.
 mvsrun:
 	$(PYTHON) tests/run_mvsrun.py
+	$(PYTHON) tests/test_trust.py
 
 # Phase E slice 4 (D-281 ... D-286).  ACC-5's row 7 is the same platform
 # and backend as row 6 through a DIFFERENT compiler, and it is only

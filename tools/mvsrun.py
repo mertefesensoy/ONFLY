@@ -124,6 +124,11 @@ import mkreq                                          # noqa: E402
 import mvsbld                                         # noqa: E402
 import mvscob                                         # noqa: E402
 import mvseng                                         # noqa: E402
+# D-312: reused, not reimplemented.  mvsprf owns herc_cpu() and trust();
+# a second copy of the 70%-of-a-core rule could drift from the one Gate
+# G3 is certified against.  mvsprf imports no module of ours but mvsbld
+# and mvsub, so this is not circular.
+import mvsprf                                         # noqa: E402
 import mvsub                                          # noqa: E402
 
 #: Both Section 8.4 networks.  D-259 ran the `srext` half first -- it is
@@ -1217,9 +1222,28 @@ def run_buzz(argv):
                    % (mvseng.READER_DEV, staged.replace("\\", "/")))
     sys.stdout.write("mvsrun: reader %s loaded with %s\n"
                      % (mvseng.READER_DEV, staged))
+    # D-312: bracket the submission with the one clock OUTSIDE the guest.
+    #
+    # ACC-6 is read below from IEF374I and the step's own elapsed time,
+    # both of which MVS derives from a timer Hercules drives off the host
+    # clock.  Across a host sleep they advance together while nothing
+    # executes, so their ratio -- the obvious guard -- says nothing:
+    # mvsprf.trust() records a contaminated run reporting CPU 61MIN
+    # 21.92SEC against 61 min 32 s elapsed, ratio 1.00, with roughly 38 of
+    # those minutes spent in Modern Standby.
+    #
+    # Host CPU charged to the Hercules PROCESS cannot be fooled that way.
+    # Only ONFTX04 is bracketed: BUZZ and SUGR are correctness runs whose
+    # verdict is a set of condition codes and a report, and a sleep makes
+    # those slower without making them wrong.
+    hcpu0 = wall0 = None
+    if job == "ONFTX04":
+        hcpu0, wall0 = mvsprf.herc_cpu(), time.time()
     out = run_simple(argv, deck, job, 7200,
                      "FR-BAT-01 three steps, %s"
                      % DEMOS[job]["net"])
+    hcpu1, wall1 = (mvsprf.herc_cpu(), time.time()) \
+        if job == "ONFTX04" else (None, None)
     if not isinstance(out, str):
         return out
 
@@ -1282,9 +1306,23 @@ def run_buzz(argv):
                          % ("%d" % el if el is not None else "(unread)"))
         sys.stdout.write("  bound         %d s (NFR-PERF-01, D-133)\n"
                          % bound)
-        verdict = (cpu is not None and cpu <= bound
-                   and (el is None or el <= bound))
-        sys.stdout.write("  ACC-6 %s\n" % ("PASS" if verdict else "FAIL"))
+        within = (cpu is not None and cpu <= bound
+                  and (el is None or el <= bound))
+        # D-312.  Two conditions, and BOTH must hold: the guest's figures
+        # must be inside NFR-PERF-01's bound, and the host must actually
+        # have been executing the guest while they were taken.  A run that
+        # slept produces guest numbers that look ordinary -- that is the
+        # whole hazard -- so a timing verdict without this is not a
+        # measurement, whichever way it falls.
+        sys.stdout.write("\n  external clock (D-312, mvsprf.trust):\n")
+        certified = mvsprf.trust(hcpu0, hcpu1,
+                                 (wall1 - wall0) if wall0 else 0.0)
+        verdict = within and certified
+        sys.stdout.write("  ACC-6 %s%s\n"
+                         % ("PASS" if verdict else "FAIL",
+                            "" if certified
+                            else "  (NOT CERTIFIED -- the host did not "
+                                 "execute the guest throughout; re-run)"))
         ok = ran and worst == 0 and verdict
         sys.stdout.write("\nmvsrun: %s -- three steps %s, worst COND CODE "
                          "%s\n" % (job, "all executed" if ran
