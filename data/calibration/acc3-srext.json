@@ -3,53 +3,84 @@
     10
   ],
   "acc3_pass": true,
-  "decision": "D-181, amended by D-289",
+  "acc3_precision_note": "P-18 (D-357): 40 Hz within the reference's own precision -- margin below the reference mean's standard error over 30 seeds",
+  "decision": "D-181, amended by D-289 and D-357",
   "edges": 10783,
-  "elapsed_s": 80,
+  "elapsed_s": 47,
   "need_bytes": 255688,
   "network": "onfnet-malecns-v1.0-srext.bin",
   "neurons": 501,
   "nfr_mem_01_pass": true,
   "per_rate": {
     "10": {
+      "difference_hz": -3.65,
       "excluded": true,
       "excluded_reason": "D-202: reference sd 4.22 >= mean 3.67",
       "full_mean_hz": 3.6666666666666665,
+      "full_sd_hz": 4.22499404882938,
+      "margin_hz": -2.65,
       "pass": false,
+      "reference_se_hz": 0.7713748486229782,
+      "reference_seeds": 30,
       "sub_mean_hz": 0.016666666666666666,
-      "tolerance_hz": 1.0
+      "tolerance_hz": 1.0,
+      "within_reference_precision": true
     },
     "120": {
+      "difference_hz": 3.683333333333323,
       "excluded": false,
       "excluded_reason": null,
       "full_mean_hz": 68.38333333333334,
+      "full_sd_hz": 8.194492824066549,
+      "margin_hz": 3.155000000000012,
       "pass": true,
+      "reference_se_hz": 1.4961028556851537,
+      "reference_seeds": 30,
       "sub_mean_hz": 72.06666666666666,
-      "tolerance_hz": 6.838333333333335
+      "tolerance_hz": 6.838333333333335,
+      "within_reference_precision": false
     },
     "200": {
+      "difference_hz": 2.549999999999997,
       "excluded": false,
       "excluded_reason": null,
       "full_mean_hz": 88.8,
+      "full_sd_hz": 5.067815961604136,
+      "margin_hz": 6.330000000000004,
       "pass": true,
+      "reference_se_hz": 0.9252523731517734,
+      "reference_seeds": 30,
       "sub_mean_hz": 91.35,
-      "tolerance_hz": 8.88
+      "tolerance_hz": 8.88,
+      "within_reference_precision": false
     },
     "40": {
+      "difference_hz": -0.5833333333333321,
       "excluded": false,
       "excluded_reason": null,
       "full_mean_hz": 14.35,
+      "full_sd_hz": 8.448780773089341,
+      "margin_hz": 0.8516666666666679,
       "pass": true,
+      "reference_se_hz": 1.5425292709456562,
+      "reference_seeds": 30,
       "sub_mean_hz": 13.766666666666667,
-      "tolerance_hz": 1.435
+      "tolerance_hz": 1.435,
+      "within_reference_precision": true
     },
     "60": {
+      "difference_hz": 0.5,
       "excluded": false,
       "excluded_reason": null,
       "full_mean_hz": 28.383333333333333,
+      "full_sd_hz": 7.8484386030437365,
+      "margin_hz": 2.3383333333333334,
       "pass": true,
+      "reference_se_hz": 1.4329222880271295,
+      "reference_seeds": 30,
       "sub_mean_hz": 28.883333333333333,
-      "tolerance_hz": 2.8383333333333334
+      "tolerance_hz": 2.8383333333333334,
+      "within_reference_precision": false
     }
   },
   "sha256": "bf09a3ad18a82b8ecc0dd2fd397d81e332f38c98a78325269f5c39d2b3b1f66d"

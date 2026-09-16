@@ -607,6 +607,15 @@ shim: $(BUILD) softfloat/onfsub.c fp
 # kernel and the Python oracle could silently disagree, and a non-zero rate 0
 # row would break ACC-2 on every platform at once, so both are pinned here
 # on a hand-built fixture rather than left to the integration tests.
+#
+# TP-09 joins them (D-355): prep/seeds.py, the TBD-06 seed-sensitivity tool,
+# has to evaluate ACC-1 and ACC-3 over resampled ARRAYS, which the list-shaped
+# implementations in prep/extract.py cannot do -- so two implementations of
+# one criterion exist.  That is the exact condition that produced D-289, where
+# --acc3-file predated D-202's amendment and printed FAIL while every rate
+# ACC-3 actually tests passed.  test_seeds.py ties the array form to the
+# recorded artefacts the list form produced, VL-105 and VL-98.  It reads only
+# committed JSON, so it needs no network fixture and no engine build.
 prep:
 	$(PYTHON) tests/test_signs.py
 	$(PYTHON) tests/test_gain.py
@@ -615,6 +624,7 @@ prep:
 	$(PYTHON) tests/test_varnt.py
 	$(PYTHON) tests/test_chunk.py
 	$(PYTHON) tests/test_disc.py
+	$(PYTHON) tests/test_seeds.py
 
 # --- TE-09: ONFLYENG, verify-only mode and the run manifest ---------------
 # The minimal engine level of D-78: the self-test, the FR-LOD-02 load checks,
@@ -729,7 +739,7 @@ runners: $(BUILD) $(GENERATED) runner
 # TT-02, come before the L1 unit tests and everything above them.
 test: lint liclint col80 c04 c04mvs sub mvsrun mvsjcc names tt01 tt02 c2c sfs shim layout units fp kernel syn \
       decode eng req golden prep
-	@echo "ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE; plus IR-NAM-01..03 over the emitted names files, and the Phase E MVS decks and recordings -- TX-01 under D-261 and ACC-5 row 6 for all nineteen Section 8.4 requests, and ACC-5 row 7 for the five srext requests JCC built and ran; plus the streamed fixture digests and D-202's ACC-3 exclusion rule"
+	@echo "ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE; plus IR-NAM-01..03 over the emitted names files, and the Phase E MVS decks and recordings -- TX-01 under D-261 and ACC-5 row 6 for all nineteen Section 8.4 requests, and ACC-5 row 7 for the five srext requests JCC built and ran; plus the streamed fixture digests, D-202's ACC-3 exclusion rule, and TP-09 holding the TBD-06 seed tool to the recorded ACC-1 and ACC-3 verdicts"
 
 # D-249.  `summarise()` in tools/mvsub.py turns a few thousand lines of
 # JES2 output into the handful a person reads -- and, through the gate

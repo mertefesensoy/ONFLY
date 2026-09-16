@@ -352,7 +352,8 @@ def acc3(jobs):
     t0 = time.time()
     run_pool(jobs_list, jobs, [], on_done)
 
-    out = {"decisions": ["D-135", "D-165", "D-166", "D-178", "D-179"],
+    out = {"decisions": ["D-135", "D-165", "D-166", "D-178", "D-179",
+                         "D-202", "D-357", "D-360"],
            "full_brain_source": "data/calibration/acc4.json (same seeds)",
            "subcircuits": {}, "chosen_N": None}
     chosen = None
@@ -368,17 +369,25 @@ def acc3(jobs):
                 sp = [x["spikes"] for x in res["readouts"]]
                 means.append(sum(sp) * 1000.0 / cal.SIM_MS / len(sp))
             mean = sum(means) / len(means)
-            fb = full["per_rate"][str(r)]["onfly_mean_hz"]
-            tol = max(REL_TOL * fb, ABS_FLOOR)
-            ok = abs(mean - fb) <= tol
-            ok_all = ok_all and ok
-            per_rate[str(r)] = {"sub_mean_hz": mean, "full_mean_hz": fb,
-                                "tolerance_hz": tol, "pass": ok}
+            # D-360: this path went through D-202 and D-357 without being
+            # updated for either -- it tested the 10 Hz rate the criterion
+            # EXCLUDES, so it would have reported FAIL for every N and
+            # escalated a selection that actually passes.  That is D-289's
+            # defect surviving in the function D-289 did not touch, which is
+            # why the rule now lives in one place and every verdict path
+            # calls it.
+            row = acc3_row(full, r, mean)
+            if not row["excluded"]:
+                ok_all = ok_all and row["pass"]
+            per_rate[str(r)] = row
         mem_ok = need is not None and need <= REGION_BYTES
         perf_ok = n <= 1000                       # Gate G3, VL-41, D-138
         out["subcircuits"][str(n)] = {
             "neurons": sub["neurons"], "edges": sub["edges"],
             "per_rate": per_rate, "acc3_pass": ok_all,
+            "acc3_excluded_rates": [q for q in VAL_RATES
+                                    if acc3_excluded(full, q)],
+            "acc3_precision_note": acc3_precision_note(per_rate, VAL_RATES),
             "need_bytes": need, "nfr_mem_01_pass": mem_ok,
             "nfr_perf_01_pass_by_g3": perf_ok,
         }
@@ -388,15 +397,24 @@ def acc3(jobs):
     out["elapsed_s"] = round(time.time() - t0)
     save_json(ACC3, out)
 
-    print("%6s %6s %10s %10s %8s %6s" % ("N", "rate", "subcirc", "full",
-                                        "tol", "ACC-3"))
+    # P-18 (D-357) added the margin and the reference's own standard
+    # error: the margin is what the verdict must be read against.
+    print("%6s %6s %10s %10s %8s %8s %8s %6s"
+          % ("N", "rate", "subcirc", "full", "tol", "margin", "ref se",
+             "ACC-3"))
     for n in N_SEQ:
         e = out["subcircuits"][str(n)]
         for r in VAL_RATES:
             v = e["per_rate"][str(r)]
-            print("%6d %6d %10.2f %10.2f %8.2f %6s"
+            print("%6d %6d %10.2f %10.2f %8.2f %8.2f %8s %6s"
                   % (n, r, v["sub_mean_hz"], v["full_mean_hz"],
-                     v["tolerance_hz"], "PASS" if v["pass"] else "FAIL"))
+                     v["tolerance_hz"], v["margin_hz"],
+                     "n/a" if v["reference_se_hz"] is None
+                     else "%.2f" % v["reference_se_hz"],
+                     "EXCL" if v["excluded"]
+                     else ("PASS" if v["pass"] else "FAIL")))
+        if e["acc3_precision_note"]:
+            print("  %s" % e["acc3_precision_note"])
         print("N=%d: ACC-3 %s; need=%s bytes vs %d (NFR-MEM-01 %s); "
               "NFR-PERF-01 by G3 %s"
               % (n, "PASS" if e["acc3_pass"] else "FAIL", e["need_bytes"],
@@ -521,8 +539,10 @@ def acc3_file(path, label, jobs):
     # whose headline contradicts the requirement it names.  The
     # exclusion is asked of `acc3_excluded()`, the same function
     # `acc3_eval()` uses, so there is one implementation of one rule.
-    print("%6s %10s %10s %8s %8s" % ("rate", "subcirc", "full", "tol",
-                                     "ACC-3"))
+    # P-18 (D-357) added the two rightmost columns: the reference mean's own
+    # standard error, and the margin it is to be read against.
+    print("%6s %10s %10s %8s %8s %8s %8s"
+          % ("rate", "subcirc", "full", "tol", "margin", "ref se", "ACC-3"))
     for r in VAL_RATES:
         means = []
         for sd in SEEDS:
@@ -530,28 +550,25 @@ def acc3_file(path, label, jobs):
             sp = [x["spikes"] for x in res["readouts"]]
             means.append(sum(sp) * 1000.0 / cal.SIM_MS / len(sp))
         mean = sum(means) / len(means)
-        fe = full["per_rate"][str(r)]
-        fb = fe["onfly_mean_hz"]
-        tol = max(REL_TOL * fb, ABS_FLOOR)
-        ok = abs(mean - fb) <= tol
-        excluded = acc3_excluded(full, r)
+        row = acc3_row(full, r, mean)
         # An excluded rate is REPORTED, never counted -- and its measured
         # value and verdict are kept, because ACC-3 as amended requires
         # the excluded rates and their numbers to be reported with every
         # result.  Dropping them would satisfy the tool and not the
         # requirement.
-        if not excluded:
-            ok_all = ok_all and ok
-        per_rate[str(r)] = {"sub_mean_hz": mean, "full_mean_hz": fb,
-                            "tolerance_hz": tol, "pass": ok,
-                            "excluded": excluded,
-                            "excluded_reason": (
-                                "D-202: reference sd %.2f >= mean %.2f"
-                                % (fe.get("onfly_sd_hz", 0.0), fb))
-                            if excluded else None}
-        print("%6d %10.2f %10.2f %8.2f %8s"
-              % (r, mean, fb, tol,
-                 "EXCL" if excluded else ("PASS" if ok else "FAIL")))
+        if not row["excluded"]:
+            ok_all = ok_all and row["pass"]
+        per_rate[str(r)] = row
+        print("%6d %10.2f %10.2f %8.2f %8.2f %8s %8s"
+              % (r, mean, row["full_mean_hz"], row["tolerance_hz"],
+                 row["margin_hz"],
+                 "n/a" if row["reference_se_hz"] is None
+                 else "%.2f" % row["reference_se_hz"],
+                 "EXCL" if row["excluded"]
+                 else ("PASS" if row["pass"] else "FAIL")))
+    note = acc3_precision_note(per_rate, VAL_RATES)
+    if note:
+        print("  %s" % note)
     excl = [r for r in VAL_RATES if acc3_excluded(full, r)]
     for r in excl:
         fe = full["per_rate"][str(r)]
@@ -559,7 +576,8 @@ def acc3_file(path, label, jobs):
               "%.2f +- %.2f Hz, subcircuit %.2f Hz"
               % (r, fe["onfly_mean_hz"], fe.get("onfly_sd_hz", 0.0),
                  per_rate[str(r)]["sub_mean_hz"]))
-    out = {"decision": "D-181, amended by D-289",
+    out = {"decision": "D-181, amended by D-289 and D-357",
+           "acc3_precision_note": note,
            "network": os.path.basename(path),
            "sha256": hashlib.sha256(io.open(path, "rb").read()).hexdigest(),
            "neurons": n, "edges": e, "need_bytes": need,
@@ -1020,6 +1038,60 @@ def acc3_excluded(full, rate):
     return e.get("onfly_sd_hz", 0.0) >= e["onfly_mean_hz"]
 
 
+def acc3_row(full, rate, sub_mean):
+    """One rate's ACC-3 record, including the P-18 precision fields (D-357).
+
+    ACC-3 as amended on 2026-09-16 requires every result to report the
+    standard error of the full-brain reference mean over the seeds used, and
+    to NAME any rate whose margin -- the tolerance less the absolute
+    difference -- is smaller than that standard error, as lying within the
+    reference's own precision.
+
+    Why the clause exists, in one line: at 40 Hz the margin is 0.56 Hz while
+    the reference mean's standard error over 30 seeds is 1.5425 Hz, so the
+    reference moves by more than the whole tolerance band and a bare PASS
+    reads more precise than the comparison can be (VL-114).
+
+    Written once and used by every ACC-3 path, because D-289 is what happens
+    when one criterion has more than one implementation.
+
+    Returns the per-rate dict.  The caller decides what to do with `pass` and
+    `excluded`; this function judges neither.
+    """
+    e = full["per_rate"][str(rate)]
+    fb = e["onfly_mean_hz"]
+    tol = max(REL_TOL * fb, ABS_FLOOR)
+    diff = sub_mean - fb
+    margin = tol - abs(diff)
+    se = e.get("onfly_se_hz")
+    excluded = acc3_excluded(full, rate)
+    return {
+        "sub_mean_hz": sub_mean, "full_mean_hz": fb,
+        "full_sd_hz": e.get("onfly_sd_hz"),
+        "reference_se_hz": se, "reference_seeds": full.get("seeds"),
+        "difference_hz": diff, "margin_hz": margin,
+        "within_reference_precision": (se is not None and margin < se),
+        "tolerance_hz": tol, "pass": abs(diff) <= tol,
+        "excluded": excluded,
+        "excluded_reason": ("D-202: reference sd %.2f >= mean %.2f"
+                            % (e.get("onfly_sd_hz", 0.0), fb))
+        if excluded else None,
+    }
+
+
+def acc3_precision_note(per_rate, rates):
+    """The P-18 sentence a result prints, or None when no rate qualifies."""
+    named = [r for r in rates
+             if not per_rate[str(r)]["excluded"]
+             and per_rate[str(r)]["within_reference_precision"]]
+    if not named:
+        return None
+    return ("P-18 (D-357): %s within the reference's own precision -- "
+            "margin below the reference mean's standard error over %s seeds"
+            % (", ".join("%d Hz" % r for r in named),
+               per_rate[str(named[0])]["reference_seeds"]))
+
+
 def acc3_eval(cases, full, jobs):
     """The VL-66 ACC-3 comparison, run over several networks at once.
 
@@ -1052,25 +1124,15 @@ def acc3_eval(cases, full, jobs):
                 sp = [x["spikes"] for x in res["readouts"]]
                 means.append(sum(sp) * 1000.0 / cal.SIM_MS / len(sp))
             mean = sum(means) / len(means)
-            fbe = full["per_rate"][str(r)]
-            fb = fbe["onfly_mean_hz"]
-            tol = max(REL_TOL * fb, ABS_FLOOR)
-            ok = abs(mean - fb) <= tol
-            excluded = acc3_excluded(full, r)
+            row = acc3_row(full, r, mean)
             # D-202: an excluded rate is reported, never counted.  Its
             # measured value and its own pass/fail stay in the record so a
             # reader can see what was set aside and why.
-            if not excluded:
-                ok_all = ok_all and ok
-            per_rate[str(r)] = {
-                "sub_mean_hz": mean, "full_mean_hz": fb,
-                "full_sd_hz": fbe.get("onfly_sd_hz"),
-                "tolerance_hz": tol, "pass": ok,
-                "excluded": excluded,
-                "excluded_reason": ("D-202: reference sd %.2f >= mean %.2f"
-                                    % (fbe.get("onfly_sd_hz", 0.0), fb))
-                if excluded else None}
+            if not row["excluded"]:
+                ok_all = ok_all and row["pass"]
+            per_rate[str(r)] = row
         c["per_rate"] = per_rate
+        c["acc3_precision_note"] = acc3_precision_note(per_rate, VAL_RATES)
         c["acc3_pass"] = ok_all
         c["acc3_excluded_rates"] = [r for r in VAL_RATES
                                     if acc3_excluded(full, r)]

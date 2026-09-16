@@ -5,9 +5,10 @@
 | Date | 2026-09-16 |
 | Author | Senior engineer |
 | Phase / gate | Phase E — MVS MVP (record closure); TBD-06 (seeds per rate) |
-| Owner decisions relied on | D-135, D-165, D-166, D-202, D-246, D-341, and D-347…D-352 taken this session |
-| Requirements touched | Section 6.4 preamble, ACC-1, ACC-3, ACC-4, Section 9.2 Phase E row, Appendix B TBD-06 |
+| Owner decisions relied on | D-135, D-165, D-166, D-202, D-246, D-289, D-341, and D-347…D-361 taken this session |
+| Requirements touched | Section 6.4 preamble, ACC-1, **ACC-3 (amended by D-357, adopting P-18)**, ACC-4, Section 9.2 Phase E row, Appendix B TBD-06 |
 | Open items closed | **TBD-06** on its last item (seeds per rate); the Phase E §9.2 record gap |
+| Verification limits added | VL-113 (the measurement), VL-114 (the two findings) |
 
 ## 1. Problem / motivation
 
@@ -74,10 +75,14 @@ runs. D-351 settled that asymmetry by declining the re-run and accepting a bound
 
 | File | Change |
 |---|---|
-| `docs/ONFLY-SRS.md` | §9.2 Phase E row marked COMPLETE with its evidence and its carried-forward caveats (D-348); Appendix A.1 gains D-344…D-352; A.2 gains P-17; Appendix B's TBD-06 row and §6.4's seed-count parenthetical updated |
+| `docs/ONFLY-SRS.md` | §9.2 Phase E row marked COMPLETE with its evidence and its carried-forward caveats (D-348); §6.4's ACC-3 amended by D-357 adopting P-18; §6.4's seed-count parenthetical now names D-353; Appendix A.1 gains D-344…D-361; A.2 gains P-17 and P-18; Appendix B's TBD-06 row closed; Appendix D gains VL-113 and VL-114 |
 | `prep/seeds.py` | **New.** Measures the per-seed MN9 rate the other tools discard, then reports how each seed-dependent clause responds to the seed count |
-| `tests/test_seeds.py` | **New.** Pins the tool's clause implementations against the recorded acceptance artefacts, so a second implementation of ACC-1 and ACC-3 cannot drift from the first |
+| `prep/extract.py` | `acc3_row()` and `acc3_precision_note()` added — one implementation of ACC-3's per-rate record, carrying D-202's exclusion and D-357's precision reporting. All three verdict paths routed through it, which also fixes the D-202 defect `acc3()` had carried since D-289 (D-360) |
+| `tests/test_seeds.py` | **New.** Pins the tool's clause implementations against the recorded acceptance artefacts, and guards against a third occurrence of one-criterion-two-implementations (D-361) |
+| `Makefile` | `tests/test_seeds.py` joins the `prep` target as TP-09 (D-355) |
 | `data/calibration/seeds.json` | **New.** The measured per-seed rates and the analysis derived from them |
+| `data/calibration/acc3-srext.json` | Re-run under the amended ACC-3, so the record is produced by the criterion as it now reads (D-357) |
+| `data/calibration/acc1-candidate.json` | Re-run this session; byte-identical to the committed record |
 | `docs/plan/2026-09-16-phase-e-cleanup-tbd06.md` | The approved plan (D-349) |
 | `docs/plan/2026-09-16-phase-g-live-view.md` | Recovered from an uncommitted sibling worktree (D-350); Phase G content, out of scope this session |
 
@@ -140,6 +145,40 @@ against `acc1-candidate.json` (VL-105) and ACC-3, per rate and overall including
 exclusion, against `acc3-srext.json` (VL-98). A negative control is included:
 silencing a fifth of the seeds at 40 Hz must make ACC-1 fail, so the test cannot
 pass by evaluating nothing.
+
+### What the measurement then required of the contract and the tool
+
+The analysis produced a number that made a reporting gap visible rather than a
+model error: at 40 Hz ACC-3's margin is 0.56 Hz while the reference mean's own
+standard error over 30 seeds is 1.5425 Hz. The reference moves by more than the
+whole tolerance band, so a bare PASS reads more precise than the comparison can
+be. D-354 authorised a reporting clause, P-18 drafted it, and D-357 approved it
+into ACC-3: every result now carries the reference's standard error per rate and
+**names** any rate whose margin falls below it.
+
+Implementing that exposed a second-order problem. ACC-3 had three verdict paths —
+`acc3()` for SR-EXT-03 selection, `acc3_file()` for a named network, and
+`acc3_eval()` for several at once — and adding the clause to each would have made
+a fourth copy of the criterion. Instead the per-rate record is now built by one
+function, `acc3_row()`, which owns the tolerance, D-202's exclusion and D-357's
+precision fields together, and all three paths call it.
+
+**That refactor surfaced a live defect.** `acc3()` had never called
+`acc3_excluded()`: it tested the 10 Hz rate D-202 excludes, so run today it would
+have reported ACC-3 FAIL for every N and `chosen_N = None` — escalating a
+selection that the criterion as written passes. This is exactly the defect D-289
+fixed in `--acc3-file`, surviving in the sibling function D-289 did not touch. It
+was latent rather than live: the path last ran before D-202, and D-205's selection
+was made through the corrected path. It was outside this session's scope, so it
+was put to the owner rather than fixed silently, and D-360 authorised the fix.
+
+Two occurrences of one-criterion-two-implementations is a pattern, so D-361 added
+a guard: every verdict path must go through `acc3_row()`, and the set of functions
+computing ACC-3's tolerance must be exactly `{acc3_row, diag, closure}` — the
+latter two being the D-180 and D-182 **diagnostics**, which borrow the arithmetic
+for exploration and were deliberately left alone. Naming them in the test states
+that boundary rather than hiding it: a fourth site added later fails the test and
+forces the same decision to be made again.
 
 ## 4. Mathematical / numerical details
 
@@ -253,8 +292,75 @@ it.
 
 ## 6. Verification
 
-Filled in from this session's runs — see the session's goal report for the command
-output excerpts.
+Every result below was produced in the 2026-09-16 session on **x86-64 Windows 11,
+mingw32 gcc 6.3.0**. The float backend is named per command. Nothing here is an
+MVS or s390x result.
+
+### The measurement
+
+```
+python prep/seeds.py --seeds 200 --jobs 14
+```
+NATIVE backend (`build/runnet.exe`, built `-DONF_FP_NATIVE -msse2 -mfpmath=sse
+-ffp-contract=off`). 5 rates × 200 seeds = 1000 engine runs in **312 s**, plus the
+analysis. Pass looks like the reproduction line reading `EXACT`:
+
+```
+reproduction of the recorded 30-seed run (acc1-candidate.json): EXACT
+```
+
+`python prep/seeds.py --reeval` re-derives the analysis from the stored sweep
+without re-running the engine, and is what produced the figures quoted in §4.
+
+### The acceptance criteria re-evidenced here (D-356: x86 only)
+
+```
+python prep/extract.py --acc1 data/networks/onfnet-malecns-v1.0-srext.bin --label srext --jobs 14
+python prep/extract.py --acc3-file data/networks/onfnet-malecns-v1.0-srext.bin --label srext --jobs 14
+```
+Both NATIVE, shipped `srext`, seeds 1…30, 48 s and 47 s. **ACC-1 PASS** over the
+rates it applies to (40, 60, 120, 200 Hz); **ACC-2 PASS**, 0 spikes across all 501
+neurons at rate 0; **ACC-3 PASS**, with 10 Hz excluded and reported under D-202 and
+40 Hz named under the new P-18 clause:
+
+```
+  rate    subcirc       full      tol   margin   ref se    ACC-3
+    10       0.02       3.67     1.00    -2.65     0.77     EXCL
+    40      13.77      14.35     1.44     0.85     1.54     PASS
+  P-18 (D-357): 40 Hz within the reference's own precision
+```
+
+`acc1-candidate.json` came back **byte-identical** to the committed record;
+`acc3-srext.json` differs only in its `elapsed_s` field and in the new P-18
+fields. That is the determinism claim doing its job: same network, same rate, same
+seed, same answer.
+
+### The suite
+
+```
+mingw32-make test
+```
+Covers ACC-5 rows 1–3 (the golden suite on SOFT3E, SOFT2C and NATIVE) and TP-09,
+the new test. A fresh worktree needs `mingw32-make fixtures` and `mingw32-make
+testfloat` first — the networks and the TestFloat generator are both gitignored,
+and without the latter the suite stops at `tt02`.
+
+### What these results do not prove
+
+- Everything above is **x86-64 NATIVE**, except the suite's golden rows which also
+  cover SOFT3E and SOFT2C. Nothing here is an MVS 3.8j, s390x or z/OS result.
+- ACC-4, ACC-5 rows 6 and 7, ACC-6 and ACC-7 were **not re-run in this session**
+  (D-356). They are cited from VL-112, VL-91/93/95/96/99/101, VL-102/106 and
+  VL-104, all from 2026-09-15 and 2026-09-16.
+- The seed-count analysis measures the **sampling variability of the verdicts**,
+  not whether the model matches the fly.
+- Every ACC-4 figure, the ACC-3 re-measurement bracket and the D-202 exclusion
+  probability rest on normal theory, which is a poor fit at 10 Hz. The ACC-1 and
+  ACC-3 re-evaluation figures do not: those are non-parametric bootstraps over
+  real seeds.
+- `--acc3` was fixed (D-360) but **not executed**: it needs the N = 250 and
+  N = 1000 subcircuit files, which are not among this worktree's fixtures. The fix
+  is covered structurally by TP-09, not by a run.
 
 ## 7. Related docs
 

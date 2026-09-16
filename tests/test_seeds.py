@@ -46,6 +46,8 @@ no network fixtures and no engine build.
 
 Run:  python tests/test_seeds.py
 """
+import ast
+import io
 import json
 import os
 import sys
@@ -227,6 +229,97 @@ class TestAnalysisProperties(unittest.TestCase):
         p = [a["per_n"][str(n)]["p_shape_fail"] for n in ns]
         for x, y in zip(p, p[1:]):
             self.assertLessEqual(y, x + 1e-15)
+
+
+class TestCriterionHasOneImplementation(unittest.TestCase):
+    """ACC-3's rule lives in one place, and every verdict path calls it.
+
+    D-289 was the first time one criterion with two implementations drifted:
+    `--acc3-file` predated D-202's amendment and printed FAIL while every rate
+    ACC-3 actually tests passed.  D-360 is the second: `acc3()` had gone
+    through both D-202 and D-357 without being updated for either, so it
+    tested the 10 Hz rate the criterion excludes and would have escalated a
+    selection that passes.
+
+    Twice is a pattern, so the property is pinned here rather than left to a
+    reader noticing it a third time.
+    """
+
+    #: The functions that produce an ACC-3 VERDICT.  Each must go through
+    #: acc3_row(), which is where D-202's exclusion and D-357's reporting
+    #: live.
+    VERDICT_PATHS = ("acc3", "acc3_file", "acc3_eval")
+
+    #: Every function permitted to compute ACC-3's tolerance itself.
+    #: acc3_row is the criterion; `diag` (D-180) and `closure` (D-182) are
+    #: DIAGNOSTICS that borrow the same arithmetic for exploration and were
+    #: deliberately left alone when D-360 fixed the verdict path -- the owner
+    #: authorised the verdict path and not the diagnostics.  Listing them
+    #: here states that boundary instead of hiding it: a fourth site added
+    #: later fails this test and forces the same decision to be made again.
+    TOLERANCE_SITES = {"acc3_row", "diag", "closure"}
+
+    @classmethod
+    def setUpClass(cls):
+        with io.open(os.path.join(ROOT, "prep", "extract.py"),
+                     encoding="utf-8") as fh:
+            cls.src = fh.read()
+        cls.tree = ast.parse(cls.src)
+        cls.funcs = {n.name: n for n in ast.walk(cls.tree)
+                     if isinstance(n, ast.FunctionDef)}
+
+    def body(self, name):
+        n = self.funcs[name]
+        return "\n".join(self.src.split("\n")[n.lineno - 1:n.end_lineno])
+
+    def test_every_verdict_path_goes_through_acc3_row(self):
+        for name in self.VERDICT_PATHS:
+            self.assertIn(name, self.funcs, "%s has gone" % name)
+            self.assertIn("acc3_row(", self.body(name),
+                          "%s no longer goes through acc3_row(), so D-202's "
+                          "exclusion and D-357's reporting may not apply to "
+                          "it -- this is how D-289 and D-360 happened" % name)
+
+    def test_acc3_row_is_the_only_new_place_the_tolerance_is_computed(self):
+        found = set()
+        for name, n in self.funcs.items():
+            if "REL_TOL *" in self.body(name):
+                found.add(name)
+        self.assertEqual(
+            found, self.TOLERANCE_SITES,
+            "the set of functions computing ACC-3's tolerance changed to %s; "
+            "if a new one is an ACC-3 VERDICT it must call acc3_row() "
+            "instead, and if it is a diagnostic it must be added to "
+            "TOLERANCE_SITES deliberately" % sorted(found))
+
+    def test_acc3_row_applies_d202_and_reports_p18(self):
+        """On the recorded data: 10 Hz excluded, 40 Hz within precision."""
+        for p in (ACC3, ACC4):
+            if not os.path.isfile(p):
+                self.skipTest("missing %s" % os.path.basename(p))
+        full, rec = load(ACC4), load(ACC3)
+        for r in S.VAL_RATES:
+            e = rec["per_rate"][str(r)]
+            row = ext.acc3_row(full, r, e["sub_mean_hz"])
+            self.assertEqual(row["excluded"], e["excluded"],
+                             "%d Hz exclusion" % r)
+            self.assertEqual(row["pass"], e["pass"], "%d Hz verdict" % r)
+            self.assertAlmostEqual(row["tolerance_hz"], e["tolerance_hz"],
+                                   places=12)
+            # P-18 (D-357): the reference's own precision travels with the
+            # result, and the margin is what it must be read against.
+            self.assertIsNotNone(row["reference_se_hz"], "%d Hz se" % r)
+            self.assertAlmostEqual(
+                row["margin_hz"],
+                row["tolerance_hz"] - abs(row["difference_hz"]), places=12)
+        r40 = ext.acc3_row(full, 40, rec["per_rate"]["40"]["sub_mean_hz"])
+        self.assertTrue(r40["within_reference_precision"],
+                        "40 Hz margin %.4f should be below the reference's "
+                        "standard error %.4f (VL-114)"
+                        % (r40["margin_hz"], r40["reference_se_hz"]))
+        note = ext.acc3_precision_note(rec["per_rate"], S.VAL_RATES)
+        self.assertIsNotNone(note)
+        self.assertIn("40 Hz", note)
 
 
 if __name__ == "__main__":
