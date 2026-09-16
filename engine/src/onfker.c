@@ -8,25 +8,34 @@
  *
  * NR-05: no float or double appears here.  onf_f64 is an opaque pair of 32-bit
  * halves; nothing in this file can do arithmetic on it except through onf_fp.
+ *
+ * D-366 split this file into onfinit and onfcont and redefined onfrun as their
+ * composition, so that FR-SIM-10 -- a chunked run must give the identical
+ * response -- can be discharged against the engine and not only the oracle.
+ * The split is deliberately structural rather than a rewrite: the step loop in
+ * onfcont is the loop that was in onfrun, moved without a line of arithmetic
+ * changing, and the only substitution is the loop counter `t`, which became
+ * st->step because the step index has to survive a return.  Nothing else about
+ * the algorithm moved, which is why the nineteen Section 8.4 fingerprints are
+ * expected to be bit-identical afterwards, and why a moved fingerprint would
+ * mean a transcription error rather than a modelling question.
  */
 #include "onfker.h"
 #include "onfrnd.h"
 #include "onfstm.h"
 
-int onfrun(const struct onfnet *net, struct onfsta *st,
-           onf_u32 seed, onf_i32 rate, onf_i32 steps)
+int onfinit(const struct onfnet *net, struct onfsta *st,
+            onf_u32 seed, onf_i32 rate, onf_i32 steps)
 {
-    struct onfrng gen;
     onf_f64 zero;
-    onf_u32 thresh;
-    onf_i32 t, i, k, s, slot, arrive, base;
-    onf_i32 br, bd, bbest, bbestd, brow;
-    onf_f64 a, b;
-    int was_rfr;
+    onf_i32 i, s;
+    onf_i32 br, bd, bbest, bbestd;
 
     zero = onffzer();
-    thresh = (onf_u32)rate * (onf_u32)net->dtus;
-    onfrndi(&gen, seed);
+    st->thresh = (onf_u32)rate * (onf_u32)net->dtus;
+    st->step = 0;
+    st->steps = steps;
+    onfrndi(&st->gen, seed);
 
     /* Appendix C: all binary64 state starts at +0.0, rfr at 0, first at -1. */
     for (i = 0; i < net->n; i++) {
@@ -56,9 +65,12 @@ int onfrun(const struct onfnet *net, struct onfsta *st,
        rows would need an integer-to-binary64 conversion, which the onf_fp
        API does not provide and NR-07 does not list.
 
-       brow is the index into net->bias of the chosen row, or -1 when the
-       network carries no table. */
-    brow = -1;
+       st->brow is the index into net->bias of the chosen row, or -1 when the
+       network carries no table.  It is chosen HERE, once per request, and is
+       read-only thereafter -- which is what makes it impossible for a chunk
+       boundary to reselect it, and impossible for a caller to change the rate
+       partway through a run. */
+    st->brow = -1;
     if (net->nbias > 0) {
         bbest = 0;
         bbestd = -1;
@@ -74,10 +86,40 @@ int onfrun(const struct onfnet *net, struct onfsta *st,
                 bbestd = bd;
             }
         }
-        brow = bbest * net->n;
+        st->brow = bbest * net->n;
     }
 
-    for (t = 0; t < steps; t++) {
+    return ONFK_OK;
+}
+
+int onfcont(const struct onfnet *net, struct onfsta *st, onf_i32 k)
+{
+    onf_f64 zero;
+    onf_i32 t, i, e, c, s, slot, arrive, base, left, brow;
+    onf_f64 a, b;
+    int was_rfr;
+
+    /* D-367: the kernel clamps, so a driver cannot overrun the request by
+       choosing a chunk size that does not divide the step count.  This is
+       where onfinit's `steps` argument earns its place. */
+    left = st->steps - st->step;
+    if (k > left) {
+        k = left;
+    }
+    if (k <= 0) {
+        return ONFK_OK;
+    }
+
+    zero = onffzer();
+    brow = st->brow;
+
+    for (c = 0; c < k; c++) {
+
+        /* The ABSOLUTE step index, not an offset within this chunk.  Every
+           use of it below is why: the arrival slot, the emission slot and the
+           first-spike latency are all functions of position in the request,
+           not position in the chunk. */
+        t = st->step;
 
         /* --- 1. ARRIVALS ------------------------------------------------
            Two loops rather than one adding zero: a network with no table
@@ -104,9 +146,13 @@ int onfrun(const struct onfnet *net, struct onfsta *st,
            not that neuron is refractory.  That is what keeps the PRNG stream
            aligned across platforms regardless of network state (FR-SIM-04):
            if a refractory neuron skipped its draw, two hosts whose networks
-           had diverged would consume different numbers of draws. */
+           had diverged would consume different numbers of draws.
+
+           The generator is st->gen, so the stream runs across chunk
+           boundaries without interruption.  A driver that re-seeded per chunk
+           would restart it, which is the first threat TU-10 names. */
         for (s = 0; s < net->ns; s++) {
-            st->force[net->stim[s]] = onfstmd(&gen, thresh);
+            st->force[net->stim[s]] = onfstmd(&st->gen, st->thresh);
         }
 
         /* --- 3. INTEGRATE, DETECT, EMIT --------------------------------- */
@@ -134,7 +180,9 @@ int onfrun(const struct onfnet *net, struct onfsta *st,
             }
 
             /* FR-SIM-08: detect NaN and infinity from the exponent bits.  A
-               float comparison would depend on the arithmetic under test. */
+               float comparison would depend on the arithmetic under test.
+               Returning here abandons the request (ONF903S), so st is left
+               mid-step deliberately: there is nothing to resume. */
             if (onffnf(st->u[i]) || onffnf(st->g[i])) {
                 return ONFK_NONFIN;
             }
@@ -159,17 +207,31 @@ int onfrun(const struct onfnet *net, struct onfsta *st,
                    that order normative: floating-point addition does not
                    associate, so a different order is a different answer. */
                 arrive = base;
-                for (k = (onf_i32)net->rowptr[i];
-                     k < (onf_i32)net->rowptr[i + 1]; k++) {
-                    onf_i32 tgt = (onf_i32)net->target[k];
+                for (e = (onf_i32)net->rowptr[i];
+                     e < (onf_i32)net->rowptr[i + 1]; e++) {
+                    onf_i32 tgt = (onf_i32)net->target[e];
                     st->ring[arrive + tgt] =
-                        onffadd(st->ring[arrive + tgt], net->weight[k]);
+                        onffadd(st->ring[arrive + tgt], net->weight[e]);
                 }
             }
 
             st->force[i] = 0;
         }
+
+        st->step = t + 1;
     }
 
     return ONFK_OK;
+}
+
+int onfrun(const struct onfnet *net, struct onfsta *st,
+           onf_u32 seed, onf_i32 rate, onf_i32 steps)
+{
+    int rc;
+
+    rc = onfinit(net, st, seed, rate, steps);
+    if (rc != ONFK_OK) {
+        return rc;
+    }
+    return onfcont(net, st, steps);
 }

@@ -46,6 +46,25 @@ entirely reasonable until you see the stream diverge.
 Stage 2 (D-317) makes the oracle's state resumable and proves the whole
 property against kernel.run().
 
+WHERE THE ENGINE HALF LIVES, SINCE 2026-09-16
+
+The paragraph above beginning "Nothing in the tree can currently run in
+chunks" described the tree as it was until D-366. It no longer holds, and
+it is left standing because it is what the stages were written against:
+engine/src/onfker.c now has onfinit and onfcont, with onfrun defined as
+their composition, and engine/src/onfreq.c has onfrq1k beside onfrq1
+(D-368). So the sentence to read it by is this one --
+
+    this file is the ORACLE half of FR-SIM-10, and tools/cmpchk.py is the
+    ENGINE half.
+
+They are deliberately not the same test. This one runs the reference
+implementation over a small fixture and can afford a negative case for
+every threat. cmpchk drives the real nineteen Section 8.4 requests through
+the compiled engine at several chunk sizes, because FR-SIM-10's own text
+requires the property to be shown against that suite and not a fixture --
+the suite is what ACC-5's determinism claim rests on.
+
 Run:  python tests/test_chunk.py
 """
 import os

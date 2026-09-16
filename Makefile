@@ -312,6 +312,18 @@ golden: $(BUILD) $(GENERATED) softfloat/onfsub.c $(SF2CSRC) generated/onf2cnm.h
 	$(PYTHON) tests/run_gld.py $(BUILD)/tstgld_2c.exe
 	$(PYTHON) tools/cmpgld.py $(BUILD)/tstgld_soft.exe  \
 	  $(BUILD)/tstgld_nat.exe $(BUILD)/tstgld_2c.exe
+# FR-SIM-10 (D-366, D-367, D-368): the same nineteen requests driven in
+# chunks must give byte-identical GOLD and GOUT lines.  D-369 fixes the
+# sweep at K in {1, 7, 250, 100000} on all three backends and measures the
+# cost at about 4.6 minutes.  The four are not arbitrary: 1 puts a boundary
+# between every pair of steps; 7 divides neither 10,000 nor 13,000, so
+# boundaries land unaligned and the last chunk is short; 250 divides 10,000
+# but not G-09's 13,000; and 100000 exceeds every request in the suite, so
+# onfcont clamps on the first call (D-367) and the driver loop ends after
+# one iteration.
+	$(PYTHON) tools/cmpchk.py $(BUILD)/tstgld_soft.exe \
+	  $(BUILD)/tstgld_nat.exe $(BUILD)/tstgld_2c.exe \
+	  --chunks 1,7,250,100000
 
 # --- FR-LOD-02/04/05, FR-SIM-01 and IR-COM-05 over an EMBEDDED network ---
 # The same path `golden` exercises -- decode, integrity-check, load,

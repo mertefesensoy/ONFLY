@@ -16,7 +16,13 @@
  * fingerprints below are therefore provisional too -- changing a duration
  * changes every one of them.
  *
- * usage: tstgld <network file>
+ * D-368 adds an optional third argument, the chunk size K.  Omitted or zero,
+ * every request runs in one chunk exactly as it always did.  Positive, the
+ * same requests are driven through onfinit and repeated onfcont calls, and
+ * FR-SIM-10 requires every GOLD and GOUT line to come back byte-identical.
+ * tools/cmpchk.py is what runs this suite at several K and compares.
+ *
+ * usage: tstgld <network file> [suite] [chunk]
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -118,18 +124,23 @@ int main(int argc, char **argv)
     FILE *f;
     struct onfnet net;
     struct onfsta st;
-    onf_i32 len, need, maxms, paycrc_i, want;
+    onf_i32 len, need, maxms, paycrc_i, want, chunk;
     onf_u32 paycrc;
     int rc, g;
 
     if (argc < 2) {
-        fprintf(stderr, "usage: tstgld <network file> [suite]\n");
+        fprintf(stderr, "usage: tstgld <network file> [suite] [chunk]\n");
         return 2;
     }
     /* Which half of Section 8.4's suite this network is for (D-212).  It
        defaults to the path fixture, so an invocation written before the
        suite spanned two networks still does what it did. */
     want = (argc > 2) ? (onf_i32)atol(argv[2]) : (onf_i32)NET_PATH;
+    /* D-368: chunk size K.  Absent or zero means one whole chunk, so an
+       invocation written before FR-SIM-10 was discharged does exactly
+       what it did.  It is echoed in the banner because a comparison
+       across K is only meaningful if each run says which K made it. */
+    chunk = (argc > 3) ? (onf_i32)atol(argv[3]) : 0;
     f = fopen(argv[1], "rb");
     if (f == NULL) {
         fprintf(stderr, "cannot open %s\n", argv[1]);
@@ -199,9 +210,10 @@ int main(int argc, char **argv)
     st.u = su; st.g = sg; st.rfr = srfr; st.spikes = sspk;
     st.first = sfst; st.force = sfrc; st.isstim = sstm; st.ring = sring;
 
-    printf("# tstgld backend=%s platform=%s paycrc=%08lX maxms=%ld nr=%ld\n",
+    printf("# tstgld backend=%s platform=%s paycrc=%08lX maxms=%ld nr=%ld "
+           "chunk=%ld\n",
            ONF_FPID, ONF_PLATID, (unsigned long)paycrc, (long)maxms,
-           (long)paycrc_i);
+           (long)paycrc_i, (long)chunk);
 
     for (g = 0; g < NGOLD; g++) {
         const struct gold *q = &suite[g];
@@ -224,7 +236,7 @@ int main(int argc, char **argv)
         rq.ms     = (q->ms < 0) ? maxms : q->ms;
         rq.seed   = q->seed;
 
-        onfrq1(&net, &st, paycrc, maxms, &rq, &rz);
+        onfrq1k(&net, &st, paycrc, maxms, &rq, &rz, chunk);
 
         printf("GOLD id=%s code=%s stimid=%ld rate=%ld ms=%ld seed=%ld "
                "rc=%ld out=%ld steps=%ld fp=%08lX\n",

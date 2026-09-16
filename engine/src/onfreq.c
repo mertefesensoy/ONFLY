@@ -92,7 +92,18 @@ void onfrq1(const struct onfnet *net, struct onfsta *st,
             onf_u32 paycrc, onf_i32 maxms,
             const struct onfrq *q, struct onfrz *z)
 {
+    /* D-368: one whole chunk.  This is not a wrapper that reimplements
+       anything -- it is the same sequence with k pinned, which is what makes
+       chunk invariance structural at this level too. */
+    onfrq1k(net, st, paycrc, maxms, q, z, 0);
+}
+
+void onfrq1k(const struct onfnet *net, struct onfsta *st,
+             onf_u32 paycrc, onf_i32 maxms,
+             const struct onfrq *q, struct onfrz *z, onf_i32 k)
+{
     onf_i32 i;
+    int krc;
 
     z->rc = ONFR_OK;
     z->bad = ONFR_F_NONE;
@@ -122,7 +133,27 @@ void onfrq1(const struct onfnet *net, struct onfsta *st,
         z->bad = ONFR_F_MS;
     } else {
         z->steps = q->ms * 1000 / net->dtus;
-        if (onfrun(net, st, (onf_u32)q->seed, q->rate, z->steps) != ONFK_OK) {
+        /* D-368.  k <= 0 is one whole chunk, which is onfrun's own shape; a
+           positive k drives the identical loop through onfcont.  The chunk
+           loop carries nothing across iterations except st itself, because
+           everything a step needs to know about where it is in the request
+           lives there (D-366) -- no re-seeding, no restarted step index, no
+           rate passed a second time.  onfcont clamps its own last chunk
+           (D-367), so the caller does not compute min() and cannot overrun. */
+        krc = onfinit(net, st, (onf_u32)q->seed, q->rate, z->steps);
+        if (krc == ONFK_OK) {
+            if (k <= 0) {
+                krc = onfcont(net, st, z->steps);
+            } else {
+                while (st->step < z->steps) {
+                    krc = onfcont(net, st, k);
+                    if (krc != ONFK_OK) {
+                        break;
+                    }
+                }
+            }
+        }
+        if (krc != ONFK_OK) {
             z->rc = ONFR_SEV;                   /* ONF903S, FR-SIM-08 */
             z->steps = 0;
         } else {

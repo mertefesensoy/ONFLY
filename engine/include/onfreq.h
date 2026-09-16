@@ -134,4 +134,34 @@ void onfrq1(const struct onfnet *net, struct onfsta *st,
             onf_u32 paycrc, onf_i32 maxms,
             const struct onfrq *q, struct onfrz *z);
 
+/*
+ * onfrq1k - onfrq1, with the simulation driven in chunks of k steps (D-368).
+ *
+ * Since D-368, onfrq1 is DEFINED as onfrq1k at k <= 0, which means one whole
+ * chunk.  There is therefore one implementation of the request sequence, not
+ * two: the validation order, the readout extraction and the fingerprint are
+ * literally the same code whichever entry point a caller uses.  D-224 put
+ * that sequence in one place on purpose -- ONFLYENG, the MVS driver and
+ * tests/tstgld.c all run it -- and a second copy of it in a test would have
+ * proved the copy rather than the path.
+ *
+ *   k   chunk size in timesteps.  k <= 0 runs the request in a single chunk,
+ *       exactly as onfrq1 always did.  k >= 1 drives it through onfinit and
+ *       repeated onfcont calls; the final chunk is short whenever k does not
+ *       divide the step count, because D-367 makes onfcont clamp.
+ *
+ * FR-SIM-10 is the requirement this exists to make measurable: for every
+ * k >= 1, z must come back identical -- rc, outcount, steps, every readout
+ * triple, and above all the fingerprint z->fp, which IR-COM-05 defines and
+ * ACC-5 compares across platforms.  A chunk-dependent fingerprint would not
+ * cost a feature; it would cost the determinism claim itself.
+ *
+ * A request that is REJECTED never reaches the kernel, so k is irrelevant to
+ * it -- and that is worth testing too, because a rejected request is
+ * fingerprinted as well (FR-BAT-04) and ACC-5 compares those fingerprints.
+ */
+void onfrq1k(const struct onfnet *net, struct onfsta *st,
+             onf_u32 paycrc, onf_i32 maxms,
+             const struct onfrq *q, struct onfrz *z, onf_i32 k);
+
 #endif /* ONFREQ_H */

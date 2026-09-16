@@ -26,6 +26,7 @@
 
 #include "onfplat.h"
 #include "onffp.h"
+#include "onfrnd.h"     /* struct onfrng: the run's PRNG lives in onfsta */
 
 /*
  * A decoded network.  The arrays mirror the network file's payload sections
@@ -86,6 +87,30 @@ struct onfnet {
  * indicated length; the kernel initialises them itself, so a caller may reuse
  * one allocation across requests (FR-SIM-07, and the future CICS path where
  * per-task storage is at a premium).
+ *
+ * The scalars below were locals of onfrun until D-366 approved the resumable
+ * split.  They are here, and not there, for one reason: FR-SIM-10 requires a
+ * run divided into chunks to produce the identical response, and that is only
+ * testable if what one chunk hands the next is a THING rather than a set of
+ * locals that vanish when the function returns.  The oracle's _State carries
+ * the same five for the same reason.
+ *
+ * Three of them are what a naive chunked driver gets wrong, and each is wrong
+ * silently rather than loudly (TU-10 names this threat):
+ *
+ *   gen    re-seeding per chunk restarts the stimulus stream, and FR-SIM-04
+ *          requires exactly one stream per request
+ *   step   the ABSOLUTE step index.  It is read three times per step --
+ *          step % delay picks the arrival slot, the same slot is where
+ *          emissions are written, and (step + 1) * dtus is the first-spike
+ *          latency of FR-SIM-05.  A driver that restarted it per chunk would
+ *          rotate the delay ring and mis-date every latency
+ *   steps  the request's total, recorded so that onfcont can clamp (D-367)
+ *
+ * thresh and brow are derived from the request's rate once, in onfinit, and
+ * are then read-only.  Keeping them here rather than passing them is what
+ * makes it impossible for a caller to change the rate mid-run: onfcont has no
+ * parameter through which to do it.
  */
 struct onfsta {
     onf_f64 *u;                 /* n */
@@ -96,6 +121,11 @@ struct onfsta {
     onf_i32 *force;             /* n, stimulus-driven spike flags */
     onf_i32 *isstim;            /* n, non-zero for stimulus neurons (D-68) */
     onf_f64 *ring;              /* delay * n, delayed synaptic input */
+    struct onfrng gen;          /* NR-13 stream, one per request */
+    onf_i32 step;               /* absolute step index, 0 before the first */
+    onf_i32 steps;              /* total steps this request asked for */
+    onf_u32 thresh;             /* rate * dtus, NR-12; fixed by onfinit */
+    onf_i32 brow;               /* bias row offset, or -1 for no table */
 };
 
 /* Return codes. */
@@ -120,8 +150,58 @@ struct onfsta {
  *
  * Side effects: writes only through st.  No I/O, no allocation, no static data
  * (FR-SIM-07, NFR-MNT-02).
+ *
+ * Since D-366 this is DEFINED as onfinit followed by onfcont over the whole
+ * step count, and is not a separate implementation of the loop.  That is the
+ * point: bit-identity between a whole run and a chunked one is structural,
+ * because there is only one loop, rather than a property two copies of the
+ * algorithm happen to share.  Every caller that predates the split -- onfrq1,
+ * tstker, tstsyn, tstprf, tstdec, runnet -- is unaffected.
  */
 int onfrun(const struct onfnet *net, struct onfsta *st,
            onf_u32 seed, onf_i32 rate, onf_i32 steps);
+
+/*
+ * onfinit - begin a request without simulating any of it (FR-SIM-10, D-366).
+ *
+ *   net    decoded network; not modified
+ *   st     state arrays; fully initialised by this call
+ *   seed   request seed; 0 is remapped per NR-13 / D-32
+ *   rate   stimulus rate in Hz, validated by the caller exactly as for onfrun
+ *   steps  the request's total number of timesteps, recorded in st->steps
+ *
+ * Returns ONFK_OK.  It cannot fail today -- there is no arithmetic to go
+ * non-finite before the first step -- but it returns int so that onfrun stays
+ * the composition below without a special case, and so that a future check
+ * here does not change every caller.
+ *
+ * After this call st->step is 0 and nothing has been simulated.
+ *
+ * Side effects: writes only through st.  No I/O, no allocation, no static
+ * data (FR-SIM-07, NFR-MNT-02).
+ *
+ * onfcont - simulate up to k more steps of a request onfinit began.
+ *
+ *   k      steps to advance.  D-367: the kernel clamps to what is left, so
+ *          onfcont advances min(k, st->steps - st->step) and a driver cannot
+ *          overrun the request by choosing a chunk size that does not divide
+ *          the step count.  k <= 0 advances nothing and returns ONFK_OK.
+ *
+ * Returns ONFK_OK, or ONFK_NONFIN exactly as onfrun does.  Note that a
+ * ONFK_NONFIN return leaves st mid-step: the state is abandoned, not resumed,
+ * because FR-SIM-08 requires the request itself to be abandoned (ONF903S).
+ *
+ * The caller may read st->spikes, st->first and st->u between calls; that is
+ * how the D-139 stream is produced without the kernel doing any I/O of its
+ * own, and it is why the MVS engine needs no kernel change to stream.
+ *
+ * FR-SIM-10: for every k >= 1 and every placement of chunk boundaries, driving
+ * a request to completion through onfcont must leave st identical to what
+ * onfrun leaves.  That is a property of this file, and tests/tstgld.c at a
+ * non-zero chunk size is what measures it over the Section 8.4 suite.
+ */
+int onfinit(const struct onfnet *net, struct onfsta *st,
+            onf_u32 seed, onf_i32 rate, onf_i32 steps);
+int onfcont(const struct onfnet *net, struct onfsta *st, onf_i32 k);
 
 #endif /* ONFKER_H */

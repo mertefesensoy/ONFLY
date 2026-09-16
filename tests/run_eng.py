@@ -100,6 +100,15 @@ def sample_request():
     return mkreq.pack("SUGR", 120, 100, 1)
 
 
+#: Every external name through which the kernel can be entered.  D-366 split
+#: onfrun into onfinit and onfcont, so looking for onfrun alone would no
+#: longer mean what this check says it means: a build could hold the whole
+#: simulation and still answer "absent" because the one composition function
+#: happened not to be linked.  The list is the header's, and if the header
+#: grows another entry point this list has to grow with it.
+KERNEL_ENTRIES = ("onfrun", "onfinit", "onfcont")
+
+
 def kernel_absent(exe):
     """True when the program contains no kernel entry point.
 
@@ -116,7 +125,7 @@ def kernel_absent(exe):
         if len(parts) < 2:
             continue
         name = parts[-1].lstrip("_")
-        if name == "onfrun":
+        if name in KERNEL_ENTRIES:
             return False
     return True
 
@@ -213,8 +222,9 @@ def main():
                              % "IR-TRN-03 contains no kernel entry point")
             else:
                 a, b = check("IR-TRN-03 variant has no kernel entry point",
-                             absent, "onfrun is %s"
-                             % ("absent" if absent else "PRESENT"))
+                             absent, "%s: %s"
+                             % ("/".join(KERNEL_ENTRIES),
+                                "absent" if absent else "PRESENT"))
                 ok += a
                 bad += b
             # The variant is the one build that can still emit ONF905S
