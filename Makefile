@@ -637,6 +637,10 @@ prep:
 	$(PYTHON) tests/test_chunk.py
 	$(PYTHON) tests/test_disc.py
 	$(PYTHON) tests/test_seeds.py
+# D-385: the committed geometry sidecar must keep describing the
+# shipped network index for index.  prep/geom.py itself needs the
+# gitignored annotations feather; this does not.
+	$(PYTHON) tests/test_geom.py
 
 # --- TE-09: ONFLYENG, verify-only mode and the run manifest ---------------
 # The minimal engine level of D-78: the self-test, the FR-LOD-02 load checks,
@@ -711,6 +715,14 @@ req: eng
 	$(PYTHON) tests/run_req.py $(BUILD)/onflyeng_soft.exe \
 	  $(BUILD)/onflyeng_nat.exe $(BUILD)/onflyeng_2c.exe
 	$(PYTHON) tests/test_txcmp.py
+# TU-11 (IR-STM-01..04), added by D-380.  Two guards, and they prove
+# different things: the ONFRSP dataset must be byte-identical with and
+# without STREAM= -- which is the ACC-5 claim, not a feature -- and the
+# stream's own counts must agree with the response, which is the only check
+# that can tell the real run from a plausible animation beside it.  Measured
+# at about 25 s over the three backends on this host.
+	$(PYTHON) tests/test_strm.py $(BUILD)/onflyeng_soft.exe \
+	  $(BUILD)/onflyeng_nat.exe $(BUILD)/onflyeng_2c.exe
 
 # --- Gate G4: ONFLYDRV through the GnuCOBOL IBM-dialect proxy (VL-02) ------
 # D-152 installs GnuCOBOL on this host; D-156 keeps this target OUT of

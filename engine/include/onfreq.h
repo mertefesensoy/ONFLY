@@ -164,4 +164,55 @@ void onfrq1k(const struct onfnet *net, struct onfsta *st,
              onf_u32 paycrc, onf_i32 maxms,
              const struct onfrq *q, struct onfrz *z, onf_i32 k);
 
+/*
+ * onfrqb, onfrqc, onfrqe - the same request sequence, resumable (D-383).
+ *
+ * WHY THESE EXIST.  IR-STM-01 requires the driver to emit between chunks,
+ * and onfrq1k's chunk loop is inside onfrq1k: a caller cannot get into it.
+ * The alternatives were a function pointer -- an idiom that appears nowhere
+ * in this engine and has never been compiled by GCCMVS or JCC -- or letting
+ * ONFLYENG repeat the validation, the step count and the fingerprint, which
+ * is the second-implementation condition that produced D-289 and then D-360,
+ * silently both times.  So the sequence is split instead, and onfrq1k is
+ * DEFINED as the composition:
+ *
+ *     if (onfrqb(net, st, maxms, q, z)) {
+ *         while (onfrqc(net, st, z, k) > 0) { }
+ *     }
+ *     onfrqe(net, st, paycrc, q, z);
+ *
+ * That is D-366's own pattern one level up.  A streaming driver runs the
+ * identical code path, so its fingerprints are bit-identical by construction
+ * rather than because a test happened to agree.
+ *
+ * onfrqb - validate, and initialise the kernel if there is anything to
+ *          simulate.  Returns non-zero when the caller should now drive
+ *          chunks, zero when the request was warned, rejected, or failed in
+ *          onfinit -- in every one of which cases z is already final except
+ *          for the fingerprint.
+ *
+ * onfrqc - advance one chunk of up to k steps (k <= 0 means the whole
+ *          remainder, which is onfrq1's shape).  Returns 1 while steps
+ *          remain, 0 when the request is complete, and -1 if the kernel
+ *          reported non-finite state (FR-SIM-08), having set ONFR_SEV.
+ *          onfcont clamps its own last chunk (D-367), so a caller cannot
+ *          overrun by passing a k that does not divide the step count.
+ *
+ * onfrqe - fill the readout entries if the request ran, and fingerprint the
+ *          outcome either way.  Must be called exactly once per request,
+ *          including for rejected ones: FR-BAT-04 prints a fingerprint on
+ *          every report line and ACC-5 compares all of them.
+ *
+ * Between onfrqb and onfrqe, st carries the run: the PRNG stream, the
+ * absolute step index and the request's total (D-366).  A driver that reads
+ * st->spikes[] or st->u[] between chunks is reading the live run and cannot
+ * disturb it, because nothing here takes those as input.
+ */
+int  onfrqb(const struct onfnet *net, struct onfsta *st, onf_i32 maxms,
+            const struct onfrq *q, struct onfrz *z);
+int  onfrqc(const struct onfnet *net, struct onfsta *st,
+            struct onfrz *z, onf_i32 k);
+void onfrqe(const struct onfnet *net, struct onfsta *st, onf_u32 paycrc,
+            const struct onfrq *q, struct onfrz *z);
+
 #endif /* ONFREQ_H */

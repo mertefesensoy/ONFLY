@@ -98,6 +98,8 @@
 #define ONFM_CODE 203           /* ONF203E */
 #define ONFM_NFIN 903           /* ONF903S, FR-SIM-08 */
 #define ONFM_RQDS 906           /* ONF906S, D-226 */
+#define ONFM_STDS 907           /* ONF907S, D-381, IR-STM-01 */
+#define ONFM_PARM 908           /* ONF908S, D-381, IR-STM-01 */
 
 /*
  * ONF_MAXPAY, the largest payload onferead() will allocate for, moved to
@@ -160,6 +162,7 @@
 #define ONF_NETDD "DD:ONFNET"
 #define ONF_REQDD "DD:ONFREQ"
 #define ONF_RSPDD "DD:ONFRSP"
+#define ONF_STMDD "DD:ONFSTM"   /* IR-STM-01, D-379 */
 
 /*
  * Map a decoder result to its Appendix E message text.  The decoder's result
@@ -184,6 +187,8 @@ static const char *onfemsg(int rc)
     case ONFM_NFIN:  return "NON-FINITE STATE VALUE, REQUEST ABORTED";
     case ONFM_RQDS:  return "REQUEST DATASET UNREADABLE OR NOT A "
                             "MULTIPLE OF 412";
+    case ONFM_STDS:  return "STREAM DATASET UNWRITABLE";
+    case ONFM_PARM:  return "PARM INVALID";
     default:         return "UNKNOWN LOAD FAILURE";
     }
 }
@@ -236,6 +241,60 @@ static int onfeisv(const char *parm)
         }
     }
     return parm[6] == '\0';
+}
+
+/*
+ * IR-STM-01, D-378: the chunk size arrives as PARM='STREAM=nnn'.
+ *
+ * Returns the chunk size K, 0 when the PARM asks for no stream at all, and
+ * -1 when it asks for one but says so badly (ONF908S).
+ *
+ * The distinction in that last case is deliberate and narrow.  A PARM this
+ * program does not recognise has meant SIMULATE since D-226, and
+ * tests/run_eng.py asserts it with PARM='XYZZY'; adding a stream must not
+ * quietly turn every such PARM into a failure.  So only a PARM that begins
+ * with STREAM= is judged here, and only then can it be judged wrong.
+ *
+ * Case-insensitive for the same reason onfeisv is: MVS delivers PARM text
+ * in the job's own case.  Written out rather than using strncasecmp or
+ * strtol, neither of which PDPCLIB provides in a form C89 guarantees (C-06).
+ */
+static onf_i32 onfestk(const char *parm)
+{
+    static const char want[] = "STREAM=";
+    onf_i32 k;
+    int i;
+    char c;
+
+    if (parm == NULL) {
+        return 0;
+    }
+    for (i = 0; i < 7; i++) {
+        c = parm[i];
+        if (c >= 'a' && c <= 'z') {
+            c = (char)(c - 'a' + 'A');
+        }
+        if (c != want[i]) {
+            return 0;           /* not a stream PARM; not this one's business */
+        }
+    }
+
+    /* From here the operator has asked for a stream, so anything malformed
+       is an error rather than something to ignore. */
+    k = 0;
+    for (i = 7; parm[i] != '\0'; i++) {
+        if (parm[i] < '0' || parm[i] > '9') {
+            return -1;
+        }
+        if (k > 99999) {        /* NR-11: check before multiplying, not after */
+            return -1;
+        }
+        k = k * 10 + (onf_i32)(parm[i] - '0');
+    }
+    if (i == 7 || k < 1) {
+        return -1;              /* "STREAM=" alone, or "STREAM=0" */
+    }
+    return k;
 }
 
 /*
@@ -432,22 +491,110 @@ static const char *onfefld(onf_i32 bad)
  * every request is attempted regardless -- a rejected request must not
  * suppress the ones after it, because FR-BAT-04's report shows all of them.
  */
+/*
+ * IR-STM-02: the two lines that open one request's stream.
+ *
+ * ONFSH names the run, ONFSR the readout neurons the ONFSU columns will be
+ * in.  Both are emitted only for a request that is actually going to
+ * simulate, so a rejected request contributes nothing but its ONFSE.
+ *
+ * The payload CRC is here for the same reason IR-COM-05 puts it in the
+ * fingerprint: a stream is only meaningful against the network it came
+ * from, and a consumer holding the wrong one should be able to say so.
+ */
+static void onfesh(FILE *fm, const struct onfnet *net, onf_u32 paycrc,
+                   const onf_u32 *readout, const struct onfrq *q,
+                   const struct onfrz *z, onf_i32 chunk)
+{
+    onf_i32 i;
+
+    fprintf(fm, "ONFSH 1 %ld %ld %ld %ld %ld %ld %ld %08lX\n",
+            (long)net->n, (long)net->nr, (long)net->dtus, (long)chunk,
+            (long)z->steps, (long)q->seed, (long)q->rate,
+            (unsigned long)paycrc);
+
+    fprintf(fm, "ONFSR");
+    for (i = 0; i < net->nr; i++) {
+        fprintf(fm, " %ld", (long)readout[i]);
+    }
+    fprintf(fm, "\n");
+}
+
+/*
+ * IR-STM-02, IR-STM-03: one chunk of the stream.
+ *
+ * Called between onfrqc calls, so what it reads is the live run.  It reads
+ * st and writes a file; it hands the kernel nothing, which is why a stream
+ * cannot change an answer (IR-STM-04) and why FR-SIM-07 is untouched -- the
+ * simulation core still performs no I/O.  The differencing against prev is
+ * what turns st->spikes[], a cumulative count, into D-139's spike events.
+ *
+ * ONFSC is sparse: only neurons whose count moved during this chunk appear.
+ * At 501 neurons and 200 chunks a dense encoding would be 100,200 rows to
+ * say that almost nothing happened.
+ *
+ * Membrane potentials go out as the sixteen hexadecimal digits of the
+ * binary64 bit pattern, high word first, never as a decimal number: NR-05
+ * forbids this file from holding a binary64 as a number at all, and a bit
+ * pattern is in any case the only form two platforms can compare exactly.
+ */
+static void onfesc(FILE *fm, const struct onfnet *net,
+                   const struct onfsta *st, const onf_u32 *readout,
+                   onf_i32 *prev, long chunk)
+{
+    onf_i32 i, nix, d, nfired;
+
+    nfired = 0;
+    for (i = 0; i < net->n; i++) {
+        if (st->spikes[i] != prev[i]) {
+            nfired++;
+        }
+    }
+
+    fprintf(fm, "ONFSC %ld %ld %ld", chunk, (long)st->step, (long)nfired);
+    for (i = 0; i < net->n; i++) {
+        d = st->spikes[i] - prev[i];
+        if (d != 0) {
+            fprintf(fm, " %ld %ld", (long)i, (long)d);
+            prev[i] = st->spikes[i];
+        }
+    }
+    fprintf(fm, "\n");
+
+    fprintf(fm, "ONFSU %ld %ld", chunk, (long)st->step);
+    for (i = 0; i < net->nr; i++) {
+        nix = (onf_i32)readout[i];
+        fprintf(fm, " %08lX%08lX",
+                (unsigned long)st->u[nix].hi, (unsigned long)st->u[nix].lo);
+    }
+    fprintf(fm, "\n");
+
+    /* IR-STM-04.  Without this the run would reach the consumer in whatever
+       blocks stdio chose, which is a recording delivered late rather than a
+       live view -- the thing D-128 ruled out. */
+    fflush(fm);
+}
+
 static int onferun(const onf_u8 *buf, struct onfnet *net,
-                   const char *reqpath, const char *rsppath)
+                   const char *reqpath, const char *rsppath,
+                   const char *stmpath, onf_i32 chunk)
 {
     onf_u32 *rowptr, *target, *stim, *readout, *brate;
     onf_f64 *weight, *su, *sg, *sring, *bias;
-    onf_i32 *srfr, *sspk, *sfst, *sfrc, *sstm;
+    onf_i32 *srfr, *sspk, *sfst, *sfrc, *sstm, *sprv;
     struct onfsta st;
     struct onfrq rq;
     struct onfrz rz;
     onf_u8 rec[ONF_RECLEN];
     FILE *fq;
     FILE *fs;
+    FILE *fm;
+    long nchunk;
     onf_u32 paycrc;
     onf_i32 maxms;
     long qlen, nreq, k;
-    int step, nok, nwarn, nerr, rc;
+    onf_i32 i, before;
+    int step, nok, nwarn, nerr, rc, more;
 
     paycrc = onfehdr(buf, ONF_N_PAYCRC);
     maxms  = (onf_i32)onfehdr(buf, ONF_N_MAXMS);
@@ -480,6 +627,19 @@ static int onferun(const onf_u8 *buf, struct onfnet *net,
         return RC_ENV;
     }
 
+    /* IR-STM-01.  Opened before anything is allocated for the simulation, so
+       that a missing ONFSTM DD costs nothing and is reported as itself. */
+    fm = NULL;
+    if (chunk > 0) {
+        fm = fopen(stmpath, "w");
+        if (fm == NULL) {
+            fclose(fq);
+            fclose(fs);
+            printf("ONF907S %s: %s\n", onfemsg(ONFM_STDS), stmpath);
+            return RC_ENV;
+        }
+    }
+
     /* --- the payload, in host order (FR-LOD-05 via onfldp) -------------- */
     rowptr  = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)(net->n + 1));
     target  = (onf_u32 *)malloc(sizeof(onf_u32) * (size_t)net->e);
@@ -502,11 +662,19 @@ static int onferun(const onf_u8 *buf, struct onfnet *net,
     sfst  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
     sfrc  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
     sstm  = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
+    /* The previous chunk's cumulative spike counts, so that this chunk's can
+       be differenced against them (IR-STM-03).  Allocated only when a stream
+       was asked for: a non-streaming run must pay nothing for this. */
+    sprv = NULL;
+    if (chunk > 0) {
+        sprv = (onf_i32 *)malloc(sizeof(onf_i32) * (size_t)net->n);
+    }
 
     if (rowptr == NULL || target == NULL || weight == NULL || stim == NULL
         || readout == NULL || su == NULL || sg == NULL || sring == NULL
         || srfr == NULL || sspk == NULL || sfst == NULL || sfrc == NULL
-        || sstm == NULL || (net->nbias > 0 && (brate == NULL
+        || sstm == NULL || (chunk > 0 && sprv == NULL)
+        || (net->nbias > 0 && (brate == NULL
                                                || bias == NULL))) {
         /* FR-LOD-04's limit check has already passed, so a failure here is
            the region actually running out rather than a network too large
@@ -514,6 +682,9 @@ static int onferun(const onf_u8 *buf, struct onfnet *net,
         printf("ONF105E %s\n", onfemsg(ONFD_MEM));
         fclose(fq);
         fclose(fs);
+        if (fm != NULL) {
+            fclose(fm);
+        }
         return RC_INTEG;
     }
 
@@ -523,6 +694,9 @@ static int onferun(const onf_u8 *buf, struct onfnet *net,
         printf("ONF%03dE %s\n", rc, onfemsg(rc));
         fclose(fq);
         fclose(fs);
+        if (fm != NULL) {
+            fclose(fm);
+        }
         return RC_INTEG;
     }
 
@@ -540,11 +714,54 @@ static int onferun(const onf_u8 *buf, struct onfnet *net,
             printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), reqpath);
             fclose(fq);
             fclose(fs);
+            if (fm != NULL) {
+                fclose(fm);
+            }
             return RC_ENV;
         }
 
         onfrqg(rec, &rq);
-        onfrq1(net, &st, paycrc, maxms, &rq, &rz);
+        if (fm == NULL) {
+            /* The path every non-streaming run has always taken, unchanged:
+               one call, one whole chunk (D-368).  IR-STM-04 requires the
+               response to be identical either way, and the surest way to
+               make that true is for this branch not to have moved. */
+            onfrq1(net, &st, paycrc, maxms, &rq, &rz);
+        } else {
+            /* D-383: the same sequence, opened up so that this loop can look
+               between chunks.  onfrq1k IS this, with the emission left out --
+               so what differs between the two branches is what is written to
+               ONFSTM, and nothing else. */
+            nchunk = 0;
+            if (onfrqb(net, &st, maxms, &rq, &rz)) {
+                onfesh(fm, net, paycrc, readout, &rq, &rz, chunk);
+                for (i = 0; i < net->n; i++) {
+                    sprv[i] = st.spikes[i];
+                }
+                for (;;) {
+                    before = st.step;
+                    more = onfrqc(net, &st, &rz, chunk);
+                    if (more < 0) {
+                        break;      /* FR-SIM-08: state is not meaningful */
+                    }
+                    /* A chunk line is emitted for each chunk that actually
+                       advanced, so a request of zero steps emits none and
+                       the count in ONFSE is the number of frames a viewer
+                       will have seen. */
+                    if (st.step != before) {
+                        nchunk++;
+                        onfesc(fm, net, &st, readout, sprv, nchunk);
+                    }
+                    if (more == 0) {
+                        break;
+                    }
+                }
+            }
+            onfrqe(net, &st, paycrc, &rq, &rz);
+            fprintf(fm, "ONFSE %ld %ld %08lX\n", nchunk, (long)rz.rc,
+                    (unsigned long)rz.fp);
+            fflush(fm);
+        }
         onfrqp(rec, &rz);
 
         if (rz.rc == ONFR_OK) {
@@ -580,6 +797,9 @@ static int onferun(const onf_u8 *buf, struct onfnet *net,
             printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), rsppath);
             fclose(fq);
             fclose(fs);
+            if (fm != NULL) {
+                fclose(fm);
+            }
             return RC_ENV;
         }
     }
@@ -589,9 +809,25 @@ static int onferun(const onf_u8 *buf, struct onfnet *net,
 
     if (fclose(fs) != 0) {
         printf("ONF906S %s: %s\n", onfemsg(ONFM_RQDS), rsppath);
+        if (fm != NULL) {
+            fclose(fm);
+        }
         return RC_ENV;
     }
     fclose(fq);
+    if (fm != NULL) {
+        /* Checked, not merely closed: the stream is flushed after every
+           chunk (IR-STM-04), so a failure here is the final close and a
+           consumer that read the whole run would never learn of it. */
+        if (fclose(fm) != 0) {
+            printf("ONF907S %s: %s\n", onfemsg(ONFM_STDS), stmpath);
+            return RC_ENV;
+        }
+        /* Nothing is printed on success on purpose.  Appendix E has no
+           message for "the stream was written" and inventing one would be
+           an unauthorised addition to the catalogue; the stream's own ONFSH
+           line already records K, and the operator asked for it. */
+    }
     return step;
 }
 #endif /* ONF_NOREQ */
@@ -603,9 +839,11 @@ int main(int argc, char **argv)
     const char *path;
     const char *reqpath;
     const char *rsppath;
+    const char *stmpath;
     onf_u8 *buf;
     onf_i32 len;
     onf_i32 need;
+    onf_i32 chunk;
     int verify;
     int rc;
     int self;
@@ -614,7 +852,25 @@ int main(int argc, char **argv)
     path = (argc > 2) ? argv[2] : ONF_NETDD;
     reqpath = (argc > 3) ? argv[3] : ONF_REQDD;
     rsppath = (argc > 4) ? argv[4] : ONF_RSPDD;
+    stmpath = (argc > 5) ? argv[5] : ONF_STMDD;
     verify = onfeisv(parm);
+
+    /* IR-STM-01, D-378.  Judged before the self-tests, because a PARM this
+       program cannot honour should be reported as itself rather than after
+       a minute of arithmetic the operator did not ask for. */
+    chunk = onfestk(parm);
+    if (chunk < 0) {
+        printf("ONF908S %s: %s\n", onfemsg(ONFM_PARM), parm);
+        return RC_ENV;
+    }
+    if (chunk > 0 && verify) {
+        /* Unreachable through onfestk/onfeisv as they stand -- a PARM cannot
+           be both "VERIFY" and "STREAM=..." -- but stated rather than
+           assumed, because IR-STM-01 makes the exclusion a requirement and a
+           later PARM grammar could make it reachable. */
+        printf("ONF908S %s: %s\n", onfemsg(ONFM_PARM), parm);
+        return RC_ENV;
+    }
 
     /*
      * NR-14 and Section 8.1: level L0 passes before anything above it runs.
@@ -691,11 +947,13 @@ int main(int argc, char **argv)
        rather than merely documented. */
     (void)reqpath;
     (void)rsppath;
+    (void)stmpath;
+    (void)chunk;
     printf("ONF905S REQUEST PROCESSING NOT BUILT AT THIS ENGINE LEVEL\n");
     free(buf);
     return RC_ENV;
 #else
-    rc = onferun(buf, &net, reqpath, rsppath);
+    rc = onferun(buf, &net, reqpath, rsppath, stmpath, chunk);
     free(buf);
     return rc;
 #endif

@@ -102,9 +102,20 @@ void onfrq1k(const struct onfnet *net, struct onfsta *st,
              onf_u32 paycrc, onf_i32 maxms,
              const struct onfrq *q, struct onfrz *z, onf_i32 k)
 {
-    onf_i32 i;
-    int krc;
+    /* D-383.  DEFINED as the composition of the three functions below, so a
+       driver that has to look between chunks (IR-STM-01) runs this exact
+       path instead of a copy of it.  D-366 did the same one level down. */
+    if (onfrqb(net, st, maxms, q, z)) {
+        while (onfrqc(net, st, z, k) > 0) {
+            /* onfrqc advances and reports; nothing is carried here */
+        }
+    }
+    onfrqe(net, st, paycrc, q, z);
+}
 
+int onfrqb(const struct onfnet *net, struct onfsta *st, onf_i32 maxms,
+           const struct onfrq *q, struct onfrz *z)
+{
     z->rc = ONFR_OK;
     z->bad = ONFR_F_NONE;
     z->outcount = 0;
@@ -131,42 +142,62 @@ void onfrq1k(const struct onfnet *net, struct onfsta *st,
     } else if (q->ms < 1 || q->ms > maxms) {
         z->rc = ONFR_ERR;                       /* FR-SIM-06, ONF202E */
         z->bad = ONFR_F_MS;
-    } else {
-        z->steps = q->ms * 1000 / net->dtus;
-        /* D-368.  k <= 0 is one whole chunk, which is onfrun's own shape; a
-           positive k drives the identical loop through onfcont.  The chunk
-           loop carries nothing across iterations except st itself, because
-           everything a step needs to know about where it is in the request
-           lives there (D-366) -- no re-seeding, no restarted step index, no
-           rate passed a second time.  onfcont clamps its own last chunk
-           (D-367), so the caller does not compute min() and cannot overrun. */
-        krc = onfinit(net, st, (onf_u32)q->seed, q->rate, z->steps);
-        if (krc == ONFK_OK) {
-            if (k <= 0) {
-                krc = onfcont(net, st, z->steps);
-            } else {
-                while (st->step < z->steps) {
-                    krc = onfcont(net, st, k);
-                    if (krc != ONFK_OK) {
-                        break;
-                    }
-                }
-            }
+    }
+
+    if (z->rc != ONFR_OK) {
+        return 0;               /* warned or rejected: nothing is simulated */
+    }
+
+    z->steps = q->ms * 1000 / net->dtus;
+    /* Everything a step needs to know about where it is in the request lives
+       in st (D-366) -- the PRNG stream, the absolute step index and the
+       request's total -- so no chunk has to be handed anything by the one
+       before it: no re-seeding, no restarted step index, no rate passed a
+       second time.  That is what makes a chunked run structurally the same
+       run (FR-SIM-10) rather than one that happens to agree. */
+    if (onfinit(net, st, (onf_u32)q->seed, q->rate, z->steps) != ONFK_OK) {
+        z->rc = ONFR_SEV;                       /* ONF903S, FR-SIM-08 */
+        z->steps = 0;
+        return 0;
+    }
+    return 1;
+}
+
+int onfrqc(const struct onfnet *net, struct onfsta *st,
+           struct onfrz *z, onf_i32 k)
+{
+    if (st->step >= z->steps) {
+        return 0;
+    }
+    if (k <= 0) {
+        /* D-368: one whole chunk, which is onfrun's own shape. */
+        k = z->steps;
+    }
+    /* onfcont clamps its own last chunk (D-367), so a k that does not divide
+       the step count shortens the last chunk rather than overrunning. */
+    if (onfcont(net, st, k) != ONFK_OK) {
+        z->rc = ONFR_SEV;                       /* ONF903S, FR-SIM-08 */
+        z->steps = 0;
+        return -1;
+    }
+    return (st->step < z->steps) ? 1 : 0;
+}
+
+void onfrqe(const struct onfnet *net, struct onfsta *st, onf_u32 paycrc,
+            const struct onfrq *q, struct onfrz *z)
+{
+    onf_i32 i;
+
+    if (z->rc == ONFR_OK) {
+        z->outcount = net->nr;
+        if (z->outcount > ONF_MAXOUT) {
+            z->outcount = ONF_MAXOUT;
         }
-        if (krc != ONFK_OK) {
-            z->rc = ONFR_SEV;                   /* ONF903S, FR-SIM-08 */
-            z->steps = 0;
-        } else {
-            z->outcount = net->nr;
-            if (z->outcount > ONF_MAXOUT) {
-                z->outcount = ONF_MAXOUT;
-            }
-            for (i = 0; i < z->outcount; i++) {
-                onf_i32 nix = (onf_i32)net->readout[i];
-                z->oid[i]  = nix;
-                z->olat[i] = st->first[nix];
-                z->ospk[i] = st->spikes[nix];
-            }
+        for (i = 0; i < z->outcount; i++) {
+            onf_i32 nix = (onf_i32)net->readout[i];
+            z->oid[i]  = nix;
+            z->olat[i] = st->first[nix];
+            z->ospk[i] = st->spikes[nix];
         }
     }
 
