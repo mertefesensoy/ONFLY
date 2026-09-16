@@ -439,6 +439,14 @@ def main(argv):
         else:
             sys.stderr.write("liveview: unknown argument %r\n" % a)
             return 2
+    if args["order"] not in ("body", "index"):
+        # Rejected rather than ignored.  A typo that silently fell back to
+        # index order would produce a picture whose own axis label was a
+        # lie, which is the failure mode this whole file is arranged
+        # against.
+        sys.stderr.write("liveview: --order must be 'body' or 'index', "
+                         "not %r\n" % args["order"])
+        return 2
     if not os.path.exists(args["engine"]):
         sys.stderr.write("liveview: no engine at %s\n"
                          "  build one with: mingw32-make eng\n"
