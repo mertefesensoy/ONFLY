@@ -150,6 +150,13 @@ CLEAN_CARDS = [
     ("SUGR", "0000", "1000", "999999999", ("SUGR", 0, 1000, 999999999)),
     ("WATR", " 200", "   1", "        0", ("WATR", 200, 1, 0)),
     ("SUGR", "9999", "1300", "        7", ("SUGR", 9999, 1300, 7)),
+    # D-338: a NEGATIVE rate through the REQUEST path.
+    #
+    # The bad deck below has fed `  -1` to the card PARSER since D-265
+    # made the column signed, but nothing checked that a negative rate
+    # PACKS correctly into the 412-byte record. This does. The report
+    # side is covered separately, by the seventh response below.
+    ("SUGR", "  -1", "1000", "        1", ("SUGR", -1, 1000, 1)),
 ]
 
 # The bad deck.  (card text, expected: None for accepted, or the
@@ -352,7 +359,17 @@ def main(argv):
             response_record("XXXX", 120, 1000, 1, 8, 0, []),
             response_record("SUGR", 9999, 1000, 1, 8, 0, []),
             response_record("SUGR", 120, 1000, 1, 16, 0, []),
-            response_record("SUGR", 40, 150, 3, 0, 1500, [(5, 1000, 1)])]
+            response_record("SUGR", 40, 150, 3, 0, 1500, [(5, 1000, 1)]),
+            # D-338: a NEGATIVE rate in the REPORT path.
+            #
+            # CLEAN_CARDS has fed -1 to the request builder for a
+            # while, but nothing fed one to the report -- so when
+            # RL-RATE dropped the sign, no x86 test could see it and
+            # it took a 75-minute job on TK5 to find (VL-110). This
+            # makes `RATE=   -1` an assertion that runs in seconds,
+            # and it fails against the fixed-sign PIC -ZZZ9, which
+            # renders `-   1`.  G-13 is exactly this case.
+            response_record("SUGR", -1, 1000, 1, 8, 0, [])]
     io.open(rsp, "wb").write(b"".join(recs))
     if os.path.exists(rpt):
         os.remove(rpt)
@@ -410,6 +427,8 @@ def main(argv):
         req(6, "SUGR", 40, 150, 3, 0, 1, 1500),
         msg("ONF301I", "REQUEST COMPLETE"),
         outl(1, 5, "MN9-10331", 1000, 1, "6.7"),
+        req(7, "SUGR", -1, 1000, 1, 8, 0, 0),
+        msg("ONF202E", "REQUEST FIELD OUT OF RANGE"),
     ]
     if lines != want:
         sys.stdout.write("got:\n" + "\n".join(repr(l) for l in lines) + "\n")

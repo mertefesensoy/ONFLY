@@ -289,7 +289,13 @@
       *wrong.  Five characters, not four: rate 9999 (G-07) needs all
       *four digits AND a sign position.  The trailing FILLER below drops
       *from 40 to 39 so the record stays 132 characters.
-           05  RL-RATE                PIC -ZZZ9.
+      *
+      *D-338: FLOATING, not fixed.  The first fix used PIC -ZZZ9, whose
+      *sign is a FIXED insertion in column one while ZZZ9 right-
+      *justifies the digit -- so -1 came out as '-   1', measured on
+      *TK5 (VL-110).  A floating PIC ----9 puts the sign immediately
+      *left of the first digit: '   -1', ' 9999', '-9999'.  Same width.
+           05  RL-RATE                PIC ----9.
            05  FILLER                 PIC X(4) VALUE ' MS='.
            05  RL-MS                  PIC ZZZ9.
            05  FILLER                 PIC X(6) VALUE ' SEED='.
