@@ -78,8 +78,17 @@ def stdev(xs):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--variant", required=True,
-                    help="right, phg9 or tpgrn (D-176)")
+    # Omitting --variant probes the SHIPPED stimulus set: D-52's fourteen
+    # neurons on both hemispheres, as D-73 fixed it and D-177 kept it.
+    # That is the configuration ACC-4 is actually evaluated on, so it is
+    # the one whose W_syn sensitivity bears on Phase E rather than on a
+    # road not taken.  It is labelled `d52` in outputs so that a run on
+    # the shipped set is never mistaken for a variant run, and so that
+    # its candidate networks cannot collide with a baseline calibration's
+    # `net-<w>.bin`.
+    ap.add_argument("--variant", default=None,
+                    help="right, phg9 or tpgrn (D-176); omit for the "
+                         "shipped D-52 set")
     ap.add_argument("--w-syn", required=True,
                     help="comma-separated W_syn values in mV")
     ap.add_argument("--rates", default="40,60,120",
@@ -100,8 +109,16 @@ def main():
 
     arrays, stim, read = cal.load_cache()
     stim, desc = cal.select_stim(stim, a.variant)
-    print("variant %s: %d stimulus neurons %s sides %s"
-          % (a.variant, len(stim), desc["types"], desc["sides"]))
+    label = a.variant or "d52"
+    if desc is None:
+        desc = {"variant": "d52 (shipped set, D-52 + D-73)",
+                "neurons": len(stim),
+                "bodies": [int(b) for b in stim]}
+        print("shipped stimulus set: %d neurons, both hemispheres "
+              "(D-52, D-73, kept by D-177)" % len(stim))
+    else:
+        print("variant %s: %d stimulus neurons %s sides %s"
+              % (a.variant, len(stim), desc["types"], desc["sides"]))
     print("  investigation only (D-302, D-306): no emitted network, no "
           "golden fingerprint and no shipped W_syn is affected")
     print("  %d W_syn x %d rates x %d seeds = %d full-brain runs"
@@ -109,7 +126,7 @@ def main():
 
     # The variant is set on the module so emit_candidate() names the
     # candidate networks for it and cannot collide with a baseline run.
-    cal.VARIANT = a.variant
+    cal.VARIANT = label
 
     out = {"variant": desc, "rates": rates, "seeds": seeds,
            "sim_ms": cal.SIM_MS, "reference_hz": {}, "points": []}
@@ -160,7 +177,7 @@ def main():
     # calibrate.py.  Caught here 2026-09-15 by stopping a 30-seed run a
     # minute after it started, having missed it when the tool was written.
     dst = os.path.join(cal.CAL_DIR,
-                       "wsens-%s-s%d.json" % (a.variant, len(seeds)))
+                       "wsens-%s-s%d.json" % (label, len(seeds)))
     io.open(dst, "w", encoding="utf-8").write(
         json.dumps(out, indent=2, sort_keys=True))
 
