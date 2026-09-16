@@ -322,10 +322,38 @@ def main():
           any(mvsrun.NAM_DSN in c for c in idrv)
           and any("WRITEN" in c for c in idrv),
           mvsrun.NAM_DSN)
-    check("BUZZ's STEPLIB and ONFNAM name what the installs created",
-          all(any(dsn in c for c in buzz)
-              for dsn in (mvsrun.LOADLIB, mvsrun.NAM_DSN)),
-          "%s, %s" % (mvsrun.LOADLIB, mvsrun.NAM_DSN))
+    check("BUZZ's STEPLIB names what the install created",
+          any(mvsrun.LOADLIB in c for c in buzz), mvsrun.LOADLIB)
+
+    # D-332: each demonstration job carries its OWN network's names
+    # inline, and must not read the single installed dataset.
+    #
+    # This replaces a check that BUZZ named HERC01.ONFLY.ONFNAM, which
+    # was true and was the bug: one installed dataset serves two
+    # networks, so whichever was installed last won. D-274's SUGR job
+    # found it -- every readout printed `*UNNAMED*` because `srext`'s
+    # names were installed and `path`'s readouts sit at 00013 and 00302.
+    #
+    # What is pinned is the property that makes the error impossible
+    # rather than merely visible: the names in the deck are the ones for
+    # the network THAT job runs. Asserting the readout rows specifically,
+    # because a deck could carry the right file and still be wired to the
+    # wrong DD.
+    for job, label, readouts in (("BUZZ", "srext", ("00009", "00088")),
+                                 ("SUGR", "path", ("00013", "00302"))):
+        mvsrun.select(label)
+        deck = mvsrun.demo_deck(job)
+        at = [i for i, c in enumerate(deck) if c.startswith("//ONFNAM")]
+        inline = bool(at) and deck[at[0]].strip().endswith("DD *")
+        rows = mvsrun.name_cards(label)
+        check("%s carries %s's names inline, not the installed dataset"
+              % (job, label),
+              inline and all(any(r.startswith(x) for r in rows)
+                             for x in readouts)
+              and all(any(c == r for c in deck) for r in rows)
+              and not any(mvsrun.NAM_DSN in c for c in deck),
+              "%d rows, readouts %s" % (len(rows), ", ".join(readouts)))
+    mvsrun.select("srext")
 
     # --- the report comparator, proven before it judges anything ------
     #

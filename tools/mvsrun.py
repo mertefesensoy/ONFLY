@@ -774,7 +774,34 @@ def demo_deck(job="BUZZ"):
     a("//SYSOUT   DD SYSOUT=*")
     a("//SYSPRINT DD SYSOUT=*")
     a("//ONFRSP   DD DSN=%s,DISP=SHR" % rsp_ds)
-    a("//ONFNAM   DD DSN=%s,DISP=SHR" % NAM_DSN)
+    # D-332: the job carries its OWN names, inline, instead of reading
+    # the single installed HERC01.ONFLY.ONFNAM.
+    #
+    # The names file maps INDEX -> name, and the index is a position in
+    # one particular network's neuron array -- so the file is
+    # network-specific by construction. One installed dataset for two
+    # networks means whichever was installed last wins, and D-274's SUGR
+    # job found it: every readout printed `*UNNAMED*` because `srext`'s
+    # names were installed and `path`'s readouts are at 00013 and 00302.
+    #
+    # Today that failure is loud, because the two networks' indices
+    # happen not to overlap at all. NOTHING GUARANTEES THAT. `path` has
+    # a row at 00013; an extraction that put an `srext` readout at index
+    # 13 would print a real, plausible neuron name against the wrong
+    # neuron, and no check anywhere would notice. A wrong name in a
+    # demonstration report is worse than a missing one.
+    #
+    # Inline makes the mismatch impossible rather than merely visible,
+    # and it costs 16 cards against a ~2,148-card network deck. It
+    # satisfies IR-JCL-01 unchanged: that table fixes ONFNAM's
+    # attributes (FB, LRECL=80) and contents, not whether the DD is a
+    # DSN or an instream, and a DD * stream is FB/80 by definition.
+    # ONFERPT has used an inline ONFNAM all along, so this makes the
+    # demonstration jobs agree with the report job rather than differ.
+    a("//ONFNAM   DD *")
+    for row in name_cards(DEMOS[job]["net"]):
+        a(row)
+    a("/*")
     a("//ONFRPT   DD SYSOUT=*,DCB=(RECFM=FBA,LRECL=133,BLKSIZE=133)")
     a("//ONFCTL   DD *")
     a("MODE=RPT")
