@@ -264,6 +264,102 @@ def _running_jobs():
     return out
 
 
+def _workers():
+    """What every live runnet worker is computing, right now.
+
+    THIS IS THE REAL WINDOW INTO A RUNNING JOB, and it was available
+    from the start. prep/acc4.py's run_many spawns
+
+        runnet.exe <network> <rate_hz> <sim_ms> <seed>
+
+    one process per run, so the process table states exactly which
+    (rate, seed) pairs are in flight and against which network. Nothing
+    has to be inferred from elapsed time, and nothing has to be guessed:
+    the dispatch order is [(r, s) for r in rates for s in seeds], so the
+    furthest-advanced worker gives the job's exact dispatch position
+    within its current W_syn point.
+
+    Returns a list of {net, w_syn, label, rate, ms, seed, pid}.
+    """
+    import subprocess as sp
+    out = []
+    try:
+        if os.name == "nt":
+            ps = ("Get-CimInstance Win32_Process -Filter "
+                  "\"Name='runnet.exe'\" | ForEach-Object { "
+                  "'{0} {1}' -f $_.ProcessId, $_.CommandLine }")
+            txt = sp.run(["powershell", "-NoProfile", "-Command", ps],
+                         stdout=sp.PIPE, stderr=sp.DEVNULL,
+                         timeout=60).stdout.decode("utf-8", "replace")
+            rows = [ln for ln in txt.splitlines() if ln.strip()]
+        else:
+            rows = []
+            for pid in os.listdir("/proc"):
+                if not pid.isdigit():
+                    continue
+                try:
+                    raw = io.open("/proc/%s/cmdline" % pid, "rb").read()
+                    argv = [a.decode("utf-8", "replace")
+                            for a in raw.split(b"\0") if a]
+                    if argv and "runnet" in argv[0]:
+                        rows.append("%s %s" % (pid, " ".join(argv)))
+                except Exception:
+                    continue
+    except Exception:
+        return []
+
+    for ln in rows:
+        parts = ln.split()
+        # pid, exe, network, rate, ms, seed -- the last four are what
+        # matter and are always the final four tokens.
+        if len(parts) < 6:
+            continue
+        try:
+            pid = int(parts[0])
+            seed, ms, rate = int(parts[-1]), int(parts[-2]), int(parts[-3])
+        except ValueError:
+            continue
+        net = parts[-4]
+        stem = os.path.basename(net)
+        if stem.startswith("net-") and stem.endswith(".bin"):
+            stem = stem[len("net-"):-len(".bin")]
+        label, wtxt = (stem.rsplit("-", 1) if "-" in stem
+                       else ("calibration", stem))
+        out.append({"pid": pid, "label": label, "w_syn": wtxt,
+                    "rate": rate, "ms": ms, "seed": seed})
+    return out
+
+
+def _inside(label, par):
+    """Exact dispatch position within the current W_syn point.
+
+    Honest about the distinction it rests on. What the process table
+    shows is what has been **dispatched**, not what has **completed**: a
+    worker appears the moment it starts and vanishes when it exits, so
+    the furthest-advanced worker marks the high-water mark of dispatch
+    and the ones still alive have not finished. Completed is therefore
+    reported as `dispatched - in flight`, which is exact, rather than as
+    a percentage that blurs the two.
+    """
+    live = [w for w in _workers() if w["label"] == label]
+    if not live or not par:
+        return None
+    rates, seeds = par["rates_list"], par["seeds"]
+    pos = 0
+    for w in live:
+        try:
+            idx = rates.index(w["rate"])
+        except ValueError:
+            continue
+        pos = max(pos, idx * seeds + w["seed"])
+    by_rate = {}
+    for w in live:
+        by_rate.setdefault(w["rate"], []).append(w["seed"])
+    return {"live": live, "dispatched": pos, "in_flight": len(live),
+            "done": max(pos - len(live), 0),
+            "per_point": len(rates) * seeds, "by_rate": by_rate}
+
+
 def _opt(argv, name):
     for i, a in enumerate(argv):
         if a == name and i + 1 < len(argv):
@@ -287,6 +383,7 @@ def _params(label):
             continue
         try:
             return {"w_syn": [float(x) for x in ws.split(",")],
+                    "rates_list": [int(x) for x in rates.split(",")],
                     "rates": len(rates.split(",")),
                     "seeds": int(seeds), "started": job["started"]}
         except ValueError:
@@ -330,6 +427,47 @@ def infer():
     # a particular job anyway, so asking per candidate would be slower
     # and no more informative.
     workers = _worker_count()
+
+    # A JOB is a process, not a file.  Keying this off the network on
+    # disk alone reported "no jobs running" in the gap between two W_syn
+    # points -- the previous network is deleted as soon as its runs
+    # finish and the next takes about 76 s to emit -- so a four-hour run
+    # looked finished twice an hour.  Saying nothing is running while
+    # something is, is the worst thing this tool can do, so the process
+    # list is the spine and the file only says which point.
+    on_disk = {}
+    for name in sorted(os.listdir(CALDIR)):
+        if name.startswith("net-") and name.endswith(".bin"):
+            stem = name[len("net-"):-len(".bin")]
+            lab, wt = (stem.rsplit("-", 1) if "-" in stem
+                       else ("calibration", stem))
+            on_disk[lab] = (wt, os.path.join(CALDIR, name))
+
+    seen = set()
+    for job in _running_jobs():
+        label = _opt(job["argv"], "--variant") or "d52"
+        seen.add(label)
+        par = _params(label)
+        wtxt, path = on_disk.get(label, (None, None))
+        since = None
+        if path:
+            try:
+                since = os.path.getmtime(path)
+            except OSError:
+                since = None
+        idx = None
+        if wtxt and par:
+            try:
+                idx = (par["w_syn"].index(float(wtxt)) + 1,
+                       len(par["w_syn"]))
+            except ValueError:
+                idx = None
+        out.append({"job": "wsens-%s" % label, "inferred": True,
+                    "w_syn": wtxt, "point": idx,
+                    "since": since if since else job["started"],
+                    "between": wtxt is None, "params": par,
+                    "workers": workers, "stale": False})
+
     for name in sorted(os.listdir(CALDIR)):
         if not (name.startswith("net-") and name.endswith(".bin")):
             continue
@@ -343,20 +481,13 @@ def infer():
             since = os.path.getmtime(path)
         except OSError:
             continue
-        # The running job's own arguments first; a previous completed run
-        # of the same label only as a fallback.
-        par = _params(label)
-        pts = par["w_syn"] if par else _known_points(label)
-        idx = None
-        if pts:
-            try:
-                idx = (pts.index(float(wtxt)) + 1, len(pts))
-            except ValueError:
-                idx = None
+        # Only files with no running job reach here: those are leftovers.
+        if label in seen:
+            continue
         out.append({"job": "wsens-%s" % label, "inferred": True,
-                    "w_syn": wtxt, "point": idx, "since": since,
-                    "params": par,
-                    "workers": workers, "stale": _is_stale(since, workers)})
+                    "w_syn": wtxt, "point": None, "since": since,
+                    "between": False, "params": None,
+                    "workers": workers, "stale": True})
     return out
 
 
@@ -432,26 +563,53 @@ def render_inferred(items):
                          % (it["w_syn"], _dur(_now() - it["since"])))
             lines.append("    299 MB; safe to delete once no run wants it")
             continue
-        shape, detail = _shape(it)
         par = it.get("params")
-        lines.append("%s is running." % it["job"])
-        lines.append("    It is %s." % shape)
-        lines.append("    Right now: W_syn %s, %s, for %s so far."
-                     % (it["w_syn"], pt, _dur(_now() - it["since"])))
+        label = it["job"][len("wsens-"):]
+        ins = _inside(label, par)
+        if it.get("between"):
+            lines.append("%s -- between W_syn points, emitting the next "
+                         "network (about 76 s), running %s"
+                         % (it["job"],
+                            _dur(_now() - (par["started"] if par
+                                           else it["since"]))))
+            if par:
+                lines.append("  started %s" % _iso(par["started"]))
+            continue
+        lines.append("%s -- W_syn %s, %s, running %s"
+                     % (it["job"], it["w_syn"], pt,
+                        _dur(_now() - (par["started"] if par
+                                       else it["since"]))))
+        if ins:
+            i, n = it["point"] if it["point"] else (1, 1)
+            total = ins["per_point"] * n
+            gdone = (i - 1) * ins["per_point"] + ins["done"]
+            lines.append("")
+            lines.append("  inside this point (%d runs):" % ins["per_point"])
+            for rate in sorted(ins["by_rate"]):
+                seeds = sorted(ins["by_rate"][rate])
+                bar = _bar(max(seeds), par["seeds"], 20)
+                lines.append("    %5d Hz  %s  seeds %s"
+                             % (rate, bar,
+                                ", ".join(str(x) for x in seeds)))
+            ratesl = par["rates_list"]
+            cur = max(ins["by_rate"])
+            lines.append("    rate %d Hz is %d of %d for this point"
+                         % (cur, ratesl.index(cur) + 1, len(ratesl)))
+            lines.append("    %d dispatched, %d finished, %d still "
+                         "computing"
+                         % (ins["dispatched"], ins["done"],
+                            ins["in_flight"]))
+            lines.append("")
+            lines.append("  whole run: %s %d of %d runs finished"
+                         % (_bar(gdone, total, 24), gdone, total))
+        else:
+            lines.append("  no workers are running for this job right now")
         if par:
-            lines.append("    Started %s, %s ago."
-                         % (_iso(par["started"]),
-                            _dur(_now() - par["started"])))
-        if detail:
-            lines.append("    %s%s." % (detail[0].upper(), detail[1:]))
-        lines.append("    %s runnet workers are busy on this machine "
-                     "(all jobs, not just this one)."
-                     % (it["workers"] if it["workers"] is not None
-                        else "an unknown number of"))
-        lines.append("    This job writes no status file, so the above is "
-                     "read from its command line,")
-        lines.append("    the network it has on disk, and the process "
-                     "table -- not from the job itself.")
+            lines.append("  started %s" % _iso(par["started"]))
+        lines.append("  read from the process table: every worker is one "
+                     "`runnet <net> <rate> <ms> <seed>`,")
+        lines.append("  so 'dispatched' is exact and 'finished' is "
+                     "dispatched minus those still alive.")
     return lines
 
 
@@ -477,25 +635,34 @@ def render_brief(states, items):
         # One line, so it says position, elapsed and what is left -- and
         # nothing else.  The long explanation belongs in the full form.
         par = it.get("params")
-        el = _dur(_now() - (par["started"] if par else it["since"]))
-        if it["point"] and par:
+        el = _now() - (par["started"] if par else it["since"])
+        label = it["job"][len("wsens-"):]
+        ins = _inside(label, par) if par else None
+        if it["point"] and par and ins:
             i, n = it["point"]
-            total = par["rates"] * par["seeds"] * n
-            done = (i - 1) * par["rates"] * par["seeds"]
-            if i > 1:
-                rate = (_now() - par["started"]) / float(i - 1)
-                left = "%s left" % _dur(max(
-                    rate * (n - i + 1) - (_now() - it["since"]), 0))
-            else:
-                left = ("no estimate yet -- the first point has not "
-                        "finished")
-            out.append("%s: point %d of %d (W_syn %s), %d of %d runs "
-                       "confirmed done, %s elapsed, %s"
-                       % (it["job"], i, n, it["w_syn"], done, total,
-                          el, left))
+            total = ins["per_point"] * n
+            done = (i - 1) * ins["per_point"] + ins["done"]
+            cur = max(ins["by_rate"])
+            # Projected from RUNS finished, not from points finished, so
+            # there is an estimate within the first point instead of
+            # after it.
+            left = (_dur(el * (total - done) / float(done))
+                    if done > 0 else "unknown")
+            out.append("%s: %d of %d runs done (%.0f%%), point %d of %d "
+                       "at W_syn %s, now on %d Hz seeds %s, %s elapsed, "
+                       "about %s left"
+                       % (it["job"], done, total, 100.0 * done / total,
+                          i, n, it["w_syn"], cur,
+                          "-".join(str(x) for x in
+                                   (min(ins["by_rate"][cur]),
+                                    max(ins["by_rate"][cur]))),
+                          _dur(el), left))
+        elif it.get("between"):
+            out.append("%s: between W_syn points, emitting the next "
+                       "network, %s elapsed" % (it["job"], _dur(el)))
         else:
-            out.append("%s: W_syn %s, %s elapsed, still working"
-                       % (it["job"], it["w_syn"], el))
+            out.append("%s: W_syn %s, %s elapsed, no workers running"
+                       % (it["job"], it["w_syn"], _dur(el)))
     return out or ["no jobs running"]
 
 
