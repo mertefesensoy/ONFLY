@@ -59,7 +59,7 @@ ONFLY answers one kind of question: *"If this fly tastes sugar at rate R for T m
 
 ### 2.1 Product perspective
 
-ONFLY is a new, self-contained system. It depends on published scientific data (the MaleCNS v1.0 connectome, released September 3, 2026 by HHMI Janelia and Google Research) and on a published model (Shiu et al., *Nature* 634:210–219, 2024), but on no running external service.
+ONFLY is a new, self-contained system. It depends on published scientific data (the MaleCNS v1.0 connectome, released June 2026 by HHMI Janelia, the MRC Laboratory of Molecular Biology, the University of Cambridge and Google Research; primary paper in *Cell*, September 2026) and on a published model (Shiu et al., *Nature* 634:210–219, 2024), but on no running external service.
 
 The end-to-end data flow for the MVP:
 
