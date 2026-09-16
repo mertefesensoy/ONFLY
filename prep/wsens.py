@@ -57,6 +57,8 @@ sys.path.insert(0, HERE)
 
 import calibrate as cal                                       # noqa: E402
 import acc4                                                   # noqa: E402
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import progress                                               # noqa: E402
 
 
 def mean_hz(res):
@@ -122,7 +124,8 @@ def main():
     print("  investigation only (D-302, D-306): no emitted network, no "
           "golden fingerprint and no shipped W_syn is affected")
     print("  %d W_syn x %d rates x %d seeds = %d full-brain runs"
-          % (len(ws), len(rates), len(seeds), len(ws) * len(rates) * len(seeds)))
+          % (len(ws), len(rates), len(seeds),
+             len(ws) * len(rates) * len(seeds)))
 
     # The variant is set on the module so emit_candidate() names the
     # candidate networks for it and cannot collide with a baseline run.
@@ -134,15 +137,24 @@ def main():
     for r in rates:
         out["reference_hz"][str(r)] = ref.get(str(r))
 
+    # D-315: a status file a watcher outside this process can read.
+    track = progress.Tracker(
+        "wsens-%s-s%d" % (label, len(seeds)),
+        total=len(ws) * len(rates) * len(seeds), unit="runs",
+        meta={"variant": label, "rates": rates,
+              "w_syn": ws, "seeds": len(seeds)})
+
     t_all = time.time()
     for w in ws:
         t0 = time.time()
+        track.stage("W_syn %.4f" % w, total=len(rates) * len(seeds))
         path, n, e, sha, crc = cal.emit_candidate(w, arrays, stim, read)
         # acc4.run_many() is reused rather than reimplemented: it already
         # raises on a non-zero rc or a readout count other than two, which
         # is the check that stops a silently broken run from becoming a
         # data point.  Its result is keyed (rate, seed).
-        results = acc4.run_many(path, a.jobs, rates, seeds)
+        results = acc4.run_many(path, a.jobs, rates, seeds,
+                                tracker=track)
 
         entry = {"w_syn": float(w), "w_syn_hex": float.hex(float(w)),
                  "network": {"neurons": int(n), "edges": int(e),
@@ -164,6 +176,10 @@ def main():
                               % (r, entry["per_rate"][str(r)]["mean_hz"],
                                  entry["per_rate"][str(r)]["se_hz"])
                               for r in rates), entry["elapsed_s"]))
+        sys.stdout.flush()          # D-315, as in acc4.run_many
+        track.note(**{("hz_%d" % r):
+                      round(entry["per_rate"][str(r)]["mean_hz"], 2)
+                      for r in rates})
 
     out["elapsed_s"] = round(time.time() - t_all, 1)
     # The SEED COUNT is part of the name, not just of the content.
@@ -210,6 +226,7 @@ def main():
                  "   ".join(parts)))
     print()
     print("wrote %s (%.0f s)" % (dst.replace("\\", "/"), out["elapsed_s"]))
+    track.finish("ok")
     return 0
 
 

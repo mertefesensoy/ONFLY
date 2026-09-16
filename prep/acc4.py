@@ -84,7 +84,14 @@ def select_variant(stim, name):
     return bodies, desc
 
 
-def run_many(path, jobs, rates, seeds):
+def run_many(path, jobs, rates, seeds, tracker=None):
+    """Run every (rate, seed) pair, at most `jobs` at a time.
+
+    `tracker` is an optional tools/progress.Tracker (D-315).  It is
+    ticked once per completed run so a watcher outside this process can
+    see how far along it is; passing None keeps the old behaviour
+    exactly, which is what every existing caller gets.
+    """
     todo = [(r, s) for r in rates for s in seeds]
     procs, results = {}, {}
     while todo or procs:
@@ -103,9 +110,18 @@ def run_many(path, jobs, rates, seeds):
                 results[k] = res
                 del procs[k]
                 done = len(results)
+                if tracker is not None:
+                    tracker.tick()
                 if done % 10 == 0:
                     print("  %d of %d runs done" % (done, done + len(todo)
                                                     + len(procs)))
+                    # D-315.  Without this the line above sits in
+                    # Python's block buffer and a redirected log reads
+                    # zero bytes until the process exits -- which is
+                    # exactly what made a 6,971 s ACC-4 run invisible
+                    # for its whole duration.  prep/extract.py has
+                    # always flushed; this file never did.
+                    sys.stdout.flush()
         time.sleep(2)
     return results
 

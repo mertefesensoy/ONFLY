@@ -72,3 +72,6 @@ data/calibration/*.bin
 data/calibration/*.npz
 data/calibration/tmp/
 data/calibration/*.npy
+
+# D-315: transient job status files, rewritten every tick
+data/progress/
