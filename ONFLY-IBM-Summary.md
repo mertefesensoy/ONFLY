@@ -6,7 +6,7 @@
 
 ## What it is
 
-ONFLY runs part of a real animal's nervous system as a mainframe workload. It takes the complete male fruit fly connectome that Google Research and HHMI Janelia released on September 3, 2026 (MaleCNS v1.0: over 166,000 neurons and 125 million synapses), extracts the circuit that turns a taste of sugar into a feeding response, and simulates it with the published model of Shiu et al. (*Nature*, 2024). Each simulation is a request and response: *"sugar at this rate for this long — what do the feeding motor neurons do?"*
+ONFLY runs part of a real animal's nervous system as a mainframe workload. It takes the complete male fruit fly connectome released by HHMI Janelia, the MRC Laboratory of Molecular Biology, the University of Cambridge and Google Research (MaleCNS v1.0, June 2026: over 166,000 neurons and 125 million synapses; primary paper in *Cell*, September 2026), extracts the circuit that turns a taste of sugar into a feeding response, and simulates it with the published model of Shiu et al. (*Nature*, 2024). Each simulation is a request and response: *"sugar at this rate for this long — what do the feeding motor neurons do?"*
 
 ## Why it matters for IBM Z
 
