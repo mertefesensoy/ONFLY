@@ -281,7 +281,15 @@
            05  FILLER                 PIC X(6) VALUE ' CODE='.
            05  RL-CODE                PIC X(8).
            05  FILLER                 PIC X(6) VALUE ' RATE='.
-           05  RL-RATE                PIC ZZZ9.
+      *D-330: SIGNED.  ONF-STIM-RATE is PIC S9(4) COMP and G-13 carries
+      *-1 deliberately (out of range, ONF202E).  An unsigned ZZZ9 here
+      *drops the sign on the MOVE, so the report printed RATE= 1 for a
+      *request the engine correctly rejected as -1 -- the fingerprint
+      *A30B1F03 matched Section 8.4 throughout, so only the report was
+      *wrong.  Five characters, not four: rate 9999 (G-07) needs all
+      *four digits AND a sign position.  The trailing FILLER below drops
+      *from 40 to 39 so the record stays 132 characters.
+           05  RL-RATE                PIC -ZZZ9.
            05  FILLER                 PIC X(4) VALUE ' MS='.
            05  RL-MS                  PIC ZZZ9.
            05  FILLER                 PIC X(6) VALUE ' SEED='.
@@ -292,7 +300,9 @@
            05  RL-OUT                 PIC ZZZ9.
            05  FILLER                 PIC X(7) VALUE ' STEPS='.
            05  RL-STEPS               PIC Z(8)9.
-           05  FILLER                 PIC X(40) VALUE SPACES.
+      *39, not 40: RL-RATE above widened by one for its sign (D-330),
+      *and this record must stay 132 characters to fit RPT-TEXT.
+           05  FILLER                 PIC X(39) VALUE SPACES.
       *RL-OUT and RL-K are four digits wide although their values
       *never exceed 32: a narrower edited item draws IKF5011I-W
       *(possible high-order truncation) from MVT COBOL.

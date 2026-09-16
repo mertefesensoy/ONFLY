@@ -374,7 +374,13 @@ def main(argv):
     lines = [(r[0], r[1:].rstrip()) for r in recs]
 
     def req(n, code, rate, ms, seed, rc_, out_, steps):
-        return (" ", "REQUEST %4d CODE=%-8s RATE=%4d MS=%4d SEED=%9d"
+        # RATE is FIVE wide and signed (D-330).  RL-RATE was PIC ZZZ9,
+        # which silently dropped the sign of a negative rate: G-13
+        # carries -1 and the MVS report printed `RATE= 1` for a request
+        # the engine had correctly rejected.  PIC -ZZZ9 needs the extra
+        # column because rate 9999 (G-07) uses all four digits, and %5d
+        # reproduces it: a space in the sign position when positive.
+        return (" ", "REQUEST %4d CODE=%-8s RATE=%5d MS=%4d SEED=%9d"
                      " RC=%4d OUT=%4d STEPS=%9d"
                      % (n, code, rate, ms, seed, rc_, out_, steps))
 

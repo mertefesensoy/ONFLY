@@ -1075,8 +1075,18 @@ def main(argv):
         # Inference is a FALLBACK, not a supplement: a job that reports
         # for itself is not also guessed at, or the same run would be
         # listed twice saying two different things.
-        reported = set(st.get("job") for st in states)
-        items = [it for it in infer() if it["job"] not in reported]
+        # A job that reports for itself must not ALSO be inferred.
+        #
+        # Exact-name matching was not enough: a tracked job is filed as
+        # `wsens-right-s30` (the seed count is part of the name, D-315)
+        # while inference derives `wsens-right` from the network on disk,
+        # so the same run appeared twice under two names saying two
+        # different things -- one of them with no ETA.  Matching on the
+        # prefix is what makes them one job.
+        reported = set(st.get("job") or "" for st in states)
+        items = [it for it in infer()
+                 if not any(r == it["job"] or r.startswith(it["job"] + "-")
+                            for r in reported)]
         mvs = mvs_jobs()
         if brief:
             rows = render_brief(states, items) + render_mvs_brief(mvs)
