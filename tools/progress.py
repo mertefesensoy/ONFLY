@@ -453,8 +453,51 @@ def _clock(line):
     return m.group(1).replace(".", ":") if m else "?"
 
 
+_HERC = {"cpu": None, "at": None}
+
+
+def herc_rate():
+    """Fraction of one core Hercules has used since the last call.
+
+    THIS IS THE LIVENESS SIGNAL FOR AN MVS JOB, and it is needed because
+    the obvious one is absent. On x86 a job proves it is alive by having
+    sixteen worker processes churn; an MVS job's STEP2 can run for forty
+    minutes without MVS printing a single line, so a step list that has
+    not changed looks identical to a job that has died.
+
+    Hercules' host CPU distinguishes them: a compute-bound guest keeps
+    one emulated CPU busy, so ~100% of a core means the simulation is
+    running even though nothing has been printed. Same clock
+    mvsprf.trust() certifies ACC-6 on, used here only to answer "is it
+    doing anything", not to time anything.
+
+    Sampled ACROSS calls, so in a --watch loop it costs nothing: the
+    previous reading and its timestamp are kept between iterations.
+    """
+    import subprocess as sp
+    now, cpu = _now(), None
+    try:
+        if os.name == "nt":
+            out = sp.run(["powershell", "-NoProfile", "-Command",
+                          "(Get-Process hercules -ErrorAction "
+                          "SilentlyContinue).CPU"],
+                         stdout=sp.PIPE, stderr=sp.DEVNULL,
+                         timeout=30).stdout.decode("ascii", "replace")
+            cpu = float(out.strip().splitlines()[0]) if out.strip() \
+                else None
+    except Exception:
+        cpu = None
+    prev, prev_at = _HERC["cpu"], _HERC["at"]
+    _HERC["cpu"], _HERC["at"] = cpu, now
+    if cpu is None or prev is None or prev_at is None:
+        return None
+    span = now - prev_at
+    return ((cpu - prev) / span) if span > 0.5 else None
+
+
 def render_mvs(jobs):
     lines = []
+    rate = herc_rate()
     for j in jobs:
         lines.append("%s on TK5 (MVS 3.8j under Hercules) -- started %s "
                      "guest time" % (j["job"], j["started_txt"]))
@@ -471,6 +514,19 @@ def render_mvs(jobs):
                          % j["alloc"])
         lines.append("  %d step(s) done, worst COND CODE %04d so far"
                      % (len(j["steps"]), worst))
+        if rate is None:
+            lines.append("  (Hercules CPU not sampled yet -- the next "
+                         "refresh will show whether it is computing)")
+        elif rate >= 0.70:
+            lines.append("  Hercules is using %.0f%% of a core, so the "
+                         "step IS running" % (rate * 100.0))
+            lines.append("  -- MVS prints nothing during a step, so a "
+                         "still step list is normal.")
+        else:
+            lines.append("  *** Hercules is using only %.0f%% of a core. "
+                         "The step may be stalled," % (rate * 100.0))
+            lines.append("  or the host may have stopped executing the "
+                         "guest.")
         lines.append("  read from the Hercules console log; MVS reports "
                      "each step as it completes,")
         lines.append("  so these are outcomes, not activity.")
@@ -1038,10 +1094,18 @@ def main(argv):
             if not lines:
                 lines = ["progress: nothing running, and nothing on disk "
                          "to infer from"]
-            if watch:
+            # The run log is x86-only: it is built by diffing `runnet`
+            # worker processes, and an MVS job has none.  Showing it for
+            # a TK5-only screen printed "(no run has started or finished
+            # since watching began)" under a job that was using 100% of
+            # a core -- which reads as nothing happening.  An empty
+            # section that is empty BY CONSTRUCTION is worse than no
+            # section, so it appears only when there is x86 work for it
+            # to describe.
+            if watch and (states or items or EVENTS):
                 lines.append("")
                 lines.append("  live run log (each line is one "
-                             "full-brain run):")
+                             "full-brain run on x86):")
                 lines += render_events()
             text = "\n".join(lines)
         # A job counts as "seen" only while it is genuinely working: a
