@@ -192,6 +192,108 @@ def _worker_count():
         return None
 
 
+def _running_jobs():
+    """The wsens/calibrate processes alive now, with their arguments.
+
+    THE POINT OF THIS, which the first version of infer() missed.
+
+    A job that left no status file has not left NO information. Its own
+    command line carries every parameter it was started with -- the W_syn
+    list, the rates, the seed count -- and the operating system records
+    when it started. That is not guessing; it is reading the job's own
+    invocation. The first fallback reported `point ?` and called the
+    total unknowable, which was wrong: it was merely unlooked-for.
+
+    Returns a list of dicts with `argv` and `started`, or [] if the
+    process table cannot be read.
+    """
+    import subprocess as sp
+    out = []
+    try:
+        if os.name == "nt":
+            # Separator is a single SPACE, not a tab.  PowerShell's
+            # backtick escapes do not apply inside a single-quoted
+            # string, so '{0}`t{1}' emits the two literal characters
+            # `t -- which is what the first version of this did, and why
+            # it silently found nothing.  The epoch has no spaces, so
+            # splitting on the first one is unambiguous.
+            ps = ("Get-CimInstance Win32_Process | "
+                  "Where-Object { $_.CommandLine -like '*prep/wsens.py*' "
+                  "-or $_.CommandLine -like '*prep/calibrate.py*' } | "
+                  "ForEach-Object { "
+                  "'{0} {1}' -f "
+                  "([DateTimeOffset]::new($_.CreationDate)"
+                  ".ToUnixTimeSeconds()), "
+                  "$_.CommandLine }")
+            txt = sp.run(["powershell", "-NoProfile", "-Command", ps],
+                         stdout=sp.PIPE, stderr=sp.DEVNULL,
+                         timeout=60).stdout.decode("utf-8", "replace")
+            for line in txt.splitlines():
+                if " " not in line:
+                    continue
+                ts, cmd = line.split(" ", 1)
+                argv = cmd.strip().split()
+                # The shell that LAUNCHED the job also matches, because
+                # its own command line quotes the whole invocation.  Its
+                # argv is a shell snapshot, and reading --seeds out of it
+                # would be reading the wrong process.  The interpreter is
+                # always argv[0] of the real one.
+                if not argv or "python" not in argv[0].lower():
+                    continue
+                try:
+                    out.append({"started": float(ts), "argv": argv})
+                except ValueError:
+                    continue
+            return out
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            try:
+                raw = io.open("/proc/%s/cmdline" % pid, "rb").read()
+                argv = [a for a in raw.split(b"\0") if a]
+                argv = [a.decode("utf-8", "replace") for a in argv]
+                if not any("wsens.py" in a or "calibrate.py" in a
+                           for a in argv):
+                    continue
+                out.append({"started": os.path.getmtime("/proc/%s" % pid),
+                            "argv": argv})
+            except Exception:
+                continue
+    except Exception:
+        return []
+    return out
+
+
+def _opt(argv, name):
+    for i, a in enumerate(argv):
+        if a == name and i + 1 < len(argv):
+            return argv[i + 1]
+        if a.startswith(name + "="):
+            return a.split("=", 1)[1]
+    return None
+
+
+def _params(label):
+    """Parameters of the running job for `label`, read from its argv."""
+    for job in _running_jobs():
+        argv = job["argv"]
+        got = _opt(argv, "--variant") or "d52"
+        if got != label:
+            continue
+        ws = _opt(argv, "--w-syn")
+        rates = _opt(argv, "--rates") or "40,60,120"
+        seeds = _opt(argv, "--seeds") or "4"
+        if not ws:
+            continue
+        try:
+            return {"w_syn": [float(x) for x in ws.split(",")],
+                    "rates": len(rates.split(",")),
+                    "seeds": int(seeds), "started": job["started"]}
+        except ValueError:
+            continue
+    return None
+
+
 def _known_points(label):
     """The W_syn list a PREVIOUS run of this label used, or None.
 
@@ -241,7 +343,10 @@ def infer():
             since = os.path.getmtime(path)
         except OSError:
             continue
-        pts = _known_points(label)
+        # The running job's own arguments first; a previous completed run
+        # of the same label only as a fallback.
+        par = _params(label)
+        pts = par["w_syn"] if par else _known_points(label)
         idx = None
         if pts:
             try:
@@ -250,8 +355,43 @@ def infer():
                 idx = None
         out.append({"job": "wsens-%s" % label, "inferred": True,
                     "w_syn": wtxt, "point": idx, "since": since,
+                    "params": par,
                     "workers": workers, "stale": _is_stale(since, workers)})
     return out
+
+
+def _shape(it):
+    """Plain-English progress for an inferred job.
+
+    Returns (sentence, detail) where detail may be "".
+
+    Honest about the one thing it cannot know: how far through the
+    CURRENT point the job is. Points completed are known exactly, from
+    the W_syn list and which network is on disk. Within a point, nothing
+    outside the process can see how many of its runs are done -- so
+    until one point has finished there is no measured rate to project
+    from, and the tool says so rather than inventing a percentage.
+    """
+    par, idx = it.get("params"), it.get("point")
+    if not par or not idx:
+        return ("still working", "")
+    i, n = idx
+    per_point = par["rates"] * par["seeds"]
+    total = per_point * n
+    done_points = i - 1
+    elapsed = _now() - par["started"]
+    if done_points <= 0:
+        return ("on the first of %d points, %d runs each (%d in total)"
+                % (n, per_point, total),
+                "no point has finished yet, so there is nothing measured "
+                "to estimate the finish from")
+    rate = elapsed / float(done_points)          # seconds per point
+    left = rate * (n - done_points) - (_now() - it["since"])
+    pct = 100.0 * done_points / n
+    return ("%d of %d points done (%.0f%% of %d runs)"
+            % (done_points, n, pct, total),
+            "about %s left, measured from the %s each finished point has "
+            "taken" % (_dur(max(left, 0)), _dur(rate)))
 
 
 # The longest W_syn point ever measured is 2,777 s (VL-103, 30 seeds at
@@ -292,17 +432,26 @@ def render_inferred(items):
                          % (it["w_syn"], _dur(_now() - it["since"])))
             lines.append("    299 MB; safe to delete once no run wants it")
             continue
-        lines.append("%-16s INFERRED -- no status file"
-                     % it["job"])
-        lines.append("    W_syn %s, %s" % (it["w_syn"], pt))
-        lines.append("    at this point for %s"
-                     % _dur(_now() - it["since"]))
-        lines.append("    %s runnet workers alive on this HOST -- the "
-                     "count is not attributable to one job"
+        shape, detail = _shape(it)
+        par = it.get("params")
+        lines.append("%s is running." % it["job"])
+        lines.append("    It is %s." % shape)
+        lines.append("    Right now: W_syn %s, %s, for %s so far."
+                     % (it["w_syn"], pt, _dur(_now() - it["since"])))
+        if par:
+            lines.append("    Started %s, %s ago."
+                         % (_iso(par["started"]),
+                            _dur(_now() - par["started"])))
+        if detail:
+            lines.append("    %s%s." % (detail[0].upper(), detail[1:]))
+        lines.append("    %s runnet workers are busy on this machine "
+                     "(all jobs, not just this one)."
                      % (it["workers"] if it["workers"] is not None
-                        else "?"))
-        lines.append("    read from the emitted network on disk and the "
-                     "process table, not from the job")
+                        else "an unknown number of"))
+        lines.append("    This job writes no status file, so the above is "
+                     "read from its command line,")
+        lines.append("    the network it has on disk, and the process "
+                     "table -- not from the job itself.")
     return lines
 
 
@@ -325,12 +474,28 @@ def render_brief(states, items):
                        % (it["job"], it["w_syn"],
                           _dur(_now() - it["since"])))
             continue
-        pt = ("point %d/%d" % it["point"]) if it["point"] else "point ?"
-        out.append("%s: %s (W_syn %s), %s at this point, %s host workers,"
-                   " INFERRED"
-                   % (it["job"], pt, it["w_syn"],
-                      _dur(_now() - it["since"]),
-                      it["workers"] if it["workers"] is not None else "?"))
+        # One line, so it says position, elapsed and what is left -- and
+        # nothing else.  The long explanation belongs in the full form.
+        par = it.get("params")
+        el = _dur(_now() - (par["started"] if par else it["since"]))
+        if it["point"] and par:
+            i, n = it["point"]
+            total = par["rates"] * par["seeds"] * n
+            done = (i - 1) * par["rates"] * par["seeds"]
+            if i > 1:
+                rate = (_now() - par["started"]) / float(i - 1)
+                left = "%s left" % _dur(max(
+                    rate * (n - i + 1) - (_now() - it["since"]), 0))
+            else:
+                left = ("no estimate yet -- the first point has not "
+                        "finished")
+            out.append("%s: point %d of %d (W_syn %s), %d of %d runs "
+                       "confirmed done, %s elapsed, %s"
+                       % (it["job"], i, n, it["w_syn"], done, total,
+                          el, left))
+        else:
+            out.append("%s: W_syn %s, %s elapsed, still working"
+                       % (it["job"], it["w_syn"], el))
     return out or ["no jobs running"]
 
 
