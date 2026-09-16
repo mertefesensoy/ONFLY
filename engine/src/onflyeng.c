@@ -495,8 +495,9 @@ static const char *onfefld(onf_i32 bad)
  * IR-STM-02: the two lines that open one request's stream.
  *
  * ONFSH names the run, ONFSR the readout neurons the ONFSU columns will be
- * in.  Both are emitted only for a request that is actually going to
- * simulate, so a rejected request contributes nothing but its ONFSE.
+ * in.  Both are emitted once per REQUEST, warned and rejected ones included
+ * (IR-STM-02): such a request carries steps 0 and is followed straight by
+ * its ONFSE, so a consumer never meets an ONFSE it has no header for.
  *
  * The payload CRC is here for the same reason IR-COM-05 puts it in the
  * fingerprint: a stream is only meaningful against the network it came
@@ -594,7 +595,7 @@ static int onferun(const onf_u8 *buf, struct onfnet *net,
     onf_i32 maxms;
     long qlen, nreq, k;
     onf_i32 i, before;
-    int step, nok, nwarn, nerr, rc, more;
+    int step, nok, nwarn, nerr, rc, more, runs;
 
     paycrc = onfehdr(buf, ONF_N_PAYCRC);
     maxms  = (onf_i32)onfehdr(buf, ONF_N_MAXMS);
@@ -733,8 +734,15 @@ static int onferun(const onf_u8 *buf, struct onfnet *net,
                so what differs between the two branches is what is written to
                ONFSTM, and nothing else. */
             nchunk = 0;
-            if (onfrqb(net, &st, maxms, &rq, &rz)) {
-                onfesh(fm, net, paycrc, readout, &rq, &rz, chunk);
+            runs = onfrqb(net, &st, maxms, &rq, &rz);
+            /* IR-STM-02 says ONFSH and ONFSR appear once per REQUEST, not
+               once per simulated request, so a warned or rejected one gets
+               its envelope too -- with steps 0 and no ONFSC between.  A
+               consumer then never meets an ONFSE it has no header for, and
+               a rejected request is visible in the stream rather than
+               absent from it. */
+            onfesh(fm, net, paycrc, readout, &rq, &rz, chunk);
+            if (runs) {
                 for (i = 0; i < net->n; i++) {
                     sprv[i] = st.spikes[i];
                 }

@@ -310,19 +310,42 @@ def check_form(streamed, rows):
     return ok, bad
 
 
-def check_agreement(recs, streamed):
+def check_agreement(recs, streamed, gold=False):
     """IR-STM-04: the stream describes the same run as the response.
 
     Only simulated requests appear in the stream, so the response records are
     filtered the same way before the two are paired in order."""
     ok = bad = 0
-    sim = [r for r in recs if r["rc"] == 0]
-    if len(sim) != len(streamed):
-        return check("IR-STM-04 one stream per simulated request", False,
-                     "%d simulated, %d streamed" % (len(sim), len(streamed)))
+    # IR-STM-02: one envelope per REQUEST, not per simulated request, so the
+    # two lists pair one to one and a rejected request is visible in the
+    # stream rather than absent from it.
+    if len(recs) != len(streamed):
+        return check("IR-STM-02 one stream envelope per request", False,
+                     "%d requests, %d streamed" % (len(recs), len(streamed)))
+    a, b = check("IR-STM-02 one stream envelope per request", True,
+                 "%d requests" % len(recs))
+    ok += a
+    bad += b
 
-    for rec, s in zip(sim, streamed):
+    for rec, s in zip(recs, streamed):
         tag = "rate %d" % s["rate"]
+        if rec["rc"] != 0:
+            # Warned or rejected: the envelope must be there and empty.
+            a, b = check("IR-STM-02 %s rc=%d is an empty envelope"
+                         % (tag, rec["rc"]),
+                         s["steps"] == 0 and not s["chunks"]
+                         and s["nchunk"] == 0 and not s["total"],
+                         "steps=%d chunks=%d" % (s["steps"],
+                                                 len(s["chunks"])))
+            ok += a
+            bad += b
+            a, b = check("IR-STM-04 %s ONFSE carries the record's rc" % tag,
+                         s["rc"] == rec["rc"] and s["fp"] == rec["fphex"],
+                         "stream rc=%d fp=%s, record rc=%d fp=%s"
+                         % (s["rc"], s["fp"], rec["rc"], rec["fphex"]))
+            ok += a
+            bad += b
+            continue
         a, b = check("IR-STM-04 %s ONFSE fingerprint equals ONF-FPRINT" % tag,
                      s["fp"] == rec["fphex"],
                      "stream %s, record %s" % (s["fp"], rec["fphex"]))
@@ -333,13 +356,19 @@ def check_agreement(recs, streamed):
         # Section 8.4 fingerprint must still be the value TK5 produced under
         # two compilers.  A stream that moved one would not have broken a
         # feature, it would have broken ACC-5.
-        want = GOLD_SREXT.get(s["rate"])
-        a, b = check("ACC-5 %s fingerprint unchanged under STREAM=" % tag,
-                     want is not None and s["fp"] == want,
-                     "streamed %s, Section 8.3 rows 6 and 7 record %s"
-                     % (s["fp"], want))
-        ok += a
-        bad += b
+        #
+        # Only for the golden deck.  The same rate at a different DURATION is
+        # a different request with a different fingerprint, and checking it
+        # against G-16 would be comparing two unrelated runs.
+        if gold:
+            want = GOLD_SREXT.get(s["rate"])
+            a, b = check("ACC-5 %s fingerprint unchanged under STREAM="
+                         % tag,
+                         want is not None and s["fp"] == want,
+                         "streamed %s, Section 8.3 rows 6 and 7 record %s"
+                         % (s["fp"], want))
+            ok += a
+            bad += b
         a, b = check("IR-STM-04 %s ONFSH steps equals ONF-STEPS" % tag,
                      s["steps"] == rec["steps"],
                      "stream %d, record %d" % (s["steps"], rec["steps"]))
@@ -428,7 +457,7 @@ def check_engine(exe, netpath, reqpath, tmp, rows):
     a, b = check_form(streamed, rows)
     ok += a
     bad += b
-    a, b = check_agreement(recs, streamed)
+    a, b = check_agreement(recs, streamed, gold=True)
     ok += a
     bad += b
 
@@ -458,6 +487,59 @@ def check_engine(exe, netpath, reqpath, tmp, rows):
                  "K=%d: %s; K=%d: %s"
                  % (K_ODD, [x["nchunk"] for x in odds],
                     K_DEMO, [y["nchunk"] for y in streamed]))
+    ok += a
+    bad += b
+    return ok, bad
+
+
+def check_reject(exe, netpath, tmp, rows):
+    """IR-STM-02: a warned or rejected request still gets its envelope.
+
+    WHY THIS HAS ITS OWN DECK.  The srext half of Section 8.4 is five valid
+    requests, so nothing in it reaches the rejection path -- which is exactly
+    how the first version of the emitter shipped with a defect: it wrote
+    ONFSE with no preceding ONFSH, so a consumer met an end line for a
+    request it had never been told about, and this file's own parser raised
+    on it.  The golden suite could not have caught that.  This deck can.
+
+    The three cards are the srext counterparts of G-11, G-12 and G-13: a
+    reserved stimulus (ONF201W), an unknown one (ONF203E) and a rate out of
+    range (ONF202E), with a valid request first so the file is not entirely
+    rejections."""
+    print("test_strm: the rejection envelope (%s)" % os.path.basename(exe))
+    ok = bad = 0
+    reqpath = os.path.join(tmp, "rej.req")
+    with open(reqpath, "wb") as fh:
+        fh.write(mkreq.pack("SUGR", 40, 20, 1))      # valid
+        fh.write(mkreq.pack("WATR", 40, 20, 1))      # ONF201W, FR-BAT-05
+        fh.write(mkreq.pack("XXXX", 40, 20, 1))      # ONF203E
+        fh.write(mkreq.pack("SUGR", -1, 20, 1))      # ONF202E
+    rsppath = os.path.join(tmp, "rej.rsp")
+    stmpath = os.path.join(tmp, "rej.stm")
+    rc, out = run_engine(exe, netpath, reqpath, rsppath,
+                         "STREAM=%d" % K_DEMO, stmpath)
+    a, b = check("IR-JCL-04 the step return code is 8", rc == 8, "rc=%s" % rc)
+    ok += a
+    bad += b
+
+    try:
+        streamed = parse_stream(stmpath)
+    except StreamError as exc:
+        a, b = check("IR-STM-02 the stream parses with rejections", False,
+                     str(exc))
+        return ok + a, bad + b
+    a, b = check("IR-STM-02 the stream parses with rejections", True,
+                 "%d envelopes" % len(streamed))
+    ok += a
+    bad += b
+
+    recs = decode_records(open(rsppath, "rb").read())
+    a, b = check_agreement(recs, streamed)
+    ok += a
+    bad += b
+    got = [s["rc"] for s in streamed]
+    a, b = check("IR-STM-04 the stream reports every return code",
+                 got == [0, 4, 8, 8], "stream rcs %s" % got)
     ok += a
     bad += b
     return ok, bad
@@ -613,6 +695,9 @@ def main(argv):
             p, f = check_engine(exe, netpath, reqpath, tmp, rows)
             passed += p
             failed += f
+        p, f = check_reject(argv[0], netpath, tmp, rows)
+        passed += p
+        failed += f
         p, f = check_membrane(argv[0], netpath, tmp)
         passed += p
         failed += f
