@@ -99,6 +99,25 @@ class Tracker(object):
         self.state["note"].update(kw)
         self._write()
 
+    def log(self, text, keep=60):
+        """Append one line to the job's own rolling log.
+
+        This is the half a watcher cannot obtain from outside. The
+        process table shows that a run started and finished; only the
+        job knows what the run RETURNED. A job that logs its results
+        here lets a watcher show the numbers as they arrive instead of
+        just the churn.
+
+        Bounded, because the file is rewritten in full on every tick and
+        an unbounded log would make each write grow without limit over a
+        480-run job.
+        """
+        lg = self.state.setdefault("log", [])
+        lg.append("%s  %s" % (time.strftime("%H:%M:%S"), text))
+        if len(lg) > keep:
+            del lg[:len(lg) - keep]
+        self._write()
+
     def finish(self, status="ok"):
         self.state["status"] = status
         self._write()
@@ -710,12 +729,165 @@ def render(states):
         if st.get("note"):
             lines.append("    %s" % "  ".join(
                 "%s=%s" % (k, v) for k, v in sorted(st["note"].items())))
+        if st.get("log"):
+            lines.append("    what each run returned:")
+            for ln in st["log"][-14:]:
+                lines.append("      %s" % ln)
         lines.append("    last update %s" % _iso(st.get("updated_at", 0)))
     return lines
 
 
+BANNER = "=" * 66
+
+# --- the live event log ---------------------------------------------
+#
+# A summary says how far along a job is. It does not let you watch it
+# work. This does: every poll diffs the set of live workers against the
+# previous one, so a run appearing is a start and a run vanishing is a
+# finish, and each is stamped with the wall-clock time it happened.
+#
+# The one thing it CANNOT show for an already-running job is the MN9
+# numbers each run produced. Those go from the worker's stdout straight
+# into the parent's memory and are written only when the whole job ends
+# -- so for a job already in flight there is nowhere to read them from.
+# A job started after this exists records them through the tracker.
+EVENTS = []
+EVENT_MAX = 400
+
+
+def _event(text):
+    EVENTS.append((_now(), text))
+    if len(EVENTS) > EVENT_MAX:
+        del EVENTS[:len(EVENTS) - EVENT_MAX]
+
+
+def poll_events(prev):
+    """Diff the live worker set and log what changed.
+
+    `prev` maps pid -> (label, rate, seed, first_seen). Returns the new
+    map. Durations are measured from when this watcher first saw the
+    worker, so a run already in flight when the watcher started is
+    reported as "(started before watching)" rather than given a wrong
+    duration.
+    """
+    cur = {}
+    for w in _workers():
+        key = w["pid"]
+        if key in prev:
+            cur[key] = prev[key]
+        else:
+            cur[key] = (w["label"], w["rate"], w["seed"], _now())
+            _event("start   %-10s %5d Hz  seed %3d"
+                   % (w["label"], w["rate"], w["seed"]))
+    for pid, (label, rate, seed, t0) in prev.items():
+        if pid not in cur:
+            _event("FINISH  %-10s %5d Hz  seed %3d   after %s"
+                   % (label, rate, seed, _dur(_now() - t0)))
+    return cur
+
+
+def render_events(n=14):
+    if not EVENTS:
+        return ["  (no run has started or finished since watching began)"]
+    return ["  %s  %s" % (time.strftime("%H:%M:%S", time.localtime(t)),
+                          text)
+            for t, text in EVENTS[-n:]]
+
+
+def _finished_banner(seen, started):
+    """What the watcher prints when the job it was watching is gone.
+
+    The window is NOT closed and the watcher does not vanish: a tracker
+    that disappears at the moment the result arrives is a tracker you
+    have to have been looking at. It prints, then stops, and the shell
+    it was spawned in is started with -NoExit so the text survives.
+    """
+    lines = [BANNER, "JOB FINISHED", BANNER]
+    for job in sorted(seen):
+        lines.append("  %s" % job)
+    if started:
+        lines.append("  watched for %s, ended %s"
+                     % (_dur(_now() - started), _iso(_now())))
+    # Name the results file if the run wrote one, so the next step does
+    # not begin with hunting for it.
+    if os.path.isdir(CALDIR):
+        recent = []
+        for name in sorted(os.listdir(CALDIR)):
+            if not (name.startswith("wsens-") and name.endswith(".json")):
+                continue
+            path = os.path.join(CALDIR, name)
+            try:
+                age = _now() - os.path.getmtime(path)
+            except OSError:
+                continue
+            if age < 3600:
+                recent.append((age, name))
+        for age, name in sorted(recent):
+            lines.append("  wrote data/calibration/%s (%s ago)"
+                         % (name, _dur(age)))
+    lines.append("")
+    lines.append("  This window stays open. Close it when you are done.")
+    lines.append(BANNER)
+    return lines
+
+
+def spawn_window():
+    """Open a terminal in this worktree, watching until the job ends.
+
+    Deliberately a SEPARATE window rather than a background thread: the
+    point is a thing the owner can look at without asking anyone, and it
+    has to outlive whatever shell launched the job.
+
+    -NoExit keeps the shell alive after the watcher stops, so the
+    JOB FINISHED banner is still on screen hours later.
+    """
+    import subprocess as sp
+    here = os.path.dirname(os.path.abspath(__file__))
+    root = os.path.dirname(here)
+    inner = ("cd '%s'; python tools/progress.py --watch 15 --until-done"
+             % root.replace("'", "''"))
+    try:
+        if os.name == "nt":
+            sp.Popen(["powershell", "-NoProfile", "-Command",
+                      "Start-Process", "powershell",
+                      "-ArgumentList", "'-NoExit','-NoProfile',"
+                      "'-Command',\"%s\"" % inner.replace('"', '`"')])
+        else:
+            # No single answer on POSIX; try the common terminals and
+            # say so plainly if none is present rather than failing
+            # silently.
+            for term in ("x-terminal-emulator", "gnome-terminal",
+                         "xterm"):
+                try:
+                    sp.Popen([term, "-e", "bash", "-lc",
+                              "cd '%s' && python3 tools/progress.py "
+                              "--watch 15 --until-done; exec bash"
+                              % root])
+                    break
+                except OSError:
+                    continue
+            else:
+                print("no terminal emulator found; run this yourself:")
+                print("  cd '%s' && python tools/progress.py "
+                      "--watch 15 --until-done" % root)
+                return 1
+        print("progress window opened, watching until the job finishes")
+        return 0
+    except Exception as exc:
+        print("could not open a window: %s" % exc)
+        print("run this yourself:")
+        print("  cd '%s'" % root)
+        print("  python tools/progress.py --watch 15 --until-done")
+        return 1
+
+
 def main(argv):
+    if "--window" in argv:
+        return spawn_window()
     watch = "--watch" in argv
+    until_done = "--until-done" in argv
+    if until_done:
+        watch = True
     brief = "--brief" in argv
     every = 5.0
     for i, a in enumerate(argv):
@@ -724,7 +896,10 @@ def main(argv):
                 every = float(argv[i + 1])
             except ValueError:
                 pass
+    seen, watch_started = set(), _now()
+    prev_workers = {}
     while True:
+        prev_workers = poll_events(prev_workers)
         states = read_all()
         # Inference is a FALLBACK, not a supplement: a job that reports
         # for itself is not also guessed at, or the same run would be
@@ -742,12 +917,37 @@ def main(argv):
             if not lines:
                 lines = ["progress: nothing running, and nothing on disk "
                          "to infer from"]
+            if watch:
+                lines.append("")
+                lines.append("  live run log (each line is one "
+                             "full-brain run):")
+                lines += render_events()
             text = "\n".join(lines)
+        # A job counts as "seen" only while it is genuinely working: a
+        # tracker whose status file says finished, or a leftover file on
+        # disk, must not make the watcher wait for something that has
+        # already ended.
+        live = set()
+        for st in states:
+            if st.get("status") == "running":
+                live.add(st.get("job"))
+        for it in items:
+            if not it.get("stale"):
+                live.add(it.get("job"))
+        seen |= live
+
         if watch:
             sys.stdout.write("\x1b[2J\x1b[H")
         sys.stdout.write(text + "\n")
         sys.stdout.flush()
         if not watch:
+            return 0
+        if until_done and seen and not live:
+            sys.stdout.write("\n"
+                             + "\n".join(_finished_banner(seen,
+                                                          watch_started))
+                             + "\n")
+            sys.stdout.flush()
             return 0
         time.sleep(every)
 

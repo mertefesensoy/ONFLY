@@ -143,6 +143,18 @@ def run_many(path, jobs, rates, seeds, tracker=None):
                 done = len(results)
                 if tracker is not None:
                     tracker.tick()
+                    # D-323: the RESULT, not just the fact of a run.  A
+                    # watcher outside this process can see a worker
+                    # start and stop; only here is it known what the run
+                    # returned, so this is the one place the numbers can
+                    # be made visible while the job is still going.
+                    sp_ = [x["spikes"] for x in res["readouts"]]
+                    tracker.log("%4d Hz seed %3d -> MN9 %s spikes "
+                                "(%.1f Hz)"
+                                % (k[0], k[1],
+                                   "+".join(str(x) for x in sp_),
+                                   sum(sp_) * 1000.0 / cal.SIM_MS
+                                   / len(sp_)))
                 if done % 10 == 0:
                     print("  %d of %d runs done" % (done, done + len(todo)
                                                     + len(procs)))
@@ -174,6 +186,8 @@ def main():
     # that emit candidate networks behave the same way (D-320).
     ap.add_argument("--keep", action="store_true",
                     help="keep the emitted candidate network on disk")
+    ap.add_argument("--no-window", action="store_true",
+                    help="do not open a progress window (D-323)")
     ap.add_argument("--variant", default=None,
                     help="stimulus-set variant: right, phg9 or tpgrn (D-176)")
     a = ap.parse_args()
@@ -199,6 +213,11 @@ def main():
     # specified" naming neither the file nor the fix -- and only AFTER
     # load_cache() has spent several minutes building the 594 MB signed
     # cache.  Measured 2026-09-15 on a fresh worktree.
+    if not a.no_window:
+        sys.path.insert(0, os.path.join(cal.ROOT, "tools"))
+        import progress as _pg
+        _pg.spawn_window()
+
     if not os.path.isfile(cal.RUNNET):
         raise SystemExit("build the runner first: mingw32-make runner")
 

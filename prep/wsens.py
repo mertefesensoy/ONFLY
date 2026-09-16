@@ -97,6 +97,12 @@ def main():
                     help="comma-separated validation rates in Hz")
     ap.add_argument("--seeds", type=int, default=4)
     ap.add_argument("--jobs", type=int, default=8)
+    # D-323: a long job opens its own progress window unless told not
+    # to.  Default-on because the whole point is that watching should
+    # not depend on anyone remembering; --no-window exists for an
+    # unattended or scripted run where a new window would be noise.
+    ap.add_argument("--no-window", action="store_true",
+                    help="do not open a progress window")
     a = ap.parse_args()
 
     ws = [float(x) for x in a.w_syn.split(",")]
@@ -108,6 +114,9 @@ def main():
     ref = cal.load_reference()
     if ref is None:
         raise SystemExit("no reference: run reference/shiu/rerun.py")
+
+    if not a.no_window:
+        progress.spawn_window()
 
     arrays, stim, read = cal.load_cache()
     stim, desc = cal.select_stim(stim, a.variant)
