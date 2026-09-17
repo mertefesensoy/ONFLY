@@ -244,7 +244,7 @@ are stated for each, and Section 6.2 says what each does **not** prove.
 | V3 | The engine builds on MVS with the chunked path | `python tools/mvsstm.py --run` | **PASS** — 9,244 cards, every step `COND CODE 0000` through 13 compiles, 13 assembles, LKED and GO |
 | V4 | Chunking does not move the answer on MVS | the same run | **PASS** — `ONF302I STEP SUMMARY: 5 OK, 0 WARN, 0 ERROR`, and all five fingerprints equal Section 8.4: `6C3F7272`, `BAF81D91`, `F9C7EE77`, `4FD0ED1E`, `C4C320BC` |
 | V5 | The MVS stream equals the x86 stream | `python tools/mvsstm.py --compare` | **PASS**, after the D-420 fix — `streams are BYTE-IDENTICAL under D-414's rule (1523612 bytes)`, 19,909 lines. **It FAILED before the fix**, which is how the defect was found |
-| V6 | The MVS half is live | the same run | **PASS** — `first ONFSC at +31.3 s, job END banner at +1011.3 s`, `1020 of 1020 punch writes landed before the job ended` |
+| V6 | The MVS half is live | the same run | **PASS** — **run 4, JOB 328**: `first ONFSC at +31.3 s, job END banner at +1011.3 s`, `1020 of 1020 punch writes landed before the job ended`. Run 1 (JOB 320) measured the same claim independently at +28.3 s against +1148.1 s, 1,027 of 1,028; **both runs are reported in SRS Section 9.2 and registered with their limits in VL-135** (D-436). They are two measurements on different binaries, not a repeatability figure |
 | V7 | The picture draws from the MVS stream | `python tools/liveview.py --follow …` | **PASS** — 5 of 5 requests followed as the job wrote them, fingerprint panel `AGREE` on every row, `docs/media/onfly-mvs-live.gif` |
 
 ### 6.1b The two rows the defect added
@@ -261,16 +261,26 @@ are stated for each, and Section 6.2 says what each does **not** prove.
 - **The compiler fault is not characterised.** What is established is that a no-argument struct-returning function returned wrong bytes and the same type from a two-argument function did not (VL-123). No GCCMVS assembler listing was read and no reproducer outside ONFLY was built. `onffzer` was the only such function in ONFLY, so the rule has nothing else to be tested against (VL-127).
 - **Liveness is device-specific.** It is proven for a batch job writing to a directly-allocated `10D` punch. It says nothing about MVS spooled output, which §3.1 measured to be the opposite.
 - **One K, one network, one seed set.** FR-SIM-10 is swept on x86 (K ∈ {7, 50}); on MVS only K = 50 was run.
-- **Wall clock.** The timings above are from the third and fourth runs. The second run's timings are void: the development host was suspended mid-job and its clock jumped two hours. That is recorded rather than quietly dropped.
+- **Wall clock.** The timings above are from the third and fourth runs: V6's liveness figures from **run 4 (JOB 328)**, V7's clip recorded during **run 3 (JOB 322)** under D-418. The second run's timings are void: the development host was suspended mid-job and its clock jumped two hours. That is recorded rather than quietly dropped. **Run 1's liveness figures are valid too** and are reported beside run 4's in SRS Section 9.2 under D-436; VL-135 holds both and says why the difference between them measures nothing: different binaries, a host under different load, and a punch-write count that counts observed file growth rather than channel programs, so it tracks how long the job ran.
 
 ### 6.3 The MVS runs, and why there were four
 
-| Run | Binary | Outcome |
-|---|---|---|
-| 1 | before D-412/D-413 | complete; the first liveness measurement; stream differed from x86 in 200 lines |
-| 2 | after D-412/D-413 | host suspended mid-job; timings void, harvest short. The job itself completed and its bytes were recovered from the punch |
-| 3 | same as run 2 | complete and clean. **Byte-identical to run 2**, which is what established build-sensitivity rather than run-to-run nondeterminism (VL-124) |
-| 4 | after the D-420 fix | complete and clean; the one the results above are from. V5 passes |
+| Run | Job | Binary | MVS clock, `IEF403I` to `IEF404I` | Outcome |
+|---|---|---|---|---|
+| 1 | JOB 320 | before D-412/D-413 | 07.23.56 → 07.43.04, 1,148 s | complete; the first liveness measurement, `+28.3 s` / `+1148.1 s` / 1,027 of 1,028 (VL-135); stream differed from x86 in 200 lines |
+| 2 | JOB 321 | after D-412/D-413 | 08.16.11 → 13.10.18, **void** | host suspended mid-job; timings void, harvest short. The job itself completed and its bytes were recovered from the punch. The banner gap is the suspension, not the job |
+| 3 | JOB 322 | same as run 2 | 13.12.59 → 13.33.50, 1,251 s | complete and clean. **Byte-identical to run 2**, which is what established build-sensitivity rather than run-to-run nondeterminism (VL-124). V7's clip was recorded here; its liveness timings appear in no document |
+| 4 | JOB 328 | after the D-420 fix | 13.41.07 → 13.57.56, 1,009 s | complete and clean; the one the results above are from. V5 passes; `+31.3 s` / `+1011.3 s` / 1020 of 1020 (VL-135) |
+
+**The job numbers and the MVS clock were added on 2026-09-17 under D-436**, after
+the liveness figures in this table's run 1 row were found standing unattributed
+in SRS Section 9.2 while row V6 above carried run 4's. They are recovered
+evidence, not a new run: `pch/pch10d.txt` appends, so it still held all four
+streams, and `prt/prt00e.txt` still held every JES2 banner. The MVS clock column
+is the guest's own and is independent of the host-side figures in V6 and VL-135,
+which is what makes it a check on them rather than a restatement: 1,148 s
+against `+1148.1 s` on run 1, and 1,009 s against `+1011.3 s` on run 4, the
+excess in each being submission latency plus the two-second printer poll.
 
 ## 7. Related docs
 
@@ -278,4 +288,5 @@ are stated for each, and Section 6.2 says what each does **not** prove.
 - `docs/plan/2026-09-16-phase-g-live-view.md` — P-17, the five-stage plan
 - `docs/implementations/2026-09-17-phase-g-stages-2-3-4-live-view.md` — Stages 2–4
 - `docs/implementations/2026-09-15-phase-e-slice-1-mvs-simulation.md` — ACC-5 row 6
-- `docs/ONFLY-SRS.md` §4.7, §8.3 row 6, §8.4, §8.5 TU-11, §9.2 Phase G
+- `docs/implementations/2026-09-17-phase-g-liveness-figure-reconciliation.md` — D-436, which reconciled §6.1's V6 figures with SRS §9.2's
+- `docs/ONFLY-SRS.md` §4.7, §8.3 row 6, §8.4, §8.5 TU-11, §9.2 Phase G, A.1 D-436, Appendix D VL-135
