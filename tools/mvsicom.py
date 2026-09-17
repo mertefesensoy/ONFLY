@@ -38,6 +38,7 @@ is an operator reply and nothing else can issue one on this host.
 usage:  python tools/mvsicom.py --backup    save what will be replaced
         python tools/mvsicom.py --install   table sources into SYMUSR
         python tools/mvsicom.py --build     assemble, compile, relink
+        python tools/mvsicom.py --txinstall the transaction's datasets
         python tools/mvsicom.py --start [--timeout SEC]
         python tools/mvsicom.py --status
         python tools/mvsicom.py --stop
@@ -212,6 +213,76 @@ def free_device(want=None):
         if owner in FREE_OWNERS:
             return dev
     return None
+
+
+#: The transaction's job, its skeleton and its datasets.  TX_JOB is a
+#: key in tools/mvsrun.py's DEMOS, so the job the terminal starts is
+#: FR-BAT-01's job built once there and not a second copy here.
+TX_JOB = "ONFTX"
+TXJCL_DSN = "HERC01.ONFLY.TXJCL"
+
+
+def tx_spec():
+    import mvsrun                                       # noqa: E402
+    return mvsrun.DEMOS[TX_JOB]
+
+
+def tx_rsp_dsn():
+    return tx_spec()["rsp"]
+
+
+def tx_req_dsn():
+    return tx_spec()["req"]
+
+
+def skeleton():
+    """The job the transaction writes to the internal reader.
+
+    One card in it carries the marker the subsystem rewrites with the
+    rate, duration and seed the operator typed.
+    """
+    import mvsrun                                       # noqa: E402
+    cards = mvsrun.demo_deck(TX_JOB)
+    if not any(c.startswith(mvsrun.TX_MARKER[:8]) for c in cards):
+        raise MissingLocal(
+            "the %s deck carries no %s marker card; the subsystem "
+            "would submit a job with no request in it"
+            % (TX_JOB, mvsrun.TX_MARKER[:8]))
+    return cards
+
+
+def install_tx_deck():
+    """Allocate the transaction's datasets and write its skeleton.
+
+    Run once.  The two 412-byte datasets are allocated here rather
+    than by the job because the region holds the response one open for
+    its whole life: a job that deleted and recreated it would leave
+    the region's allocation pointing at a dataset that no longer
+    exists.
+
+    The skeleton travels as DD DATA with an explicit delimiter, not as
+    DD *.  It is JCL: it contains `//` cards and `/*` cards, and a
+    DD * stream would end at the first `/*` -- which is the end of the
+    control cards, a third of the way in.
+    """
+    d = job_card("ONFICTX", "ONFLY TX DATASETS")
+    a = d.append
+    a("//ALLOC    EXEC PGM=IEFBR14")
+    for n, dsn in enumerate((tx_req_dsn(), tx_rsp_dsn()), 1):
+        a("//D%d       DD DSN=%s,DISP=(MOD,CATLG)," % (n, dsn))
+        a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
+        a("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
+    a("//*")
+    a("//SKEL     EXEC PGM=IEBGENER")
+    a("//SYSPRINT DD SYSOUT=*")
+    a("//SYSIN    DD DUMMY")
+    a("//SYSUT2   DD DSN=%s,DISP=(MOD,CATLG)," % TXJCL_DSN)
+    a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
+    a("//            DCB=(RECFM=FB,LRECL=80,BLKSIZE=3200)")
+    a("//SYSUT1   DD DATA,DLM='@@'")
+    d.extend(skeleton())
+    a("@@")
+    return d
 
 
 def job_card(name, title):
@@ -423,7 +494,24 @@ def deck():
             "//             USER=%s,PASSWORD=CUL8TR," % mvsbld.USER,
             "//             MSGLEVEL=(1,1)",
             "//*",
-            "//ICOM     EXEC %s,IREGSIZ=%s" % (PROC, REGION)]
+            "//ICOM     EXEC %s,IREGSIZ=%s" % (PROC, REGION),
+            # The procedure reserves a place for these and needs no
+            # change: it carries an "ADD USER FILES HERE" comment and
+            # a caller may add DDs to its step.
+            #
+            # ONFRDR is the internal reader.  Writing a deck to it and
+            # CLOSEing submits the job -- that is D-426's "the
+            # transaction starts a real run".
+            #
+            # ONFJCL is the skeleton of the job it writes, built from
+            # tools/mvsrun.py so ONFLY's JCL has one source.
+            #
+            # ONFXRSP is the response the job writes, read back by the
+            # BUZZ half.  DISP=SHR on both sides, deliberately: see
+            # mvsrun.demo_deck's `installed` note.
+            "//ICOM.ONFRDR  DD SYSOUT=(A,INTRDR)",
+            "//ICOM.ONFJCL  DD DSN=%s,DISP=SHR" % TXJCL_DSN,
+            "//ICOM.ONFXRSP DD DSN=%s,DISP=SHR" % tx_rsp_dsn()]
 
 
 def running():
@@ -597,7 +685,8 @@ def main(argv):
     while i < len(argv):
         a = argv[i]
         if a in ("--start", "--stop", "--status", "--log",
-                 "--backup", "--restore", "--install", "--build"):
+                 "--backup", "--restore", "--install", "--build",
+                 "--txinstall"):
             action = a
         elif a == "--lines":
             i += 1
@@ -619,7 +708,10 @@ def main(argv):
             "--install": (install_deck, "ONFICIN", "table sources into "
                           "the user library"),
             "--build": (build_deck, "ONFICBD", "assemble, compile, "
-                        "relink the core")}
+                        "relink the core"),
+            "--txinstall": (install_tx_deck, "ONFICTX",
+                            "the transaction's datasets and the job "
+                            "skeleton it submits")}
     if action in jobs:
         maker, jobname, what = jobs[action]
         if running():

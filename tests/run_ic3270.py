@@ -259,6 +259,41 @@ def main():
               ("%s(%s)" % (mvsicom.SYMINCL, mvsicom.LINKDECK)) in b,
               "219 INCLUDEs that are not ONFLY's to edit")
 
+    # --- the job the terminal starts ---------------------------------
+    region = "\n".join(mvsicom.deck())
+    for dd, why in (("ONFRDR", "the internal reader: CLOSE submits"),
+                    ("ONFJCL", "the skeleton the subsystem rewrites"),
+                    ("ONFXRSP", "the response the BUZZ half reads")):
+        check("the region allocates %s" % dd, dd in region, why)
+    check("the region's DDs are added to the procedure's step",
+          region.count("//ICOM.") == 3
+          and "//ICOM     EXEC" in region,
+          "the shipped procedure needs no change")
+
+    try:
+        skel = mvsicom.skeleton()
+    except Exception as exc:
+        skel = None
+        sys.stdout.write("  skip skeleton unavailable: %s\n" % exc)
+    if skel:
+        marker = [c for c in skel if c.startswith("*ONFCARD")]
+        check("the skeleton carries exactly one marker card",
+              len(marker) == 1,
+              "%d marker(s) in %d cards" % (len(marker), len(skel)))
+        check("the marker is a COMMENT card",
+              marker and marker[0].startswith("*"),
+              "unreplaced, it yields no requests rather than a wrong one")
+        j = "\n".join(skel)
+        check("the job reads the INSTALLED network, not the reader",
+              "//ONFNET   DD DSN=" in j and "//ONFNET   DD UNIT=" not in j,
+              "an internal reader carries JCL and nothing else")
+        check("the job does not scratch the datasets the region holds",
+              "SCRATCH  EXEC" not in j,
+              "deleting them would strand the region's allocation")
+        check("the job is FR-BAT-01's three steps",
+              all(("//STEP%d " % n) in j for n in (1, 2, 3)),
+              "STEP1 driver, STEP2 engine, STEP3 report")
+
     # --- the subsystem's reply address -------------------------------
     cbl = os.path.join(mvsicom.LOCAL, "onflytx.cbl")
     if os.path.isfile(cbl):
