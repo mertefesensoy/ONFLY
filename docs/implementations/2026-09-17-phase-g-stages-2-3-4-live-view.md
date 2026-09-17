@@ -40,6 +40,7 @@ and is not. Section 6 below is mostly about making that impossible.
 | `Makefile` | `test_strm.py` in `req`, `test_geom.py` in `prep`, and a new `clips` target. |
 | `docs/ONFLY-SRS.md` | D-374…D-389; P-21 in A.2; **Section 4.7 IR-STM-01…04**; TU-11 in 8.5; ONF907S and ONF908S in Appendix E. |
 | `data/geom/*`, `docs/media/*` | The committed sidecar, backdrop and the two recorded clips (D-385, D-389). |
+| `tests/test_varnt.py` | **D-390**, a defect this work exposed: its skip guard named the annotations feather while the test reads the 1.05 GB weights feather. Provisioning annotations for `prep/geom.py` therefore turned a clean skip into a `FileNotFoundError` that failed `make test` at `prep`. The guard now names every feather it reaches. |
 
 ## 3. Implementation approach
 
@@ -235,6 +236,7 @@ not a drawing defect.
 | Raster ordered down the body axis — **a deviation from P-21** | Owner, **D-387** |
 | Two clips, short and standard | Owner, **D-388** |
 | Clips committed under `docs/media/` | Owner, **D-389** |
+| `tests/test_varnt.py`'s skip guard corrected | Owner, **D-390** — found outside scope and asked rather than fixed, as D-360 was |
 
 Architect's choices, not the owner's, and therefore open to correction: the
 exact ONFSH/ONFSR/ONFSC/ONFSU/ONFSE field order; the sparse encoding; the
@@ -266,7 +268,7 @@ over K ∈ {1, 7, 250, 100000} on all three backends.
 python tests/test_strm.py build/onflyeng_soft.exe build/onflyeng_nat.exe \
     build/onflyeng_2c.exe
 ```
-→ `test_strm: 273 passed, 0 failed` in 36 s. Fifteen of those checks are the
+→ `test_strm: 292 passed, 0 failed`, about 40 s. Fifteen of those checks are the
 `srext` fingerprints against the values TK5 recorded under **GCCMVS and JCC**
 (VL-91, VL-93): `6C3F7272`, `BAF81D91`, `F9C7EE77`, `4FD0ED1E`, `C4C320BC`,
 each reproduced on each backend with streaming on.
@@ -289,7 +291,7 @@ nothing about TU-11.
 |---|---|---|
 | `cumul` | emits cumulative counts instead of deltas | **caught** — 11 failures; sums wrong by ~100× |
 | `late` | holds each neuron's first event back one chunk | **caught** — 10 failures; every latency bracket wrong |
-| `umem` | replaces the membrane column with the spike count | **passed all 90 checks at first** |
+| `umem` | replaces the membrane column with the spike count | **passed every check at first** — 90 of 90 |
 
 The third is the reason TU-11 now compares the membrane against the oracle
 bit for bit: a small integer read as a binary64 is a subnormal, so it is
@@ -297,6 +299,26 @@ finite, it varies, and in the silent request it is zero — it satisfied every
 *shape* check. With the oracle comparison added it fails at chunk 1:
 `stream 0000000000000000, oracle 3FBD0F700A663AEF`. **A shape check cannot
 tell a membrane from something shaped like one.**
+
+All three controls were rebuilt from the final source and re-run against the
+final test: `cumul` 11 failures, `late` 10, `umem` 1 — the oracle comparison.
+
+### 6.6 A defect the golden suite could not have caught
+
+Found by re-reading the streaming loop rather than by a test: a **warned or
+rejected** request emitted `ONFSE` with no preceding `ONFSH`, so a consumer
+met an end line for a request it had never been told about — and this file's
+own parser raised on it. It contradicted IR-STM-02, and `onfesh`'s contract
+comment asserted the wrong thing.
+
+The `srext` half of Section 8.4 is five *valid* requests, so nothing in the
+golden suite reaches that path. TU-11 now carries a deck that does — the
+`srext` counterparts of G-11, G-12 and G-13 — and checks that such a request
+streams a complete envelope with `steps` 0, no `ONFSC`, and its own return
+code and fingerprint in `ONFSE`, all against the response record.
+
+The lesson is the same one Section 6.3 draws: a suite that only exercises the
+happy path cannot report on the paths it does not take.
 
 ### 6.4 Geometry
 
