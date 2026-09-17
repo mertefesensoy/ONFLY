@@ -283,13 +283,38 @@ class Session(object):
             pass
         time.sleep(self.settle if settle is None else settle)
 
+    def unlock(self, seconds=15):
+        """Wait for the keyboard, and never wait for it forever.
+
+        THIS IS WHY A RUN CAN HANG WITH NOTHING TO SHOW FOR IT.  A
+        3270 locks its keyboard when an AID is sent and unlocks it
+        when the host answers.  `String` has no timeout: if the host
+        never answers, it blocks in the emulator and the driver
+        blocks in readline -- no error, no output, no way to tell a
+        hang from a slow mainframe.  Measured 2026-09-17, a run sat
+        for ten minutes on a healthy region that had simply not
+        replied to the previous entry.
+
+        `Wait(Unlock)` does have a timeout, so the wait is bounded
+        and its failure is reported by the caller rather than
+        swallowed here.
+        """
+        try:
+            self.do("Wait(%d,Unlock)" % seconds)
+            return True
+        except ActionFailed:
+            self._say("keyboard still locked after %d s" % seconds)
+            return False
+
     def send(self, text, settle=None):
         """Type a line and press Enter."""
+        self.unlock()
         self.do('String("%s")' % text.replace('\\', '\\\\')
                                      .replace('"', '\\"'))
         self.enter(settle=settle)
 
     def clear(self):
+        self.unlock()
         self.do("Clear")
         time.sleep(self.settle)
 
