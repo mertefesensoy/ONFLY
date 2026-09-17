@@ -548,7 +548,8 @@ def deck():
             # ONFXRSP is the response the job writes, read back by the
             # BUZZ half.  DISP=SHR on both sides, deliberately: see
             # mvsrun.demo_deck's `installed` note.
-            "//ICOM.ONFRDR  DD SYSOUT=(A,INTRDR)",
+            "//ICOM.ONFRDR  DD SYSOUT=(A,INTRDR),",
+            "//            DCB=(RECFM=F,LRECL=80,BLKSIZE=80)",
             "//ICOM.ONFJCL  DD DSN=%s,DISP=SHR" % TXJCL_DSN,
             "//ICOM.ONFXRSP DD DSN=%s,DISP=SHR" % tx_rsp_dsn()]
 
