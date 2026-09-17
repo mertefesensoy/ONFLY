@@ -172,6 +172,13 @@ Stated now rather than discovered at the end:
 
 ## 7. Open questions for the owner
 
+**Both were answered on 2026-09-17, in the same call that approved this
+plan.** `SUGR` starts and `BUZZ` shows, mirroring Section 3.7's reserved
+names with the mismatch stated before the choice (D-429); and the
+unattended check asserts against G-16's published golden value rather
+than a same-session comparand (D-430). They are left written out below
+because the plan is the record of what was open when it was approved.
+
 Carried into the approval question rather than settled here:
 
 1. **The verb names.** `SUGR` to start and `BUZZ` to show mirrors Section 3.7,
