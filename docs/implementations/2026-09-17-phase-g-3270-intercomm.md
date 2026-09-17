@@ -29,6 +29,7 @@ request **with Phase G in hand**.
 | `tools/ic3270.py` | New. A **live** 3270 session: the emulator stays up and is driven turn by turn, because the flow waits minutes between two entries on a condition Python evaluates. |
 | `tools/mvsicom.py` | New. The region's lifecycle (submit without waiting, watch for ready, shut down by operator reply), the backup/install/build/restore jobs, and which VTAM logical unit is free. |
 | `tools/mvsrun.py` | Gained the `ONFTX` demonstration specification and an `installed` variant of `demo_deck` — network from the catalogued dataset, datasets pre-allocated, no scratch step — so the job the terminal starts is FR-BAT-01's job and not a second copy. |
+| `tools/mvstx.py` | New. Drives the whole flow with nobody watching and asserts G-16's golden fingerprint (D-430), cross-checking the screen against FR-BAT-04's printed report of the same job. |
 | `tests/run_ic3270.py` | New. Everything judgeable without the lab, including the facts each lab failure paid for. Local-dependent checks skip out loud on a clone (D-233's pattern). |
 | `Makefile` | `ic3270` in `make test`. |
 | `docs/ONFLY-SRS.md` | D-424…D-432 in Appendix A.1, P-30 in A.2, VL-129…VL-132 in Appendix D. |
