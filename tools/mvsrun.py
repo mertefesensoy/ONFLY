@@ -577,6 +577,12 @@ NAM_DSN = "%s.ONFLY.ONFNAM" % USER
 #:         G-13 an out-of-range rate -- which is exactly why D-273 took
 #:         these requests out of BUZZ.  IR-JCL-04 still runs STEP3,
 #:         because 8 is below 12, so the report prints and shows them.
+#: The card Phase G's 3270 transaction rewrites with the rate,
+#: duration and seed the operator typed.  Columns 1-8 identify it;
+#: the leading asterisk makes it a comment so that an unreplaced
+#: marker produces no requests instead of a wrong one.
+TX_MARKER = "*ONFCARD  rewritten by the 3270 transaction"
+
 DEMOS = {
     "BUZZ": {"net": "srext", "title": "ONFLY BUZZ",
              "req": "%s.ONFLY.BREQ" % USER, "rsp": "%s.ONFLY.BRSP" % USER},
@@ -592,6 +598,24 @@ DEMOS = {
                 "cards": ["MODE=REQ",
                           "* TX-04: ONE request at the standard duration",
                           "%-4s %4d %4d %9d" % ("SUGR", 200, 1000, 1)]},
+    # Phase G's 3270 transaction (D-424, D-426).  The same three steps
+    # as BUZZ, over ONE request the terminal supplies: the transaction
+    # rewrites the marked card before writing the deck to the internal
+    # reader.  It is a DEMOS entry rather than a deck of its own so
+    # that the job the terminal starts is the job FR-BAT-01 defines,
+    # built once here -- a second copy of it in the subsystem would
+    # drift the first time a DD changed.
+    #
+    # The marker is a COMMENT card.  If it ever reached MVS unreplaced,
+    # ONFLYDRV would skip it and STEP1 would build no requests at all,
+    # which is a visible nothing rather than a plausible wrong answer.
+    "ONFTX": {"net": "srext", "title": "ONFLY 3270 TX",
+              "req": "%s.ONFLY.XREQ" % USER,
+              "rsp": "%s.ONFLY.XRSP" % USER,
+              "installed": True,
+              "cards": ["MODE=REQ",
+                        "* ONFLY 3270 transaction: one request, below",
+                        TX_MARKER]},
 }
 BUZZ_JOB = "BUZZ"
 BUZZ_REQ = DEMOS["BUZZ"]["req"]
@@ -723,6 +747,25 @@ def demo_deck(job="BUZZ"):
     spec = DEMOS[job]
     select(spec["net"])
     req_ds, rsp_ds = spec["req"], spec["rsp"]
+    # `installed` is what a job submitted through the INTERNAL reader
+    # needs, and it changes exactly three things (D-426, Phase G).
+    #
+    #   1. The network comes from the catalogued dataset D-286
+    #      installed, not from `UNIT=` the card reader.  A deck written
+    #      to the internal reader is JCL and nothing else; there is no
+    #      card stream behind it for the engine to read a 2,148-card
+    #      network from.
+    #   2. The request and response datasets are NOT scratched and NOT
+    #      catalogued-on-creation.  They already exist, because the
+    #      transaction region holds the response one open across its
+    #      whole life and an allocation that deleted and recreated the
+    #      dataset would leave the region pointing at nothing.
+    #   3. Both are DISP=SHR on each side.  Nothing here serialises,
+    #      and nothing needs to: the operator types one entry, waits,
+    #      and types the next.  It is written down because DISP=SHR on
+    #      a dataset being written is a real choice and not an
+    #      oversight.
+    installed = bool(spec.get("installed"))
     d = []
 
     def a(card):
@@ -736,19 +779,23 @@ def demo_deck(job="BUZZ"):
     a("//             USER=%s,PASSWORD=CUL8TR," % USER)
     a("//             REGION=8M,TIME=1440,MSGLEVEL=(1,1)")
     a("//*")
-    a("//SCRATCH  EXEC PGM=IEFBR14")
-    for n, dsn in enumerate((req_ds, rsp_ds), 1):
-        a("//D%d       DD DSN=%s,DISP=(MOD,DELETE)," % (n, dsn))
-        a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
-    a("//*")
+    if not installed:
+        a("//SCRATCH  EXEC PGM=IEFBR14")
+        for n, dsn in enumerate((req_ds, rsp_ds), 1):
+            a("//D%d       DD DSN=%s,DISP=(MOD,DELETE)," % (n, dsn))
+            a("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
+        a("//*")
 
     a("//STEP1    EXEC PGM=ONFLYDRV")
     a("//STEPLIB  DD DSN=%s,DISP=SHR" % LOADLIB)
     a("//SYSOUT   DD SYSOUT=*")
     a("//SYSPRINT DD SYSOUT=*")
-    a("//ONFREQ   DD DSN=%s,DISP=(,CATLG,DELETE)," % req_ds)
-    a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
-    a("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
+    if installed:
+        a("//ONFREQ   DD DSN=%s,DISP=SHR" % req_ds)
+    else:
+        a("//ONFREQ   DD DSN=%s,DISP=(,CATLG,DELETE)," % req_ds)
+        a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
+        a("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
     a("//ONFCTL   DD *")
     for text in (spec.get("cards")
                  or [t for t, _e in request_cards()]):
@@ -761,12 +808,18 @@ def demo_deck(job="BUZZ"):
     a("//SYSPRINT DD SYSOUT=*")
     a("//SYSTERM  DD SYSOUT=*")
     a("//SYSIN    DD DUMMY")
-    a("//ONFNET   DD UNIT=%s," % mvseng.READER_UNIT)
-    a("//            DCB=(RECFM=F,LRECL=80,BLKSIZE=80)")
+    if installed:
+        a("//ONFNET   DD DSN=%s,DISP=SHR" % NET_DSN)
+    else:
+        a("//ONFNET   DD UNIT=%s," % mvseng.READER_UNIT)
+        a("//            DCB=(RECFM=F,LRECL=80,BLKSIZE=80)")
     a("//ONFREQ   DD DSN=%s,DISP=SHR" % req_ds)
-    a("//ONFRSP   DD DSN=%s,DISP=(,CATLG,DELETE)," % rsp_ds)
-    a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
-    a("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
+    if installed:
+        a("//ONFRSP   DD DSN=%s,DISP=SHR" % rsp_ds)
+    else:
+        a("//ONFRSP   DD DSN=%s,DISP=(,CATLG,DELETE)," % rsp_ds)
+        a("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
+        a("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
     a("//*")
 
     a("//STEP3    EXEC PGM=ONFLYDRV,COND=(12,LE,STEP2)")

@@ -203,6 +203,86 @@ def main():
     check("outstanding replies are read with `d r`, not `d r,r`",
           '"d r"' in src and '"d r,r"' not in src,
           "D R,R is answered IEE305I COMMAND INVALID on 3.8j")
+    check("whether the region runs is asked of JES2, not of the log",
+          '"$da"' in src,
+          "a log scan answered 'not running' for a region that was")
+    check("the ready message is matched against this run's job number",
+          "job_numbers" in src and "before = job_numbers()" in src,
+          "a stale ready gave APPLICATION IS INACTIVE")
+    check("no 3270 device is hard-coded for the lab runs",
+          "def free_device" in src and '"0C0"' not in src,
+          "TK5 gives 00C0 to TSO, and a failed logon leaves a unit "
+          "with TSO afterwards")
+
+    # --- the build decks ---------------------------------------------
+    # These are only buildable where local/onflytx exists, which D-132
+    # keeps out of the tree.  A clone must still run this file, so the
+    # local-dependent checks skip out loud -- the pattern D-233 set.
+    try:
+        decks = {"backup": mvsicom.backup_deck(),
+                 "restore": mvsicom.restore_deck(),
+                 "install": mvsicom.install_deck(),
+                 "build": mvsicom.build_deck()}
+    except mvsicom.MissingLocal:
+        decks = {"backup": mvsicom.backup_deck(),
+                 "restore": mvsicom.restore_deck()}
+        sys.stdout.write("  skip local/onflytx is not on this host "
+                         "(D-132); install and build decks not checked\n")
+
+    for name, deck in sorted(decks.items()):
+        check("%s deck: every card fits in 80 columns" % name,
+              all(len(c) <= 80 for c in deck),
+              "%d cards, longest %d"
+              % (len(deck), max(len(c) for c in deck)))
+        check("%s deck: the job title fits the JOB statement" % name,
+              all(len(c) <= 71 or not c.startswith("//") for c in deck)
+              and "'" in deck[0],
+              "IEF642I EXCESSIVE PARAMETER LENGTH stops the job dead")
+
+    check("the backup is written outside the shipped libraries",
+          not mvsicom.BACKUP_DSN.startswith("INT."),
+          mvsicom.BACKUP_DSN)
+    check("the backup covers the core as well as the two tables",
+          set(mvsicom.BACKUP_MEMBERS) >= {mvsicom.CORE, "BTVRBTB",
+                                          "INTSCT"},
+          ", ".join(mvsicom.BACKUP_MEMBERS))
+
+    if "build" in decks:
+        b = "\n".join(decks["build"])
+        check("the core's control statements go to SYSLIN, not SYSIN",
+              "LKED.SYSLIN" in b and "LKED.SYSIN" not in b,
+              "DDNAME=SYSIN carries only the first of a concatenation")
+        check("the core link raises the table size the shipped proc sets",
+              "SIZE=(512K" in b and "REGION.LKED" in b,
+              "IEW0664 at SIZE=(190K,20K) with one module added")
+        check("the shipped link deck is concatenated, never rewritten",
+              ("%s(%s)" % (mvsicom.SYMINCL, mvsicom.LINKDECK)) in b,
+              "219 INCLUDEs that are not ONFLY's to edit")
+
+    # --- the subsystem's reply address -------------------------------
+    cbl = os.path.join(mvsicom.LOCAL, "onflytx.cbl")
+    if os.path.isfile(cbl):
+        text = open(cbl, encoding="ascii", errors="replace").read()
+        # Code only: comment lines carry an asterisk in column 7, and
+        # everything before the ENVIRONMENT DIVISION is the REMARKS
+        # paragraph, which names the dialect rules in order to say it
+        # obeys them.  Matching those words there failed the check and
+        # would have taught the next reader to delete it.
+        after = text.split("ENVIRONMENT DIVISION.", 1)[-1]
+        body = "\n".join(l for l in after.splitlines()
+                         if l[6:7] != "*")
+        check("the reply is addressed to the output utility",
+              "MOVE 'U' TO OMSGH-RSC." in body
+              and "MOVE LOW-VALUES TO OMSGH-RSC." not in body,
+              "X'00E4' is the full-message output code; clearing it "
+              "gives INVALID SUB CODE ... RSC=0000")
+        for banned, why in (("END-IF", "C-03: no scope terminators"),
+                            ("COMP-5", "C-03: no COMP-5")):
+            check("subsystem stays in the MVT dialect: no %s" % banned,
+                  banned not in body.upper(), why)
+    else:
+        sys.stdout.write("  skip local/onflytx/onflytx.cbl is not on "
+                         "this host (D-132); reply address not checked\n")
 
     sys.stdout.write("run_ic3270: %d passed, %d failed\n"
                      % (PASS[0], FAIL[0]))
