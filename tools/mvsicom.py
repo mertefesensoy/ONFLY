@@ -215,6 +215,45 @@ def free_device(want=None):
     return None
 
 
+#: The generated record layout the subsystem reads the response with.
+COPYBOOK = os.path.join(os.path.dirname(HERE), "generated", "ONFCOM.cpy")
+COPY_STMT = "COPY ONFCOM."
+
+
+def subsystem_cards():
+    """The subsystem source, with its one COPY expanded.
+
+    IR-COM-01 says the COBOL copybook, the C header and the Python
+    struct formats all come from one master definition and that no
+    file restates them.  MVT COBOL will not take a standalone COPY
+    statement (VL-57), so `layout/generate.py` expands ONFLYDRV's for
+    exactly the same reason (D-161) -- this does the same thing for
+    the subsystem, at submit time, because the subsystem itself lives
+    outside the tree under D-132 and the generator does not see it.
+
+    Refuses rather than guesses if the statement is missing or
+    appears twice: a source that silently lost its layout would
+    compile against nothing and read the response record as spaces.
+    """
+    cards = local_cards("onflytx.cbl")
+    hits = [n for n, c in enumerate(cards) if c.strip() == COPY_STMT]
+    if len(hits) != 1:
+        raise MissingLocal(
+            "the subsystem source must contain `%s` exactly once; "
+            "found %d" % (COPY_STMT, len(hits)))
+    if not os.path.isfile(COPYBOOK):
+        raise MissingLocal(
+            "%s is missing; run `make generate` first" % COPYBOOK)
+    with open(COPYBOOK, "r", encoding="ascii", errors="strict") as fh:
+        book = [l.rstrip("\n") for l in fh if l.strip()]
+    out = cards[:hits[0]] + book + cards[hits[0] + 1:]
+    over = [c for c in out if len(c) > 72]
+    if over:
+        raise MissingLocal(
+            "%d expanded line(s) past column 72" % len(over))
+    return out
+
+
 #: The transaction's job, its skeleton and its datasets.  TX_JOB is a
 #: key in tools/mvsrun.py's DEMOS, so the job the terminal starts is
 #: FR-BAT-01's job built once there and not a second copy here.
@@ -419,7 +458,7 @@ def build_deck(parm="LOAD,SUPMAP,SIZE=2048K,BUF=1024K,LIB"):
     a("//            SPACE=(80,(500,100))")
     a("//SYSLIB   DD DSN=%s,DISP=SHR" % SYMREL)
     a("//SYSIN    DD DATA,DLM='@@'")
-    d.extend(local_cards("onflytx.cbl"))
+    d.extend(subsystem_cards())
     a("@@")
     a("//*")
     a("//LKSUB    EXEC PGM=IEWL,PARM='LIST,XREF,LET,NCAL',")

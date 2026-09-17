@@ -43,8 +43,10 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 
+import goldfp                                         # noqa: E402
 import ic3270                                         # noqa: E402
 import mvsicom                                        # noqa: E402
+import mvstx                                          # noqa: E402
 
 PASS, FAIL = [0], [0]
 
@@ -318,6 +320,40 @@ def main():
     else:
         sys.stdout.write("  skip local/onflytx/onflytx.cbl is not on "
                          "this host (D-132); reply address not checked\n")
+
+    # --- the unattended end-to-end check -----------------------------
+    # tools/mvstx.py needs TK5 to do anything, but what it ASSERTS can
+    # be judged here: the request it types, the comparand it uses, and
+    # that it refuses to assert against a request Section 8.4 does not
+    # define.  A check that quietly compared a 100 ms run against a
+    # 1000 ms golden value would pass for the wrong reason.
+    check("the default request is G-16 (D-430)",
+          (mvstx.RATE, mvstx.MS, mvstx.SEED) == (40, 1000, 1),
+          "rate %d, %d ms, seed %d" % (mvstx.RATE, mvstx.MS, mvstx.SEED))
+    want, gid = mvstx.golden_for(mvstx.RATE, mvstx.MS, mvstx.SEED)
+    check("its comparand is Section 8.4's published value",
+          (want, gid) == (goldfp.SREXT[40], goldfp.SREXT_ID[40]),
+          "%s %s" % (gid, want))
+    check("a non-golden request is reported, not asserted",
+          mvstx.golden_for(40, 100, 1) == (None, None)
+          and mvstx.golden_for(40, 1000, 7) == (None, None),
+          "the five srext requests differ only in rate")
+    check("the typed command is the fixed-column form",
+          mvstx.command_text(40, 1000, 1) == "SUGR,0040,1000,000000001",
+          mvstx.command_text(40, 1000, 1))
+    fp_line = ("ONF420I SUGR     RATE=  40 MS=1000 SEED=        1 "
+               "RC=   0 FP=BAF81D91")
+    m = mvstx.FP_RE.search(fp_line)
+    check("the fingerprint is read off the screen",
+          m is not None and m.group(1) == "BAF81D91")
+    pos = mvstx.ROW_RE.search(
+        "READOUT  1 ID=        9 LAT-US=     25800  SPIKES=  27 HZ=  27.0")
+    neg = mvstx.ROW_RE.search(
+        "READOUT  2 ID=       88 LAT-US=         1- SPIKES=   0 HZ=   0.0")
+    check("a readout row parses, with and without a trailing sign",
+          pos is not None and neg is not None
+          and pos.group(5) == "27" and neg.group(4) == "-",
+          "a latency of -1 means the neuron never fired (FR-SIM-05)")
 
     sys.stdout.write("run_ic3270: %d passed, %d failed\n"
                      % (PASS[0], FAIL[0]))
