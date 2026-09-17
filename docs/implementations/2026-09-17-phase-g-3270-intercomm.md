@@ -135,6 +135,48 @@ reused rather than reinvented.
 | How is the result shown? | Four rows of exactly eighty characters | The printed report's own lines | An unformatted 3270 write fills the buffer row by row, so a line padded to the row width lands on its own row and needs no control character. The printed report is 133 columns and would wrap |
 | How does `BUZZ` know the result is fresh? | By the request echo | By the presence of a record | The dataset keeps the previous run's record, so "is there a record" is always yes. IR-JCL-03 puts the echo in the first sixteen bytes, so the comparison is exact |
 
+## 5b. What the unattended check found on its first run
+
+This is the argument for `tools/mvstx.py` existing, so it is written
+down rather than left in a commit message. The flow had already been
+driven by hand and looked right. The first unattended run **failed**,
+and it was right to.
+
+**The freshness test compared the wrong things.** `BUZZ,` answered with
+a stale 100 ms record while the 1000 ms job it had just started was
+still executing. The parse and the submitted job were correct — job 377
+ran `RATE=40 MS=1000 SEED=1` and reported `FP=BAF81D91`, G-16's golden
+value — so the fault was only in comparing the response's echo with
+what `SUGR,` last sent: `MOVE W-CMD-MS TO W-LAST-MS` over a `PIC 9(4)`
+receiver. The characters are now read back through a numeric
+`REDEFINES` and both sides of the comparison are binary. That is
+ONFLYDRV's own technique and it is there for the same reason (D-159):
+this dialect's alphanumeric-to-numeric move is not to be trusted with a
+comparison.
+
+A hand-run demonstration would not have caught this. Typed by a person,
+`SUGR,` then `BUZZ,` a minute later shows numbers that look entirely
+plausible — they are real numbers from a real run, just not from *this*
+run.
+
+**The internal reader re-sent an earlier deck.** Two entries produced
+three jobs, the third carrying the *first* entry's request, and JES2
+answered `$HASP301 ONFTX - DUPLICATE JOB NAME - JOB DELAYED`. Each
+submission now ends with a `/*EOF` card, which is what tells the
+internal reader that the job is complete.
+
+**And one in the tooling.** A second region submitted while the first
+is up is held by JES2 on its duplicate name and released the instant
+the first ends — so `stop()` watched a region end, be replaced by the
+held one, and time out. Its caller would then have built against a
+running region. It now names that case instead of reporting a failed
+shutdown.
+
+`BUZZ,` also gained a row saying what it is waiting for
+(`ONF423I ASKED RATE= MS= SEED=`), so the screen never leaves the
+operator guessing which run it is answering about — and so both sides
+of that comparison are visible on the terminal itself.
+
 ## 6. Verification
 
 See Appendix D, VL-129 to VL-132, for what each slice measured and what it does
