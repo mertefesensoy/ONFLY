@@ -32,7 +32,7 @@ request **with Phase G in hand**.
 | `tools/mvstx.py` | New. Drives the whole flow with nobody watching and asserts G-16's golden fingerprint (D-430), cross-checking the screen against FR-BAT-04's printed report of the same job. |
 | `tests/run_ic3270.py` | New. Everything judgeable without the lab, including the facts each lab failure paid for. Local-dependent checks skip out loud on a clone (D-233's pattern). |
 | `Makefile` | `ic3270` in `make test`. |
-| `docs/ONFLY-SRS.md` | D-424…D-432 in Appendix A.1, P-30 in A.2, VL-129…VL-132 in Appendix D. |
+| `docs/ONFLY-SRS.md` | D-424…D-435 in Appendix A.1; P-30, P-31 and P-32 in A.2, all three adopted; VL-129…VL-134 in Appendix D; TX-07 in Section 8.5; a status note on Section 9.2's Phase G row. |
 | `local/onflytx/*` | **Not committed** (D-132): the subsystem, its verb entry and its subsystem entry, which name the monitor's macros and copybooks. |
 
 ## 3. Implementation approach
