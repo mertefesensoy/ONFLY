@@ -47,12 +47,26 @@ sys.path.insert(0, os.path.join(ROOT, "prep"))
 
 import calibrate as cal                                       # noqa: E402
 
-ANNOT = os.path.join(ROOT, "data", "malecns",
+MALECNS = os.path.join(ROOT, "data", "malecns")
+ANNOT = os.path.join(MALECNS,
                      "body-annotations-male-cns-v1.0-minconf-0.5.feather")
 
-if not os.path.isfile(ANNOT):
-    print("test_varnt: SKIP - the MaleCNS annotation feather is not in "
-          "this worktree; run tools/fixtures.py --malecns annotations")
+# D-390.  Every feather this test reaches, not just the first one.  It used to
+# gate on ANNOT alone while `calibrate.load_cache` -> `signs.build_signs`
+# reads the 1.05 GB weights file, so a worktree holding one and not the other
+# turned a clean skip into a FileNotFoundError four call frames away from
+# anything naming the cause.  That became reachable on 2026-09-17: D-384's
+# prep/geom.py needs the annotations file, so provisioning it alone is now
+# the normal case rather than an odd one.
+NEEDED = [ANNOT,
+          os.path.join(MALECNS,
+                       "connectome-weights-male-cns-v1.0-minconf-0.5.feather")]
+
+_absent = [p for p in NEEDED if not os.path.isfile(p)]
+if _absent:
+    print("test_varnt: SKIP - not in this worktree: %s; run "
+          "tools/fixtures.py --malecns annotations weights"
+          % ", ".join(os.path.basename(p) for p in _absent))
     raise SystemExit(0)
 
 # VL-65's populations, stated here and not imported (D-176).
