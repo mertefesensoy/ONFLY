@@ -193,7 +193,7 @@ of that comparison are visible on the terminal itself.
 
 ## 6. Verification
 
-See Appendix D, VL-129 to VL-132, for what each slice measured and what it does
+See Appendix D, VL-129 to VL-134, for what each slice measured and what it does
 not prove. Every result below is **TK5 MVS 3.8j under Hercules
 4.9.1.11612-SDL-gee86c4de**, with MVT ANS COBOL `IKFCBL00` for the subsystem and
 the GCCMVS-built engine from `HERC01.ONFLY.LOADLIB`; the terminal is `ws3270`
@@ -214,6 +214,21 @@ python tools/mvsicom.py --install
 python tools/mvsicom.py --txinstall
 python tools/mvsicom.py --build
 python tools/mvsicom.py --start
+```
+
+Then the flow itself, with nobody watching — this is the one that
+asserts (TX-07, D-430), and it waits minutes because the request it
+types is a standard-duration one:
+
+```bash
+python tools/mvstx.py
+```
+
+A pass ends `mvstx: PASS` and exits 0; a failure names which of the
+two comparisons broke. Driving the terminal by hand instead:
+
+```bash
+python tools/ic3270.py --applid INTERCOM --send "SUGR,0040,1000,000000001" --send "BUZZ"
 ```
 
 To undo every change to the installation:
