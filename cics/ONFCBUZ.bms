@@ -1,0 +1,66 @@
+*ONFLY: the BUZZ menu mapset (Phase G, D-393, P-22).
+*
+*Section 3.7: "BUZZ will be a menu transaction (BMS screen) that lets
+*the user pick a stimulus, rate, duration and seed."  This is that
+*screen in full, where the D-129 probe ONFCMS.bms was two fields of it
+*asking only whether BMS existed at all.
+*
+*WHAT CAN AND CANNOT BE VERIFIED HERE
+*  rcbms assembles this into a physical map and a symbolic map, and
+*  cobrc compiles ONFCBUZ.cbl against the symbolic map.  That is
+*  verified (P-22 V6).  SEND MAP and RECEIVE MAP cannot EXECUTE on this
+*  installation: they return INVREQ, RESP2 999, because the free
+*  Raincode edition holds no terminal facility and QIX.TerminalServer
+*  refuses to start without a licence file the download does not
+*  include (VL-37).  Driving a real 3270 is D-131's INTERCOMM half of
+*  Phase G, on TK5, not this component.
+*
+*The output fields mirror FR-BAT-04's report line: name, spike count,
+*first-spike latency, rate in Hz to one decimal, the return code with
+*its message, and the fingerprint in hexadecimal.
+*
+*Continuation is column 72, operands resume in column 16.
+*
+ONFCBUZ  DFHMSD TYPE=&SYSPARM,MODE=INOUT,LANG=COBOL,STORAGE=AUTO,      X
+               TIOAPFX=YES,CTRL=(FREEKB,ALARM)
+ONFCBMP  DFHMDI SIZE=(24,80)
+         DFHMDF POS=(1,1),LENGTH=28,ATTRB=(PROT,BRT),                  X
+               INITIAL='ONFLY - BUZZ - sugar to MN9'
+         DFHMDF POS=(3,1),LENGTH=12,ATTRB=(PROT),                      X
+               INITIAL='Stimulus  :'
+BZSTIM   DFHMDF POS=(3,15),LENGTH=8,ATTRB=(UNPROT,IC)
+         DFHMDF POS=(3,24),LENGTH=1,ATTRB=(PROT)
+         DFHMDF POS=(4,1),LENGTH=12,ATTRB=(PROT),                      X
+               INITIAL='Rate Hz   :'
+BZRATE   DFHMDF POS=(4,15),LENGTH=4,ATTRB=(UNPROT)
+         DFHMDF POS=(4,20),LENGTH=1,ATTRB=(PROT)
+         DFHMDF POS=(5,1),LENGTH=12,ATTRB=(PROT),                      X
+               INITIAL='Duration ms:'
+BZMS     DFHMDF POS=(5,15),LENGTH=4,ATTRB=(UNPROT)
+         DFHMDF POS=(5,20),LENGTH=1,ATTRB=(PROT)
+         DFHMDF POS=(6,1),LENGTH=12,ATTRB=(PROT),                      X
+               INITIAL='Seed      :'
+BZSEED   DFHMDF POS=(6,15),LENGTH=9,ATTRB=(UNPROT)
+         DFHMDF POS=(6,25),LENGTH=1,ATTRB=(PROT)
+         DFHMDF POS=(8,1),LENGTH=12,ATTRB=(PROT),                      X
+               INITIAL='Readout   :'
+BZNAME   DFHMDF POS=(8,15),LENGTH=16,ATTRB=(PROT,BRT)
+         DFHMDF POS=(9,1),LENGTH=12,ATTRB=(PROT),                      X
+               INITIAL='Spikes    :'
+BZSPK    DFHMDF POS=(9,15),LENGTH=4,ATTRB=(PROT,BRT)
+         DFHMDF POS=(10,1),LENGTH=12,ATTRB=(PROT),                     X
+               INITIAL='Latency us:'
+BZLAT    DFHMDF POS=(10,15),LENGTH=9,ATTRB=(PROT,BRT)
+         DFHMDF POS=(11,1),LENGTH=12,ATTRB=(PROT),                     X
+               INITIAL='Rate Hz   :'
+BZHZ     DFHMDF POS=(11,15),LENGTH=9,ATTRB=(PROT,BRT)
+         DFHMDF POS=(13,1),LENGTH=12,ATTRB=(PROT),                     X
+               INITIAL='Return    :'
+BZRC     DFHMDF POS=(13,15),LENGTH=4,ATTRB=(PROT,BRT)
+BZMSG    DFHMDF POS=(13,20),LENGTH=45,ATTRB=(PROT,BRT)
+         DFHMDF POS=(14,1),LENGTH=12,ATTRB=(PROT),                     X
+               INITIAL='Fingerprint:'
+BZFP     DFHMDF POS=(14,15),LENGTH=8,ATTRB=(PROT,BRT)
+BZINFO   DFHMDF POS=(23,1),LENGTH=70,ATTRB=(PROT,BRT)
+         DFHMSD TYPE=FINAL
+         END

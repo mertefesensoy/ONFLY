@@ -84,8 +84,14 @@ EXEMPT_DIRS = ("docs/implementations/",)
 
 # Source-shaped files only.  A PDF of an INTERCOMM manual is not source
 # and is not what this is looking for.
+# ".cs", ".csproj" and ".bms" were added with Phase G's transaction
+# component (D-398).  The .NET LINK target is source like any other and
+# could carry a pasted INTERCOMM copybook as easily as a COBOL file could;
+# a lint that silently skipped a whole language would have stopped
+# protecting anything, which is the failure D-390 records.
 SOURCE_SUFFIXES = (".cbl", ".cpy", ".cob", ".asm", ".mac", ".jcl",
-                   ".c", ".h", ".py", ".txt", ".inc")
+                   ".c", ".h", ".py", ".txt", ".inc",
+                   ".cs", ".csproj", ".bms")
 
 
 def tracked_files():

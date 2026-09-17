@@ -1,0 +1,45 @@
+﻿<!-- ONFLY: the EXEC CICS LINK target's project (P-22, D-396).
+
+     Raincode's own samples reference RainCodeLegacyRuntime as NuGet packages.
+     That route was measured on 2026-09-17 and rejected: `dotnet build` then
+     wants fourteen third-party packages (Microsoft.Data.SqlClient, Autofac,
+     BouncyCastle and the rest) that the installation's local `rcpackages`
+     feed does not carry, so a restore would reach the internet.  Referencing
+     the installed assemblies by HintPath needs no restore and no network, and
+     pins the build to the very assemblies rclrun will load.
+
+     Private=false: these are the runtime's own assemblies and rclrun supplies
+     them.  Copying them beside the module would put a second copy on the
+     probe's path and is how an assembly-version mismatch is manufactured. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>disable</Nullable>
+        <AssemblyName>onfcics</AssemblyName>
+        <RootNamespace>Onfly.Cics</RootNamespace>
+        <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+        <RCBIN Condition="'$(RCBIN)' == ''">C:\Program Files\Raincode\Crossbow\net8.0\bin</RCBIN>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="onfcics.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="RainCodeLegacyRuntime">
+            <HintPath>$(RCBIN)\RainCodeLegacyRuntime.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="rccorlib">
+            <HintPath>$(RCBIN)\rccorlib.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="RainCodeQixInterface">
+            <HintPath>$(RCBIN)\RainCodeQixInterface.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+    </ItemGroup>
+
+</Project>

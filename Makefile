@@ -192,7 +192,7 @@ $(IVEC): tools/genint.py
 # D-28 and D-35 commit it to byte-identity with upstream, so it needs a
 # transport that preserves long lines instead.
 col80: $(GENERATED) $(IVEC) softfloat/onfsub.c
-	$(PYTHON) tools/lint_col80.py engine generated softfloat tests tools cobol
+	$(PYTHON) tools/lint_col80.py engine generated softfloat tests tools cobol cics
 
 lint: $(GENERATED)
 	$(PYTHON) tools/lint_nr05.py --exclude engine/src/onffpn.c \
@@ -360,6 +360,7 @@ c04: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c
 	  engine/src/onfcrc.c engine/src/onfrnd.c engine/src/onfstm.c \
 	  engine/src/onffpc.c engine/src/onffps.c engine/src/onfker.c \
 	  engine/src/onfdec.c engine/src/onffpr.c generated/onfcom.c \
+	  engine/src/onfreq.c engine/src/onfcics.c \
 	  softfloat/onfint.c \
 	  $(SFSRCS) $(ONFSF)
 	$(PYTHON) tools/lint_c04.py --enforce-all $(BUILD)/obj
@@ -731,6 +732,22 @@ req: eng
 # The MVT COBOL half of the gate is tools/mvscob.py, on TK5.
 cob: $(BUILD) $(GENERATED)
 	$(PYTHON) tests/run_cob.py
+
+# --- Phase G, first component: the EXEC CICS transaction (D-394) -----------
+# D-130 puts ONFLY's transaction source in real `EXEC CICS`, verified against
+# Raincode on this host.  This builds the whole chain -- the engine as a
+# 64-bit shared library, the .NET LINK target, the byte-identity driver, the
+# BUZZ mapset, both transactions -- and then runs P-22's V3 and V4.
+#
+# Deliberately OUT of `test`, by the same rule D-156 set for the GnuCOBOL
+# proxy: a bare checkout has neither Raincode nor the .NET SDK and must stay
+# buildable.  tools/cicsbld.py prints which piece is missing and exits 0.
+#
+# Depends on `eng` because V4's comparand is the batch engine's own ONFRSP:
+# the claim is that the CICS path does not change the answer, and there is
+# nothing to compare against without it.
+cics: $(BUILD) $(GENERATED) eng
+	$(PYTHON) tools/cicsbld.py $(BUILD)/cics
 
 # --- FR-PRP-04: the full-brain runner --------------------------------------
 # Built as part of the project rather than by hand, so it cannot drift from

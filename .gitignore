@@ -75,3 +75,8 @@ data/calibration/*.npy
 
 # D-315: transient job status files, rewritten every tick
 data/progress/
+
+# .NET build output from the Phase G transaction (D-394, D-398).
+# The sources live in cics/; dotnet writes obj/ and bin/ beside them.
+cics/obj/
+cics/bin/

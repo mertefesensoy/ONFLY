@@ -42,7 +42,22 @@ import sys
 
 LIMIT = 80
 TABSTOP = 8
-SUFFIXES = (".c", ".h", ".cpy", ".jcl", ".cbl", ".cob")
+# Card-image source only.  ".bms" joins the list because a BMS mapset IS
+# card image -- its continuation indicator sits in column 72 -- so a long
+# line there is the same silent truncation this lint exists for.
+#
+# ".cs" and ".csproj" are deliberately NOT here, and the omission is stated
+# rather than left to be noticed (D-398).  C# is not card image, no
+# mainframe tool ever reads it, and an 80-column rule on it would be
+# ceremony.  Note that ".cs" does not match the ".c" entry: endswith(".c")
+# is false for a name ending in "s".
+#
+# The CICS COBOL in cics/ is held to a STRICTER limit than this one -- 72
+# columns, because cobrc truncates past 72 with no diagnostic at all
+# (VL-37) -- and that check lives in tools/cicsbld.py --cols.  This lint
+# still covers those files at 80, which is the weaker of the two and costs
+# nothing.
+SUFFIXES = (".c", ".h", ".cpy", ".jcl", ".cbl", ".cob", ".bms")
 
 
 def width(line):
