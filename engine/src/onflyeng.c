@@ -165,6 +165,50 @@
 #define ONF_STMDD "DD:ONFSTM"   /* IR-STM-01, D-379 */
 
 /*
+ * IR-STM-02 as amended by D-406: no stream line exceeds this many columns.
+ *
+ * WHY 80, AND WHY IT IS NOT AN x86 CONCERN
+ * Measured on TK5 MVS 3.8j on 2026-09-17, writing to the 10D punch at
+ * RECFM=F,LRECL=80: a line of 79 columns arrives as 79 bytes, a line of 80 as
+ * 80, and lines of 81 and 200 BOTH arrive as 80 -- one card per fprintf, no
+ * split, no message, COND CODE 0000.  The tail is gone and nothing says so.
+ * That is the D-93 failure class, and at K=50 it would take 797 of the 1,000
+ * ONFSC lines this engine writes for the srext golden suite.
+ *
+ * D-406 fixes the bound at 80 for EVERY platform rather than only the one that
+ * needs it, so that one format exists and an MVS stream can be compared with an
+ * x86 stream byte for byte.  A second width would be a second format.
+ */
+#define ONF_STMCOL 80
+
+/*
+ * The line buffer.  128 is not a guess and not a margin to be trusted: the
+ * longest line this emitter can construct is bounded by arithmetic.
+ *
+ *   ONFSC header   "ONFSC" + " chunk" + " step" + " nfired"
+ *   ONFSD header   "ONFSD" + " chunk" + " step"
+ *
+ * chunk, step and nfired are each printed from a `long` that IR-NET and FR-SIM
+ * hold below 2^31, so each is at most 10 digits plus its separating blank --
+ * 11 columns.  The ONFSC header is therefore at most 5 + 33 = 38 columns and
+ * the ONFSD header at most 5 + 22 = 27.  A pair is " idx delta", at most
+ * 1 + 10 + 1 + 10 = 22 columns.
+ *
+ * The ONFSU header (D-410, D-412) is the ONFSD header's shape -- 27 columns
+ * at worst -- and one membrane column is a blank and sixteen hexadecimal
+ * digits, 17 columns exactly.
+ *
+ * Two consequences, both load-bearing:
+ *   * 38 + 22 = 60 <= 80 for a pair, and 27 + 17 = 44 <= 80 for a membrane
+ *     column, so a line can ALWAYS hold its header and at least one item.
+ *     Neither fill loop can fail to make progress, so neither needs an
+ *     error path and neither can loop forever.
+ *   * 80 is never exceeded, so sprintf into 128 bytes cannot overflow even
+ *     before the bound check runs.
+ */
+#define ONF_STMBUF 128
+
+/*
  * Map a decoder result to its Appendix E message text.  The decoder's result
  * codes are the message numbers themselves, so the two cannot fall out of step
  * with each other.
@@ -508,17 +552,38 @@ static void onfesh(FILE *fm, const struct onfnet *net, onf_u32 paycrc,
                    const struct onfrz *z, onf_i32 chunk)
 {
     onf_i32 i;
+    char line[ONF_STMBUF];
+    char item[32];
+    int len, plen;
 
     fprintf(fm, "ONFSH 1 %ld %ld %ld %ld %ld %ld %ld %08lX\n",
             (long)net->n, (long)net->nr, (long)net->dtus, (long)chunk,
             (long)z->steps, (long)q->seed, (long)q->rate,
             (unsigned long)paycrc);
 
-    fprintf(fm, "ONFSR");
+    /*
+     * D-413: ONFSR is bounded too, by the same rule ONFSU follows -- the
+     * line repeats its own tag and the consumer reads indices until it has
+     * nr of them.  "ONFSR" plus nr indices crosses 80 columns at nr >= 7,
+     * and IR-STM-03 now says no line exceeds 80 on any platform, so
+     * without this the engine could violate a requirement of its own for a
+     * network nobody has built yet.  The alternative offered was to
+     * narrow the requirement instead; the owner declined it.
+     */
+    sprintf(line, "ONFSR");
+    len = (int)strlen(line);
     for (i = 0; i < net->nr; i++) {
-        fprintf(fm, " %ld", (long)readout[i]);
+        sprintf(item, " %ld", (long)readout[i]);
+        plen = (int)strlen(item);
+        if (len + plen > ONF_STMCOL) {
+            fprintf(fm, "%s\n", line);
+            sprintf(line, "ONFSR");
+            len = (int)strlen(line);
+        }
+        memcpy(line + len, item, (size_t)plen + 1);
+        len += plen;
     }
-    fprintf(fm, "\n");
+    fprintf(fm, "%s\n", line);
 }
 
 /*
@@ -534,6 +599,23 @@ static void onfesh(FILE *fm, const struct onfnet *net, onf_u32 paycrc,
  * At 501 neurons and 200 chunks a dense encoding would be 100,200 rows to
  * say that almost nothing happened.
  *
+ * D-406: the pairs are laid out across as many lines as they need, ONF_STMCOL
+ * columns at a time.  The first line is the ONFSC; every continuation is an
+ * ONFSD repeating the same chunk and step.  `nfired` stays what it has always
+ * been -- the total for the CHUNK, not the count on its own line -- which is
+ * the point of the whole arrangement: a consumer reads pairs across the ONFSC
+ * and its ONFSD lines until it has nfired of them, so a line that went missing
+ * or was truncated in transit is DETECTABLE.  A repeated ONFSC carrying its own
+ * count would have been a smaller change and would have made a truncated chunk
+ * indistinguishable from a complete one.
+ *
+ * The fill is by measurement, not by a pairs-per-line constant.  A constant
+ * would have to be sized for the worst case -- a 6-digit index beside a 6-digit
+ * count -- and would then waste three quarters of every line in the common case
+ * where both are small.  Measuring the pair that is actually about to be
+ * written packs each line as full as it goes and cannot be wrong about the
+ * bound, which is the property that matters.
+ *
  * Membrane potentials go out as the sixteen hexadecimal digits of the
  * binary64 bit pattern, high word first, never as a decimal number: NR-05
  * forbids this file from holding a binary64 as a number at all, and a bit
@@ -544,6 +626,9 @@ static void onfesc(FILE *fm, const struct onfnet *net,
                    onf_i32 *prev, long chunk)
 {
     onf_i32 i, nix, d, nfired;
+    char line[ONF_STMBUF];
+    char pair[32];
+    int len, plen;
 
     nfired = 0;
     for (i = 0; i < net->n; i++) {
@@ -552,23 +637,61 @@ static void onfesc(FILE *fm, const struct onfnet *net,
         }
     }
 
-    fprintf(fm, "ONFSC %ld %ld %ld", chunk, (long)st->step, (long)nfired);
+    sprintf(line, "ONFSC %ld %ld %ld", chunk, (long)st->step, (long)nfired);
+    len = (int)strlen(line);
+
     for (i = 0; i < net->n; i++) {
         d = st->spikes[i] - prev[i];
-        if (d != 0) {
-            fprintf(fm, " %ld %ld", (long)i, (long)d);
-            prev[i] = st->spikes[i];
+        if (d == 0) {
+            continue;
         }
+        sprintf(pair, " %ld %ld", (long)i, (long)d);
+        plen = (int)strlen(pair);
+        if (len + plen > ONF_STMCOL) {
+            fprintf(fm, "%s\n", line);
+            sprintf(line, "ONFSD %ld %ld", chunk, (long)st->step);
+            len = (int)strlen(line);
+        }
+        memcpy(line + len, pair, (size_t)plen + 1);
+        len += plen;
+        prev[i] = st->spikes[i];
     }
-    fprintf(fm, "\n");
+    fprintf(fm, "%s\n", line);
 
-    fprintf(fm, "ONFSU %ld %ld", chunk, (long)st->step);
+    /*
+     * D-410, D-412: the membrane line is bounded too, and it continues by
+     * REPEATING its own tag rather than taking a new one.
+     *
+     * The asymmetry with ONFSD above is deliberate and is the reason both
+     * forms are right.  ONFSC could not repeat, because `nfired` sits on
+     * that line and a repeated ONFSC would have had to redefine it as a
+     * per-line count -- which is exactly what D-406 rejected, since it
+     * would leave a truncated chunk indistinguishable from a complete one.
+     * ONFSU carries no count: `nr` is already on the ONFSH line, so a
+     * consumer reads columns until it has nr of them and a dropped
+     * continuation is detected by the same mechanism, with no new tag.
+     *
+     * nr is 2 on all four shipped networks, so this wraps nothing today.
+     * It is here because the format does not bound nr, and an unbounded
+     * line in a format whose carrier truncates at 80 columns without
+     * saying so is a defect waiting for the network that reaches it.
+     */
+    sprintf(line, "ONFSU %ld %ld", chunk, (long)st->step);
+    len = (int)strlen(line);
     for (i = 0; i < net->nr; i++) {
         nix = (onf_i32)readout[i];
-        fprintf(fm, " %08lX%08lX",
+        sprintf(pair, " %08lX%08lX",
                 (unsigned long)st->u[nix].hi, (unsigned long)st->u[nix].lo);
+        plen = (int)strlen(pair);
+        if (len + plen > ONF_STMCOL) {
+            fprintf(fm, "%s\n", line);
+            sprintf(line, "ONFSU %ld %ld", chunk, (long)st->step);
+            len = (int)strlen(line);
+        }
+        memcpy(line + len, pair, (size_t)plen + 1);
+        len += plen;
     }
-    fprintf(fm, "\n");
+    fprintf(fm, "%s\n", line);
 
     /* IR-STM-04.  Without this the run would reach the consumer in whatever
        blocks stdio chose, which is a recording delivered late rather than a

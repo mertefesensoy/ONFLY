@@ -126,14 +126,33 @@ onf_f64 onffabs(onf_f64 a);
 int onffnf(onf_f64 a);
 
 /*
- * onffzer - the constant +0.0.
+ * onffzer is GONE (D-420).  +0.0 is now onffbit(0UL, 0UL).
  *
- * NR-06 forbids any target platform converting decimal text to binary floating
- * point, so constants may not be written as literals.  +0.0 is all-zero bits,
- * which is the one value that can be stated without a conversion.  Every other
- * constant arrives as a bit pattern in the network header (FR-PRP-06).
+ * It existed because NR-06 forbids any target platform converting decimal text
+ * to binary floating point, so constants may not be written as literals; +0.0
+ * is all-zero bits, the one value statable without a conversion.  That reason
+ * is unchanged and onffbit serves it: every other constant already arrives as
+ * a bit pattern in the network header (FR-PRP-06) and is built the same way.
+ *
+ * WHY IT WAS REMOVED RATHER THAN REPAIRED.  Measured on TK5 MVS 3.8j under
+ * GCCMVS at -O1 on 2026-09-17 (VL-122, VL-123): onffzer() returned a SUBNORMAL
+ * of the order of 1e-318, not +0.0, from source that reads exactly
+ *
+ *     z.hi = 0UL; z.lo = 0UL; return z;
+ *
+ * In the same program onffbit(0UL, 0UL) -- the same return type with two
+ * arguments -- returned 0000000000000000 correctly, and so did a struct
+ * assigned field by field.  onffzer was the only no-argument struct-returning
+ * function in ONFLY, and it is the one that failed.  The value it returned
+ * changed when unrelated code moved (VL-124), so it was reading whatever the
+ * layout left it.
+ *
+ * The consequence was not small: onfinit seeded every u, every g and the whole
+ * ring from it, NR-08's clamp re-seeded g from it, and the reset after a spike
+ * set u and g from it -- so every "+0.0" in the MVS kernel was that subnormal.
+ * No fingerprint ever moved, because 1e-318 is swamped by everything it meets,
+ * which is luck and not protection (VL-125).
  */
-onf_f64 onffzer(void);
 
 /*
  * onffbit - build a value from its big-endian bit pattern halves.

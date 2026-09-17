@@ -36,16 +36,6 @@ int onffnf(onf_f64 a)
     return 0;
 }
 
-onf_f64 onffzer(void)
-{
-    onf_f64 z;
-
-    /* NR-06: stated as bits, not as a decimal literal.  +0.0 is all zeros. */
-    z.hi = 0UL;
-    z.lo = 0UL;
-    return z;
-}
-
 onf_f64 onffbit(onf_u32 hi, onf_u32 lo)
 {
     onf_f64 z;

@@ -92,6 +92,20 @@ def main():
             k, v = p.split("=", 1)
             f[k] = v
 
+        if kind == "FPZERO":
+            # D-421.  The one constant NR-06 lets the engine state without a
+            # decimal conversion, checked as BITS.  Not as a value: in
+            # Python -0.0 == 0.0 and a subnormal 1e-318 compares unequal to
+            # zero but prints as a plausible small number, so only the bit
+            # pattern distinguishes the three.  On TK5 under GCCMVS this
+            # came back 00000000:000AE782 from a function whose source read
+            # z.hi = 0; z.lo = 0 (VL-122), and no other check in this file
+            # would have noticed.
+            r.check("zero constant is +0.0", fmt(parse_pair(f["z"])),
+                    "00000000:00000000",
+                    "(NR-06's one statable constant, D-420)")
+            continue
+
         if kind == "NONFIN":
             hi, lo = parse_pair(f["v"])
             x = bits_to_float(hi, lo)

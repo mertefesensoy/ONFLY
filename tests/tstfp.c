@@ -95,8 +95,29 @@ int main(void)
         emit("FPSELF", i, a, a, onffsub(a, a));
     }
 
+    /*
+     * --- D-421: the zero constant's BIT PATTERN --------------------------
+     *
+     * This file already used the zero constant and never checked what it
+     * was, which is exactly how a wrong one reached three MVS runs and
+     * every suite without being noticed.  On TK5 under GCCMVS the old
+     * onffzer() returned a subnormal of the order of 1e-318 instead of
+     * +0.0 (VL-122), and because onfinit seeded every u, every g and the
+     * whole ring from it, every "+0.0" in the MVS kernel was that
+     * subnormal.  No fingerprint moved, because 1e-318 is swamped by
+     * everything it meets -- so no fingerprint test could have caught it.
+     *
+     * The line below is what catches it: the constant is printed as bits
+     * and the checker requires 00000000:00000000 exactly.  It runs
+     * wherever this self-test runs, which includes GCCMVS on TK5, so this
+     * class of defect now fails on the platform where it happens.
+     */
+    a = onffbit(0UL, 0UL);
+    printf("FPZERO z=%08lX:%08lX\n",
+           (unsigned long)a.hi, (unsigned long)a.lo);
+
     /* --- FR-SIM-08: non-finite detection from exponent bits -------------- */
-    emit_nonfin("pluszero", onffzer());
+    emit_nonfin("pluszero", onffbit(0UL, 0UL));
     emit_nonfin("one", onffbit(0x3FF00000UL, 0x00000000UL));
     emit_nonfin("minusone", onffbit(0xBFF00000UL, 0x00000000UL));
     emit_nonfin("maxfinite", onffbit(0x7FEFFFFFUL, 0xFFFFFFFFUL));

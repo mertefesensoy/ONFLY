@@ -55,10 +55,12 @@ for sub in ("generated", "tools", "tests"):
 import onfcom_py as L                              # noqa: E402
 import mkreq                                       # noqa: E402
 import run_gld                                     # noqa: E402
+import goldfp                                      # noqa: E402
 
 sys.path.insert(0, os.path.join(ROOT, "layout"))
 sys.path.insert(0, os.path.join(ROOT, "oracle"))
 import netread                                     # noqa: E402
+import netwrite                                    # noqa: E402
 from onfly_oracle import kernel as okernel         # noqa: E402
 
 #: D-376's demo chunk size, and a second that divides neither the step count
@@ -66,21 +68,19 @@ from onfly_oracle import kernel as okernel         # noqa: E402
 K_DEMO = 50
 K_ODD = 7
 
+# D-406.  The same number engine/src/onflyeng.c defines as ONF_STMCOL,
+# restated here rather than parsed out of the C, because a test that
+# read its expectation from the thing under test would agree with any
+# value the emitter happened to use.
+ONF_STMCOL = 80
+
 RC_ENV = 16
 
-#: The srext half of Section 8.4, as SRS Section 8.3 rows 6 and 7 record it
-#: -- the fingerprints GCCMVS and JCC produced on TK5 on 2026-09-15 (VL-91,
-#: VL-93).  They are written out here rather than recomputed because D-380
-#: asks for the GOLDEN fingerprints re-checked with streaming on, and a value
-#: this file derived itself could not contradict a defect it shared.  Keyed
-#: by stimulus rate, which is what distinguishes the five.
-GOLD_SREXT = {
-    0: "6C3F7272",         # G-15, silence (ACC-2)
-    40: "BAF81D91",        # G-16, a sampled bias row
-    200: "F9C7EE77",       # G-17, the top row of the table
-    9999: "4FD0ED1E",      # G-18, beyond the table; selection clamps (D-191)
-    100: "C4C320BC",       # G-19, D-191's tie rule, resolving to 80 Hz
-}
+#: The srext half of Section 8.4, as SRS Section 8.3 rows 6 and 7 record it.
+#: Moved to tools/goldfp.py when Stage 5 gave the same table a second and a
+#: third consumer; the reasoning for writing the values out rather than
+#: recomputing them travels with them and is restated there.
+GOLD_SREXT = goldfp.SREXT
 
 
 class StreamError(Exception):
@@ -155,9 +155,17 @@ def parse_stream(path):
                        "usparse": True}
                 prevstep = 0
             elif tag == "ONFSR":
-                if cur is None or cur["ro"] is not None:
+                # D-413: repeated until nr indices have been written, so a
+                # second ONFSR is a continuation and not a stray.  "Before
+                # any chunk" is what still makes a stray one detectable.
+                if cur is None or cur["chunks"]:
                     raise StreamError("stray ONFSR at %d" % lineno)
-                cur["ro"] = [int(x) for x in f[1:]]
+                if cur["ro"] is None:
+                    cur["ro"] = []
+                if len(cur["ro"]) >= cur["nr"]:
+                    raise StreamError("ONFSR past nr=%d at %d"
+                                      % (cur["nr"], lineno))
+                cur["ro"].extend(int(x) for x in f[1:])
             elif tag == "ONFSC":
                 if cur is None or cur["ro"] is None:
                     raise StreamError("stray ONFSC at %d" % lineno)
@@ -178,11 +186,56 @@ def parse_stream(path):
                                       "nfired": nfired, "pairs": seen,
                                       "lo": prevstep})
                 prevstep = step
+            elif tag == "ONFSD":
+                # D-406.  A continuation of the ONFSC above it, carrying the
+                # same chunk and step and no count of its own -- the count is
+                # the chunk's and lives on the ONFSC.  Checked here rather
+                # than assumed: an ONFSD whose chunk or step disagreed with
+                # the line it continues would be a splicing defect, and the
+                # whole reason for the tag is that such a defect is visible.
+                if cur is None or not cur["chunks"]:
+                    raise StreamError("stray ONFSD at %d" % lineno)
+                c = cur["chunks"][-1]
+                if "u" in c:
+                    raise StreamError("ONFSD after the chunk's ONFSU at %d"
+                                      % lineno)
+                if int(f[1]) != c["chunk"] or int(f[2]) != c["step"]:
+                    raise StreamError("ONFSD %s/%s continues chunk %d/%d "
+                                      "at %d" % (f[1], f[2], c["chunk"],
+                                                 c["step"], lineno))
+                pairs = f[3:]
+                if not pairs:
+                    raise StreamError("empty ONFSD at %d" % lineno)
+                if len(pairs) % 2 != 0:
+                    raise StreamError("ONFSD pairs are odd at %d" % lineno)
+                for a in range(0, len(pairs), 2):
+                    idx, delta = int(pairs[a]), int(pairs[a + 1])
+                    if delta == 0:
+                        cur["usparse"] = False
+                    c["pairs"].append((idx, delta))
+                    cur["total"][idx] = cur["total"].get(idx, 0) + delta
+                    if idx not in cur["first"]:
+                        cur["first"][idx] = (c["lo"], c["step"])
             elif tag == "ONFSU":
+                # D-412: repeated, with the same chunk and step, until nr
+                # columns have been written.  Accumulating rather than
+                # assigning is the whole difference; the chunk and step are
+                # checked for the reason the ONFSD ones are, so that a
+                # continuation spliced from the wrong chunk is visible.
                 if cur is None or not cur["chunks"]:
                     raise StreamError("stray ONFSU at %d" % lineno)
-                cur["chunks"][-1]["u"] = f[3:]
-                cur["chunks"][-1]["ustep"] = int(f[2])
+                c = cur["chunks"][-1]
+                if "u" not in c:
+                    c["u"] = []
+                    c["ustep"] = int(f[2])
+                elif len(c["u"]) >= cur["nr"]:
+                    raise StreamError("ONFSU past nr=%d at %d"
+                                      % (cur["nr"], lineno))
+                elif int(f[1]) != c["chunk"] or int(f[2]) != c["ustep"]:
+                    raise StreamError("ONFSU %s/%s continues chunk %d/%d "
+                                      "at %d" % (f[1], f[2], c["chunk"],
+                                                 c["ustep"], lineno))
+                c["u"].extend(f[3:])
             elif tag == "ONFSE":
                 if cur is None:
                     raise StreamError("stray ONFSE at %d" % lineno)
@@ -196,6 +249,138 @@ def parse_stream(path):
     if cur is not None:
         raise StreamError("stream ends inside a request")
     return reqs
+
+
+def check_width(path, tag):
+    """D-406: no line exceeds ONF_STMCOL columns.
+
+    This is the clause the MVS half turns on, and it is checked on x86
+    because the bound is arithmetic and arithmetic does not need a
+    mainframe to be wrong.  What a mainframe adds is the CONSEQUENCE:
+    measured on TK5 on 2026-09-17, a line of 81 columns written to the
+    10D punch arrives as 80 bytes -- no split, no message, COND CODE
+    0000, and the tail simply gone.  A stream that failed this check
+    would reach the viewer looking complete and be missing spikes.
+
+    The longest line is reported even when the check passes, because a
+    stream creeping toward the bound is worth seeing before it crosses
+    it.
+    """
+    worst = 0
+    where = 0
+    with open(path, "r") as fh:
+        for lineno, line in enumerate(fh, 1):
+            n = len(line.rstrip("\n"))
+            if n > worst:
+                worst = n
+                where = lineno
+    return check("D-406 %s no line exceeds %d columns" % (tag, ONF_STMCOL),
+                 worst <= ONF_STMCOL,
+                 "longest is %d columns at line %d" % (worst, where))
+
+
+def wide_network(nr=30):
+    """A network with enough readout neurons to make ONFSR and ONFSU wrap.
+
+    WHY A NETWORK HAD TO BE BUILT FOR THIS.  D-412 and D-413 bound the
+    membrane line and the readout-name line, and neither can wrap on any
+    network ONFLY ships: `nr` is 2 on all four, which puts ONFSU at 49
+    columns and ONFSR at 10.  So the two branches the owner asked for
+    would have shipped UNEXERCISED, and a wrap that is never taken is a
+    wrap nobody knows is right.
+
+    nr = 30 crosses both bounds and neither marginally: ONFSR becomes
+    5 + 30x3 = 95 columns unwrapped, and ONFSU 5 + 4 + 5 + 30x17 = 524.
+
+    The first version of this used nr = 20 and asserted ONFSR would wrap
+    at 85 columns.  It did not: the arithmetic had assumed three-digit
+    indices, and at n = 64 they are two digits, so the line came to 65
+    and the check failed.  The check earned its place on its first run --
+    which is the argument for asserting that a branch was TAKEN rather
+    than only that the output looks right.
+
+    It is a small synthetic network on tests/run_dec.py's pattern, not a
+    MaleCNS one.  Nothing scientific is claimed from it -- it exists to
+    make two `if` statements in the emitter execute.
+    """
+    n = 64
+    rowptr, target, weight = [0], [], []
+    for i in range(n):
+        row = sorted(set((i + 1 + k * 7) % n for k in range(5)))
+        target.extend(row)
+        for _ in row:
+            weight.append(0.275 * (len(weight) % 5 + 1))
+        rowptr.append(len(target))
+    readout = list(range(n - nr, n))
+    return netwrite.build(
+        n=n, rowptr=rowptr, target=target, weight=weight,
+        stim=[0, 1, 2, 3], readout=readout,
+        dt_us=100, delay=18, refract=22, max_ms=5000,
+        u_th=7.0, u_reset=0.0,
+        p11=0.9950124791926823, p12=0.004937935295309022,
+        p22=0.9801986733067553, g_eps=1e-300, w_syn=0.275, v_rest=-52.0)
+
+
+def check_wide(exe, tmp):
+    """D-412 and D-413: the ONFSU and ONFSR continuations, exercised."""
+    ok = bad = 0
+    nr = 30
+    netpath = os.path.join(tmp, "wide.bin")
+    with open(netpath, "wb") as fh:
+        fh.write(wide_network(nr))
+    reqpath = os.path.join(tmp, "wide.req")
+    with open(reqpath, "wb") as fh:
+        fh.write(mkreq.pack("SUGR", 200, 20, 1))
+    rsppath = os.path.join(tmp, "wide.rsp")
+    stm = os.path.join(tmp, "wide.stm")
+    rc, out = run_engine(exe, netpath, reqpath, rsppath, "STREAM=7", stm)
+
+    a, b = check("D-412/D-413 the wide-readout run completes", rc == 0,
+                 "rc=%d %s" % (rc, out[-1] if out else ""))
+    ok += a
+    bad += b
+    if rc != 0:
+        return ok, bad
+
+    a, b = check_width(stm, "nr=%d" % nr)
+    ok += a
+    bad += b
+
+    # The continuations must actually have been TAKEN.  Without this the
+    # test would pass just as well against an emitter that never wrapped,
+    # which is the failure mode it exists to rule out.
+    tags = [l.split()[0] for l in open(stm) if l.split()]
+    nsr = tags.count("ONFSR")
+    nsu = tags.count("ONFSU")
+    nsc = tags.count("ONFSC")
+    a, b = check("D-413 ONFSR wrapped", nsr > 1, "%d ONFSR lines" % nsr)
+    ok += a
+    bad += b
+    a, b = check("D-412 ONFSU wrapped", nsu > nsc,
+                 "%d ONFSU lines for %d chunks" % (nsu, nsc))
+    ok += a
+    bad += b
+
+    try:
+        streamed = parse_stream(stm)
+    except StreamError as exc:
+        a, b = check("D-412/D-413 the wrapped stream parses", False,
+                     str(exc))
+        return ok + a, bad + b
+    s = streamed[0]
+    a, b = check("D-413 ONFSR reassembles to nr indices",
+                 s["ro"] == list(range(64 - nr, 64)),
+                 "%d indices" % len(s["ro"]))
+    ok += a
+    bad += b
+    whole = all(len(c["u"]) == nr for c in s["chunks"])
+    a, b = check("D-412 every ONFSU reassembles to nr columns", whole,
+                 "%d chunks, columns %s"
+                 % (len(s["chunks"]),
+                    sorted(set(len(c["u"]) for c in s["chunks"]))))
+    ok += a
+    bad += b
+    return ok, bad
 
 
 def check_form(streamed, rows):
@@ -216,9 +401,18 @@ def check_form(streamed, rows):
         ok += a
         bad += b
 
+        # D-406: `nfired` counts the CHUNK, so after a continuation this is
+        # the round-trip check -- the pairs reassembled from the ONFSC and
+        # every ONFSD that follows it must come to exactly nfired, no more
+        # and no fewer.  A dropped continuation line fails here, which is
+        # the entire reason nfired was not redefined as a per-line count.
         counts = all(c["nfired"] == len(c["pairs"]) for c in s["chunks"])
-        a, b = check("IR-STM-02 %s ONFSC count equals its pairs" % tag,
-                     counts)
+        wrapped = sum(1 for c in s["chunks"] if len(c["pairs"]) > 0)
+        a, b = check("IR-STM-02 %s ONFSC count equals its pairs, "
+                     "reassembled across ONFSD" % tag, counts,
+                     "%d chunks, largest %d pairs"
+                     % (wrapped, max([len(c["pairs"])
+                                      for c in s["chunks"]] or [0])))
         ok += a
         bad += b
 
@@ -453,6 +647,10 @@ def check_engine(exe, netpath, reqpath, tmp, rows):
     ok += a
     bad += b
 
+    a, b = check_width(stm, "K=%d" % K_DEMO)
+    ok += a
+    bad += b
+
     recs = decode_records(raw1)
     a, b = check_form(streamed, rows)
     ok += a
@@ -480,6 +678,9 @@ def check_engine(exe, netpath, reqpath, tmp, rows):
     same = (len(odds) == len(streamed)
             and all(x["total"] == y["total"] for x, y in zip(odds, streamed)))
     a, b = check("IR-STM-04 per-neuron totals do not depend on K", same)
+    ok += a
+    bad += b
+    a, b = check_width(stm2, "K=%d" % K_ODD)
     ok += a
     bad += b
     finer = all(x["nchunk"] > y["nchunk"] for x, y in zip(odds, streamed))
@@ -702,6 +903,11 @@ def main(argv):
         passed += p
         failed += f
         p, f = check_parm(argv[0], netpath, reqpath, tmp)
+        passed += p
+        failed += f
+        print("test_strm: the wide-readout continuations (%s)"
+              % os.path.basename(argv[0]))
+        p, f = check_wide(argv[0], tmp)
         passed += p
         failed += f
     finally:

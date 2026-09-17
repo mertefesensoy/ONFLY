@@ -31,7 +31,9 @@ int onfinit(const struct onfnet *net, struct onfsta *st,
     onf_i32 i, s;
     onf_i32 br, bd, bbest, bbestd;
 
-    zero = onffzer();
+    /* D-420: onffbit, not onffzer -- GCCMVS miscompiled the latter
+       and every zero in this file came out a subnormal (VL-122). */
+    zero = onffbit(0UL, 0UL);
     st->thresh = (onf_u32)rate * (onf_u32)net->dtus;
     st->step = 0;
     st->steps = steps;
@@ -110,7 +112,9 @@ int onfcont(const struct onfnet *net, struct onfsta *st, onf_i32 k)
         return ONFK_OK;
     }
 
-    zero = onffzer();
+    /* D-420: onffbit, not onffzer -- GCCMVS miscompiled the latter
+       and every zero in this file came out a subnormal (VL-122). */
+    zero = onffbit(0UL, 0UL);
     brow = st->brow;
 
     for (c = 0; c < k; c++) {

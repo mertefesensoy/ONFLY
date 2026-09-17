@@ -66,6 +66,9 @@ import sys
 import tempfile
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import goldfp                                      # noqa: E402
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 
@@ -187,13 +190,27 @@ def run(args):
 
     tmp = tempfile.mkdtemp(prefix="onfly-live-")
     t0 = time.time()
-    proc, stmpath, rsppath = start_engine(
-        args["engine"], args["network"], args["rate"], args["ms"],
-        args["seed"], args["k"], tmp)
+    follow = args["follow"] is not None
+    if follow:
+        # Nothing is launched.  The producer is elsewhere -- a TK5 job under
+        # tools/mvsstm.py -- and this only reads what arrives.
+        proc, stmpath, rsppath = None, args["follow"], None
+    else:
+        proc, stmpath, rsppath = start_engine(
+            args["engine"], args["network"], args["rate"], args["ms"],
+            args["seed"], args["k"], tmp)
 
     fig = plt.figure(figsize=(12.0, 6.4))
     fig.patch.set_facecolor("#0b0d12")
-    ax_a = fig.add_axes([0.02, 0.06, 0.40, 0.84])
+    # The fingerprint panel appears only when a stream is being followed.
+    # An x86 run has nothing to compare itself against, and adding an empty
+    # panel to it would change the two clips D-388 records.
+    if follow:
+        ax_a = fig.add_axes([0.02, 0.26, 0.40, 0.64])
+        ax_f = fig.add_axes([0.02, 0.04, 0.40, 0.18])
+    else:
+        ax_a = fig.add_axes([0.02, 0.06, 0.40, 0.84])
+        ax_f = None
     ax_r = fig.add_axes([0.48, 0.52, 0.50, 0.38])
     ax_m = fig.add_axes([0.48, 0.09, 0.50, 0.33])
 
@@ -291,22 +308,72 @@ def run(args):
         writer = PillowWriter(fps=args["fps"])
         writer.setup(fig, args["save"], dpi=args["dpi"])
 
+    # --- fingerprint panel (P-25 §3.4) ---------------------------------
+    # The only part of this picture that is evidence rather than
+    # illustration.  The x86 column is SRS Section 8.4's recorded value out
+    # of tools/goldfp.py; the other column is the ONFSE fingerprint of the
+    # stream being followed.  Nothing here is recomputed at draw time, and a
+    # disagreement is DRAWN, in red, rather than dropped.
+    fp_rows = []
+    fp_text = None
+    if ax_f is not None:
+        ax_f.set_facecolor("#0b0d12")
+        ax_f.set_xticks([])
+        ax_f.set_yticks([])
+        for spine in ax_f.spines.values():
+            spine.set_color("#2a3040")
+        ax_f.set_title("IR-COM-05 fingerprint  -  x86-64 golden against "
+                       "this run", color="#d6deee", fontsize=10, pad=6)
+        fp_text = ax_f.text(0.03, 0.88, "", transform=ax_f.transAxes,
+                            color="#9aa7c0", fontsize=8.5, va="top",
+                            family="monospace")
+
+    def redraw_fp():
+        if fp_text is None:
+            return
+        lines = ["%-5s %-6s %-9s %-9s %s"
+                 % ("req", "rate", "golden", "this run", "verdict")]
+        for r in fp_rows:
+            lines.append("%-5s %-6s %-9s %-9s %s"
+                         % (r["id"], r["rate"], r["gold"], r["fp"],
+                            r["verdict"]))
+        fp_text.set_text("\n".join(lines))
+        bad = any(r["verdict"] != "AGREE" for r in fp_rows)
+        fp_text.set_color("#ff5d5d" if bad else "#8ce99a")
+
+    redraw_fp()
+
     tail = Tail(stmpath)
     head = None
     ro = []
     lit = [0.0] * n
+    ucols = 0
     frames = 0
     saved = 0
     first_frame_at = None
     done = False
+    nreq = 0
+    last_data = time.time()
 
     while not done:
         got = tail.lines()
         if not got:
+            if follow:
+                # No process to poll.  The producer is a job elsewhere, so
+                # the only two ways out are the request count being reached
+                # and silence for longer than the caller allowed.
+                if time.time() - last_data > args["timeout"]:
+                    print("liveview: no new data for %d s, giving up after "
+                          "%d of %d requests"
+                          % (args["timeout"], nreq, args["requests"]))
+                    break
+                time.sleep(0.05)
+                continue
             if proc.poll() is not None and not os.path.exists(stmpath):
                 break
             time.sleep(0.004)
             continue
+        last_data = time.time()
         for line in got:
             f = line.split()
             if not f:
@@ -316,12 +383,31 @@ def run(args):
                         "dtus": int(f[4]), "k": int(f[5]),
                         "steps": int(f[6]), "seed": int(f[7]),
                         "rate": int(f[8])}
+                # D-407: a followed stream carries five requests, so each
+                # ONFSH starts a fresh picture rather than drawing the next
+                # request on top of the last one's raster and trace.
+                if traces is not None:
+                    for tr in traces:
+                        tr.remove()
+                    lit = [0.0] * n
+                    del ro[:]
+                    ucols = 0
+                    del rx[:]
+                    del ry[:]
+                    tx = []
+                    ax_r.set_xlim(0, head["steps"] * head["dtus"] / 1000.0)
+                    ax_m.set_xlim(0, head["steps"] * head["dtus"] / 1000.0)
                 ty = [[] for _ in range(head["nr"])]
                 traces = [ax_m.plot([], [], linewidth=1.2,
                                     color=c)[0]
                           for c in ("#f72585", "#b5179e")[:head["nr"]]]
             elif f[0] == "ONFSR":
-                ro = [int(x) for x in f[1:]]
+                # D-413: ONFSR repeats until nr indices have arrived, so
+                # this extends rather than replaces, and the labels are
+                # only set once the line is complete.
+                ro.extend(int(x) for x in f[1:])
+                if len(ro) < head["nr"]:
+                    continue
                 for j, idx in enumerate(ro):
                     traces[j].set_label("neuron %d" % idx)
                 leg = ax_m.legend(loc="upper left", fontsize=8,
@@ -329,23 +415,40 @@ def run(args):
                                   edgecolor="#2a3040")
                 for t in leg.get_texts():
                     t.set_color("#9aa7c0")
-            elif f[0] == "ONFSC":
+            elif f[0] == "ONFSC" or f[0] == "ONFSD":
+                # D-406.  ONFSD continues the ONFSC above it with the same
+                # chunk and step, so the only differences are where the
+                # pairs start and that the decay belongs to the chunk, not
+                # to each of its lines -- applying it twice would dim a
+                # spike that arrived on a continuation.
                 step = int(f[2])
                 ms = step * head["dtus"] / 1000.0
-                for i in range(n):
-                    lit[i] *= DECAY
-                pairs = f[4:]
+                if f[0] == "ONFSC":
+                    for i in range(n):
+                        lit[i] *= DECAY
+                    pairs = f[4:]
+                else:
+                    pairs = f[3:]
                 for a in range(0, len(pairs), 2):
                     idx, delta = int(pairs[a]), int(pairs[a + 1])
                     lit[idx] = min(1.0, lit[idx] + 0.60 * delta)
                     rx.append(ms)
                     ry.append(row[idx])
             elif f[0] == "ONFSU":
+                # D-412: ONFSU repeats until nr columns have arrived.  The
+                # frame is drawn when the LINE is complete, not when the
+                # tag is seen, or a wrapped membrane line would draw two
+                # frames for one chunk and the clock would run double.
                 step = int(f[2])
                 ms = step * head["dtus"] / 1000.0
-                tx.append(ms)
+                if ucols == 0:
+                    tx.append(ms)
                 for j, word in enumerate(f[3:]):
-                    ty[j].append(unpack_f64(word))
+                    ty[ucols + j].append(unpack_f64(word))
+                ucols += len(f[3:])
+                if ucols < head["nr"]:
+                    continue
+                ucols = 0
                 if thresh_line is None:
                     thresh_line = ax_m.axhline(
                         args["uth"], color="#ff9f1c", linewidth=0.9,
@@ -385,23 +488,65 @@ def run(args):
                 else:
                     plt.pause(0.001)
             elif f[0] == "ONFSE":
-                done = True
+                nreq += 1
+                if ax_f is not None:
+                    rate = head["rate"] if head else -1
+                    gold = goldfp.SREXT.get(rate)
+                    fp = f[3]
+                    fp_rows.append({
+                        "id": goldfp.SREXT_ID.get(rate, "-"),
+                        "rate": str(rate),
+                        "gold": gold or "-",
+                        "fp": fp,
+                        "verdict": ("AGREE" if gold == fp
+                                    else "no golden" if gold is None
+                                    else "DIFFERS"),
+                    })
+                    redraw_fp()
+                    if writer is not None:
+                        # Hold the completed request on screen for a beat,
+                        # so the panel is readable in the recording rather
+                        # than flashing past between requests.
+                        for _ in range(args["fps"]):
+                            writer.grab_frame(
+                                facecolor=fig.get_facecolor())
+                            saved += 1
+                if nreq >= args["requests"]:
+                    done = True
 
-    engine_exit_at = None
-    rc = proc.wait()
-    engine_exit_at = time.time() - t0
+    if follow:
+        rc, engine_exit_at = 0, time.time() - t0
+    else:
+        rc = proc.wait()
+        engine_exit_at = time.time() - t0
     if writer is not None:
         writer.finish()
 
     print("liveview: %d chunks received, %d frames drawn, %d recorded"
           % (frames, frames, saved if args["save"] else frames))
-    print("liveview: first frame at +%.2f s, engine exited at +%.2f s "
-          "(rc %d)" % (first_frame_at or -1.0, engine_exit_at, rc))
-    if first_frame_at is not None and first_frame_at < engine_exit_at:
-        print("liveview: frames were drawn while the engine was still "
-              "running -- this is the live path of D-128, not a replay")
+    if follow:
+        # The liveness claim for a followed stream is NOT this file's to
+        # make.  This process only knows when bytes reached it, which says
+        # nothing about whether the producer had finished writing them.
+        # tools/mvsstm.py owns that measurement, because it is the thing
+        # that can see the job's END banner.
+        print("liveview: followed %s, %d of %d requests seen in %.1f s"
+              % (stmpath, nreq, args["requests"], engine_exit_at))
+        for r in fp_rows:
+            print("liveview:   %-5s rate %-5s golden %s  this run %s  %s"
+                  % (r["id"], r["rate"], r["gold"], r["fp"], r["verdict"]))
+        if fp_rows and all(r["verdict"] == "AGREE" for r in fp_rows):
+            print("liveview: every fingerprint matches Section 8.4")
+        elif fp_rows:
+            print("liveview: WARNING a fingerprint DIFFERS from Section 8.4")
     else:
-        print("liveview: WARNING no frame preceded the engine's exit")
+        print("liveview: first frame at +%.2f s, engine exited at +%.2f s "
+              "(rc %d)" % (first_frame_at or -1.0, engine_exit_at, rc))
+        if first_frame_at is not None and first_frame_at < engine_exit_at:
+            print("liveview: frames were drawn while the engine was still "
+                  "running -- this is the live path of D-128, not a replay")
+        else:
+            print("liveview: WARNING no frame preceded the engine's exit")
     if args["save"]:
         print("liveview: wrote %s (%d bytes)"
               % (args["save"], os.path.getsize(args["save"])))
@@ -422,15 +567,20 @@ def main(argv):
             "network": NETFILE, "rate": 200, "ms": 1000, "seed": 1,
             "k": K_DEMO, "save": None, "fps": 20, "dpi": 72,
             "every": 1, "order": "body",
+            # D-408 / P-25 §3.3.  --follow names a stream SOMEONE ELSE is
+            # writing, so no engine is launched here at all.  That is what
+            # lets tools/mvsstm.py drive TK5 without this file knowing how,
+            # and lets this file draw without knowing who produced the run.
+            "follow": None, "requests": 1, "timeout": 900,
             "uth": 7.0}
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a in ("--engine", "--network", "--save", "--order"):
+        if a in ("--engine", "--network", "--save", "--order", "--follow"):
             args[a[2:]] = argv[i + 1]
             i += 2
         elif a in ("--rate", "--ms", "--seed", "--k", "--fps", "--dpi",
-                   "--every"):
+                   "--every", "--requests", "--timeout"):
             args[a[2:]] = int(argv[i + 1])
             i += 2
         elif a == "--help":
@@ -447,10 +597,17 @@ def main(argv):
         sys.stderr.write("liveview: --order must be 'body' or 'index', "
                          "not %r\n" % args["order"])
         return 2
-    if not os.path.exists(args["engine"]):
+    if args["follow"] is None and not os.path.exists(args["engine"]):
         sys.stderr.write("liveview: no engine at %s\n"
                          "  build one with: mingw32-make eng\n"
                          % args["engine"])
+        return 2
+    if args["follow"] is not None and args["save"] is None:
+        # Rejected rather than defaulted.  A followed stream is written by
+        # a job on another machine and there is nothing to wait for
+        # interactively; a window that opened and closed would look like a
+        # failure.  --save makes the run produce something that outlives it.
+        sys.stderr.write("liveview: --follow needs --save FILE.gif\n")
         return 2
     try:
         # u_th comes from the network header, never from a constant here.
