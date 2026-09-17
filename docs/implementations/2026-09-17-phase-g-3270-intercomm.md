@@ -6,7 +6,7 @@
 | Author | ONFLY engineering (with the owner deciding, through AskUserQuestion) |
 | Phase / gate | G (second MVP), second component |
 | Owner decisions relied on | D-424 (scope), D-425 (commit and push), D-426 (the transaction starts a run), D-427 (tables may be replaced, with backups), D-428 (P-30 is the plan of record), D-429 (`SUGR` starts, `BUZZ` shows), D-430 (slice 5 asserts G-16), D-431 (the subsystem is bound into the core), D-432 (backups in an ONFLY-owned dataset) |
-| Requirements touched | FR-BAT-01, FR-BAT-04, FR-BAT-06, IR-JCL-02, IR-JCL-03, IR-COM-01, C-03, C-04, D-93, D-132 |
+| Requirements touched | FR-BAT-01 (the job the terminal starts is its three steps), FR-BAT-04 (the screen is checked against its report), IR-JCL-02 (the control card the subsystem writes), IR-JCL-03 (the response record and its request echo), IR-COM-01 (the layout is expanded, not restated), C-03 (MVT dialect), C-04 (`ONFLYTX`, seven characters), TX-07 (new). Section 3.7 is informative and supplies the verb names; **FR-BAT-06 is not touched** -- it names the *batch* jobs and the transaction's job is `ONFTX`. |
 | Open items closed | none |
 
 ## 1. Problem / motivation
