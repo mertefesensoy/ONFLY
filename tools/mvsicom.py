@@ -688,8 +688,19 @@ def stop(timeout=300, poll=4.0):
             sys.stdout.write("mvsicom: %s ended\n" % JOBNAME)
             return True
         time.sleep(poll)
-    sys.stdout.write("mvsicom: %s still running %d s after the reply\n"
-                     % (JOBNAME, timeout))
+    # A SECOND INSTANCE IS NOT A FAILED SHUTDOWN, AND SAYING SO
+    # MATTERS.  JES2 holds a job whose name duplicates one already
+    # executing -- `$HASP301 ... DUPLICATE JOB NAME - JOB DELAYED` --
+    # and releases it the moment the first ends.  So a stray second
+    # submission makes this loop watch a region that ended, be
+    # replaced by the one JES2 had been holding, and time out.
+    # Measured 2026-09-17: the caller concluded the shutdown had
+    # failed and would have built against a running region.
+    sys.stdout.write(
+        "mvsicom: %s is still executing %d s after the reply.  If a "
+        "second one was submitted while the first was up, JES2 held "
+        "it and has now released it: reply again.\n"
+        % (JOBNAME, timeout))
     return False
 
 

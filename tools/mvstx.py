@@ -58,6 +58,18 @@ RPT_RE = re.compile(r"READOUT\s+(\d+)\s+ID=\s*(\d+)\s+(\S+)\s+"
                     r"LAT-US=\s*(-?\d+)\s+SPIKES=\s*(\d+)")
 
 
+def say(text):
+    """Print and flush.
+
+    This tool waits minutes on a mainframe, and Python block-buffers
+    stdout when it is a file rather than a terminal -- so an
+    unflushed run shows nothing at all until it exits, and there is
+    no way to tell "waiting" from "hung".  Measured 2026-09-17.
+    """
+    sys.stdout.write("%s\n" % text)
+    sys.stdout.flush()
+
+
 def command_text(rate, ms, seed):
     """What the operator types.  Fixed columns, as the subsystem reads."""
     return "SUGR,%04d,%04d,%09d" % (rate, ms, seed)
@@ -121,31 +133,31 @@ def report_rows(rate, ms, seed, jobname="ONFTX"):
 def run(rate, ms, seed, timeout, keep):
     want, gid = golden_for(rate, ms, seed)
     cmd = command_text(rate, ms, seed)
-    print("mvstx: request %s%s"
+    say("mvstx: request %s%s"
           % (cmd, (" (%s, golden %s)" % (gid, want)) if want else
              " (no Section 8.4 comparand; reported, not asserted)"))
 
     started_here = False
     if not mvsicom.running():
         if not mvsicom.start(timeout=300):
-            print("mvstx: the region did not come up")
+            say("mvstx: the region did not come up")
             return 1
         started_here = True
     else:
-        print("mvstx: the region is already running")
+        say("mvstx: the region is already running")
 
     dev = mvsicom.free_device()
     if dev is None:
-        print("mvstx: no free 3270; every local unit is allocated")
+        say("mvstx: no free 3270; every local unit is allocated")
         return 1
-    print("mvstx: device %s" % dev)
+    say("mvstx: device %s" % dev)
 
     got_fp, rows, waited = None, [], 0.0
     t0 = time.time()
     with ic3270.Session(device=dev, settle=3) as s:
         s.logon("INTERCOM")
         started = s.command(cmd)
-        print("mvstx: %s" % screen_text(started)[:76])
+        say("mvstx: %s" % screen_text(started)[:76])
         deadline = time.time() + timeout
         while time.time() < deadline:
             time.sleep(POLL)
@@ -156,15 +168,15 @@ def run(rate, ms, seed, timeout, keep):
                 got_fp = m.group(1)
                 rows = [t.groups() for t in ROW_RE.finditer(text)]
                 waited = time.time() - t0
-                print("mvstx: the result came back after %.0f s" % waited)
+                say("mvstx: the result came back after %.0f s" % waited)
                 for r in shown:
                     if r.strip():
-                        print("   |%s" % r[:78])
+                        say("   |%s" % r[:78])
                 break
-            print("mvstx: %s" % text[:70])
+            say("mvstx: %s" % text[:70])
 
     if got_fp is None:
-        print("mvstx: no result within %d s" % timeout)
+        say("mvstx: no result within %d s" % timeout)
         if started_here and not keep:
             mvsicom.stop()
         return 1
@@ -174,21 +186,21 @@ def run(rate, ms, seed, timeout, keep):
     if want:
         good = got_fp == want
         ok = ok and good
-        print("mvstx: fingerprint %s %s %s (%s)"
+        say("mvstx: fingerprint %s %s %s (%s)"
               % (got_fp, "==" if good else "!=", want, gid))
     else:
-        print("mvstx: fingerprint %s, reported only" % got_fp)
+        say("mvstx: fingerprint %s, reported only" % got_fp)
 
     rpt, rpt_fp = report_rows(rate, ms, seed)
     if rpt:
         same_fp = (rpt_fp == got_fp)
         ok = ok and same_fp
-        print("mvstx: printed report fingerprint %s %s the screen's"
+        say("mvstx: printed report fingerprint %s %s the screen's"
               % (rpt_fp, "matches" if same_fp else "DIFFERS from"))
         for n, rid, name, lat, spk in rpt:
             match = [r for r in rows if r[0].lstrip("0") == n.lstrip("0")]
             if not match:
-                print("mvstx: report readout %s has no screen row" % n)
+                say("mvstx: report readout %s has no screen row" % n)
                 ok = False
                 continue
             srow = match[0]
@@ -196,16 +208,16 @@ def run(rate, ms, seed, timeout, keep):
             good = (srow[1].lstrip("0") or "0") == (rid.lstrip("0") or "0") \
                 and int(slat) == int(lat) and int(srow[4]) == int(spk)
             ok = ok and good
-            print("mvstx: readout %s %s  report id=%s %s lat=%s spikes=%s"
+            say("mvstx: readout %s %s  report id=%s %s lat=%s spikes=%s"
                   % (n, "agrees" if good else "DISAGREES",
                      rid, name, lat, spk))
     else:
-        print("mvstx: no printed report found to cross-check against")
+        say("mvstx: no printed report found to cross-check against")
         ok = False
 
     if started_here and not keep:
         mvsicom.stop()
-    print("mvstx: %s" % ("PASS" if ok else "FAIL"))
+    say("mvstx: %s" % ("PASS" if ok else "FAIL"))
     return 0 if ok else 1
 
 
