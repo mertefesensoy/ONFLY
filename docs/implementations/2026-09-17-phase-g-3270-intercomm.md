@@ -165,6 +165,19 @@ answered `$HASP301 ONFTX - DUPLICATE JOB NAME - JOB DELAYED`. Each
 submission now ends with a `/*EOF` card, which is what tells the
 internal reader that the job is complete.
 
+**The internal reader's spool accumulates, and `/*EOF` alone does not
+fix it.** The first attempt added a `/*EOF` card to end each job; one
+entry then produced *two* jobs, the card submitting one and the `CLOSE`
+re-submitting the same content. The reader is therefore opened once and
+never closed: `/*EOF` ends each job, the file stays open for the
+region's life, and the DD is `RECFM=F,LRECL=80,BLKSIZE=80` so every
+card reaches the spool as it is written and nothing waits for a `CLOSE`
+that never comes. This one is worth its paragraph because the harmless
+case hides the harmful one — a duplicate carrying the *same* request
+produces the same answer and looks like nothing happened, while a
+duplicate carrying an *older* request overwrites the response dataset
+with the wrong result, which is what VL-132's run was reading.
+
 **And one in the tooling.** A second region submitted while the first
 is up is held by JES2 on its duplicate name and released the instant
 the first ends — so `stop()` watched a region end, be replaced by the
