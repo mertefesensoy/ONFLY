@@ -825,6 +825,17 @@ mvsrun:
 # ever drifted back to the card reader, the two rows would differ in
 # transport as well as compiler and nothing would say so.  Pure Python;
 # no Hercules.
+#
+# D-458 ... D-465 widened it to BOTH halves of the suite.  The tool used
+# to refuse --net, and the refusal named what it guarded: the wrong
+# network under the right job name.  That refusal is gone, so what
+# stands in its place is here -- the deck for each network asserted to
+# name its own job, its own request and response datasets and its own
+# ONFNET, mvsjcc.check_names() shown to REFUSE a crossed-over one, and
+# BOTH recordings required to be present and to match the Section 8.4
+# fingerprints.  Requiring both is the point: a test that skipped a
+# missing recording would let the `path` half rot out of the repository
+# exactly as silently as it was absent before D-458 (D-464).
 mvsjcc:
 	$(PYTHON) tests/run_mvsjcc.py
 

@@ -384,7 +384,11 @@ def _inside(label, par):
 # carrying the step name, the program and the return code. That is a
 # better progress signal than anything the x86 side has, because it
 # reports outcomes and not merely activity.
-MVS_JOBS = ("BUZZ", "SUGR", "ONFTX04", "ONFPRUN", "ONFERUN", "ONFJRUN")
+# ONFJPRUN is row 7's `path` half (D-462).  It is listed separately
+# rather than caught by ONFJRUN, because these are matched as whole job
+# names and "ONFJRUN" is not a prefix of "ONFJPRUN".
+MVS_JOBS = ("BUZZ", "SUGR", "ONFTX04", "ONFPRUN", "ONFERUN", "ONFJRUN",
+            "ONFJPRUN")
 
 
 def _tk5_log():

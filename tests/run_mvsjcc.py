@@ -157,13 +157,117 @@ def main():
           len(parm) == 1 and want in parm[0],
           parm[0].strip() if parm else "no PARM card")
     check("the response dataset is row 7's own, not row 6's",
-          mvsjcc.JRSP_DSN != mvsrun.RSP_DSN
-          and any(mvsjcc.JRSP_DSN in c for c in g7),
-          "%s vs %s" % (mvsjcc.JRSP_DSN, mvsrun.RSP_DSN))
+          mvsjcc.jcc_rsp_dsn() != mvsrun.RSP_DSN
+          and any(mvsjcc.jcc_rsp_dsn() in c for c in g7),
+          "%s vs %s" % (mvsjcc.jcc_rsp_dsn(), mvsrun.RSP_DSN))
     check("SCRATCH2 deletes it first, so the job reruns",
-          any(c.startswith("//D1") and mvsjcc.JRSP_DSN in c
+          any(c.startswith("//D1") and mvsjcc.jcc_rsp_dsn() in c
               and "DISP=(MOD,DELETE)" in c for c in run),
           "DISP=(MOD,DELETE)")
+
+    # --- both halves of the suite, and nothing crossed over ----------
+    # D-458 made the `path` half row 7's scope and D-462 gave each
+    # network its own job name and response dataset.  Until then this
+    # tool REFUSED --net, and the refusal named the failure it was
+    # guarding: the wrong network under the right job name -- a run that
+    # costs hours of TK5 and whose listing nobody can trust, because the
+    # evidence of which network it read is the thing that went wrong.
+    #
+    # The refusal is gone, so these checks are what stands in its place.
+    # Every one of them fails if any name leaks between the two halves.
+    seen = {}
+    for name in sorted(mvsjcc.JCC_NAMES):
+        mvsrun.select(name)
+        deck_n = mvsjcc.run_deck()
+        go_n = go_cards(deck_n)
+        job_n = mvsjcc.jcc_job()
+        rsp_n = mvsjcc.jcc_rsp_dsn()
+        seen[name] = (job_n, rsp_n, mvsrun.NET_DSN, mvsrun.REQ_DSN)
+
+        check("%s: the job card names %s" % (name, job_n),
+              deck_n[0].startswith("//%-8s JOB" % job_n),
+              deck_n[0][:40])
+        check("%s: GO reads its own network %s" % (name, mvsrun.NET_DSN),
+              any("//ONFNET   DD DSN=%s,DISP=SHR" % mvsrun.NET_DSN == c
+                  for c in go_n),
+              mvsrun.NET_DSN)
+        check("%s: GO reads its own requests %s" % (name, mvsrun.REQ_DSN),
+              any("//ONFREQ   DD DSN=%s,DISP=SHR" % mvsrun.REQ_DSN == c
+                  for c in go_n),
+              mvsrun.REQ_DSN)
+        check("%s: GO writes its own response %s" % (name, rsp_n),
+              any(c.startswith("//ONFRSP   DD DSN=%s," % rsp_n)
+                  for c in go_n),
+              rsp_n)
+        check("%s: links UNIT_MEMBERS, in order" % name,
+              tuple(m for _s, m in
+                    [(s, m) for (s, m, *_r) in
+                     [tuple(e) + ((),) * (3 - len(e))
+                      for e in mvsrun._sources()]])
+              == mvsrun.UNIT_MEMBERS,
+              "%d units" % len(mvsrun.UNIT_MEMBERS))
+        try:
+            mvsub.check_cards(deck_n)
+            ok_n = True
+        except Exception as exc:                      # noqa: BLE001
+            ok_n = False
+            check("%s: deck is submittable" % name, False, str(exc))
+        if ok_n:
+            check("%s: deck is submittable" % name, True,
+                  "%d cards, longest %d"
+                  % (len(deck_n), max(len(c) for c in deck_n)))
+
+    check("the two halves share no name at all",
+          len(set(seen["srext"])) == 4 and len(set(seen["path"])) == 4
+          and not (set(seen["srext"]) & set(seen["path"])),
+          "%s vs %s" % (seen["srext"], seen["path"]))
+    check("srext keeps the names VL-93 recorded",
+          seen["srext"][0] == "ONFJRUN"
+          and seen["srext"][1].endswith(".ONFLY.JRSP"),
+          "%s / %s" % (seen["srext"][0], seen["srext"][1]))
+    check("row 7 never writes row 6's response dataset",
+          all(seen[n][1] != "%s.ONFLY.%s" % (mvsjcc.USER, s["rsp"])
+              for n in seen for s in mvsrun.NETS.values()),
+          "JRSP/JPRSP vs ERSP/PRSP")
+
+    # check_names() is the assertion the refusal became.  Prove it
+    # REFUSES, not merely that it exists: a guard that cannot fail is
+    # not a guard.  The failure mode it models is a caller that set the
+    # module globals by hand instead of going through mvsrun.select().
+    mvsrun.select("path")
+    saved = mvsrun.NET_DSN
+    try:
+        mvsrun.NET_DSN = "%s.ONFLY.ENET" % mvsjcc.USER   # srext's
+        try:
+            mvsjcc.check_names()
+            refused = False
+        except mvsjcc.JccError:
+            refused = True
+    finally:
+        mvsrun.NET_DSN = saved
+    check("check_names refuses a crossed-over network DSN", refused,
+          "path job with srext's ONFNET")
+
+    check("take_net refuses an unknown network",
+          mvsjcc.take_net(["--net", "nosuch", "--run"]) is None
+          and mvsjcc.take_net(["--net"]) is None,
+          "--net nosuch, and --net with no name")
+    # D-465.  The run job outlives its submitter, so --recover has to
+    # exist AND has to be reachable from the command line: a recover
+    # function nothing dispatches to is the same as no recover at all,
+    # and the moment it is needed is the moment it is too late to find
+    # out.  Reading the printer is checked here only as far as "it
+    # refuses cleanly when the job is not there"; what it recovers can
+    # only be judged on TK5.
+    check("--recover exists and is dispatched",
+          callable(getattr(mvsjcc, "run_recover", None))
+          and "--recover" in mvsjcc.USAGE,
+          "mvsjcc.py --recover [--out DIR]")
+    mvsrun.select("srext")
+    check("no --net leaves srext selected (D-259)",
+          mvsjcc.take_net(["--run", "--out", "x"]) == ["--run", "--out", "x"]
+          and mvsrun.NETNAME == "srext",
+          mvsrun.NETNAME)
 
     # --- the install job ---------------------------------------------
     inst = mvsrun.install_net_deck()
@@ -190,33 +294,47 @@ def main():
     # stopped agreeing with the golden suite, would otherwise be
     # noticed only the next time somebody spent ten minutes of
     # mainframe time.
-    rec = os.path.join(ROOT, "data", "phase-e", "jcc",
-                       "rsp-%s-2c.bin" % mvsrun.NETNAME)
-    ref = os.path.join(ROOT, "data", "phase-d", "x86w",
-                       "rsp-%s-2c.bin" % mvsrun.NETNAME)
-    if not os.path.isfile(rec):
-        check("the TK5 JCC recording is present", False, rec)
-    else:
+    #
+    # Both halves are required, not merely whichever happens to be on
+    # disk: the whole point of D-458 is that row 7 covers all nineteen
+    # Section 8.4 requests, and a test that quietly skipped a missing
+    # recording would let the `path` half rot out of the repository
+    # exactly as silently as it was missing before.
+    for name in sorted(mvsjcc.JCC_NAMES):
+        mvsrun.select(name)
+        rec = os.path.join(ROOT, "data", "phase-e", "jcc",
+                           "rsp-%s-2c.bin" % name)
+        ref = os.path.join(ROOT, "data", "phase-d", "x86w",
+                           "rsp-%s-2c.bin" % name)
+        if not os.path.isfile(rec):
+            check("%s: the TK5 JCC recording is present" % name,
+                  False, rec)
+            continue
         got = mvsrun.read_records(rec)
         want = mvsrun.read_records(ref)
-        check("the TK5 JCC recording is present", True,
+        check("%s: the TK5 JCC recording is present" % name, True,
               "%d bytes" % os.path.getsize(rec))
         views, _lines = mvsrun.compare_records(got, want, "ONFRSP")
-        check("row 7 == x86-64, D-261 translated identity",
+        check("%s: row 7 == x86-64, D-261 translated identity" % name,
               views["translated"] and views["binary"],
               "%d records; raw=%s binary=%s"
               % (len(got), views["raw"], views["binary"]))
+        # golden_fingerprints resolves its network at call time, so this
+        # follows the select() above; written `netname=NETNAME` in the
+        # signature it would read gold-srext-2c.txt for both halves and
+        # report fourteen records against five golden entries.
         gold = mvsrun.golden_fingerprints(
             os.path.join(ROOT, "data", "phase-d", "x86w"))
         off, bad = 20, []
         for (gid, wantfp), r in zip(gold, got):
             if r[off:off + 4].hex().upper() != wantfp:
                 bad.append(gid)
-        check("row 7 == Section 8.4 fingerprints",
+        check("%s: row 7 == Section 8.4 fingerprints" % name,
               len(gold) == len(got) and not bad,
               "%d of %d: %s..%s" % (len(got), len(gold),
                                     gold[0][0], gold[-1][0])
               if gold else "no golden entries")
+    mvsrun.select("srext")
 
     # --- the probe programs are well-formed C ------------------------
     sources = {"ddprobe": mvsjcc.ddprobe_source(), "rdrprobe": mvsjcc.RDR_SRC}

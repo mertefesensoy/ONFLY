@@ -96,12 +96,36 @@ concatenation:
     ONFRNDC   the PRNG: shifts and masks on unsigned 32-bit, the
               arithmetic NR-11 constrains
 
+BOTH HALVES OF THE SUITE
+------------------------
+Until 2026-09-18 this file ran `srext` only and refused `--net`, so row
+7 covered five of the nineteen Section 8.4 requests and none of the
+three rejection paths -- G-11's ONF201W, G-12's ONF203E and G-13's
+ONF202E are all `path` requests.  D-458 makes the `path` half the scope
+of that session and D-462 gives each network its own job name and its
+own response dataset:
+
+    srext   ONFJRUN    HERC01.ONFLY.JRSP
+    path    ONFJPRUN   HERC01.ONFLY.JPRSP
+
+`srext` keeps what VL-93 recorded and stays the default, so every
+caller that says no `--net` behaves exactly as before (D-259).
+
 Run (repository root):
 
     python tools/mvsjcc.py --probe
+    python tools/mvsjcc.py --net path --run --out data/phase-e/jcc
+    python tools/mvsjcc.py --net path --recover --out data/phase-e/jcc
+    python tools/mvsjcc.py --net path --compare data/phase-e/jcc \\
+                                                data/phase-d/x86w
+
+`--recover` is for when the submitter dies and the job does not: the
+`path` job runs for hours, and MVS keeps it and JES2 keeps its output
+regardless of what happened on the x86 side (D-465).
 """
 import io
 import os
+import re
 import sys
 import time
 
@@ -383,10 +407,44 @@ def deck(job, sources, headers, prelink=True, listing=True, title=None):
     return d
 
 
-#: Where the JCC build writes.  A dataset of its own, not ONFERSP: the
-#: GCCMVS result is the comparand row 7 is judged against, and a run that
-#: overwrote it would destroy the thing it is being compared to.
-JRSP_DSN = "%s.ONFLY.JRSP" % USER
+#: Row 7's own MVS names, one set per Section 8.4 network (D-462).
+#:
+#: Where the JCC build writes is a dataset of its own, not ONFERSP or
+#: ONFPRSP: the GCCMVS result is the comparand row 7 is judged against,
+#: and a run that overwrote it would destroy the thing it is being
+#: compared to.
+#:
+#: `srext` keeps the job name and the dataset VL-93 recorded, so that
+#: entry stays true and the JES2, printer and punch trail says which
+#: half of row 7 produced which listing without anyone having to read
+#: its contents.  `path` takes its own pair.  They live HERE and not in
+#: `tools/mvsrun.py::NETS`, which documents row 6's jobs: row 7's names
+#: belong to row 7's driver.
+JCC_NAMES = {
+    "srext": {"job": "ONFJRUN", "rsp": "JRSP"},
+    "path": {"job": "ONFJPRUN", "rsp": "JPRSP"},
+}
+
+
+def jcc_job():
+    """The job name for the network `mvsrun` is currently pointed at.
+
+    Resolved on every call, never bound at import.  `tools/mvsrun.py`
+    records the same class of bug biting twice in one session through
+    mutable-looking defaults (`write_cards`, `golden_fingerprints`): a
+    module global captured once leaves `select("path")` changing half
+    the names and not the other half, which is the wrong network
+    travelling under the right job name.
+    """
+    return JCC_NAMES[mvsrun.NETNAME]["job"]
+
+
+def jcc_rsp_dsn():
+    """The response dataset for the network `mvsrun` is pointed at.
+
+    Resolved on every call, for `jcc_job`'s reason.
+    """
+    return "%s.ONFLY.%s" % (USER, JCC_NAMES[mvsrun.NETNAME]["rsp"])
 
 #: The GO step's PARM, D-284's mechanism spelled exactly as
 #: `python tools/mvsjcc.py --ddprobe` measured it working on 2026-09-15:
@@ -396,8 +454,58 @@ JRSP_DSN = "%s.ONFLY.JRSP" % USER
 GO_PARM = "RUN //DDN:ONFNET //DDN:ONFREQ //DDN:ONFRSP"
 
 
+def check_names():
+    """Refuse a deck whose job, response dataset and network disagree.
+
+    This is what `main()`'s blanket refusal of `--net` used to stand in
+    for.  That refusal said row 7 was `srext` only and named the failure
+    mode it was guarding: *the wrong network under the right job name* --
+    a run that costs an hour of TK5 and produces a listing nobody can
+    trust, because the evidence of which network it read is exactly the
+    thing that went wrong.
+
+    D-462 removes that failure mode by construction: each network has
+    its own job name and its own response dataset, so a mismatch cannot
+    be silent.  This function is the guard restated as an assertion, so
+    that the property is checked on every deck rather than achieved by
+    a comment.  `tests/run_mvsjcc.py` exercises it for both networks
+    with no lab present (D-464).
+    """
+    if mvsrun.NETNAME not in JCC_NAMES:
+        raise JccError("no row 7 names for network %r; expected one of %s"
+                       % (mvsrun.NETNAME, sorted(JCC_NAMES)))
+    # Every name the deck will carry has to come from the SAME network.
+    # mvsrun.NET_DSN and REQ_DSN are set by mvsrun.select(); jcc_job()
+    # and jcc_rsp_dsn() read mvsrun.NETNAME.  If a caller ever set the
+    # module globals by hand instead of calling select(), these would
+    # disagree and the run would read one network and be filed under
+    # another.
+    spec = mvsrun.NETS[mvsrun.NETNAME]
+    want_net = "%s.ONFLY.%s" % (USER, spec["net"])
+    want_req = "%s.ONFLY.%s" % (USER, spec["dsn"])
+    if mvsrun.NET_DSN != want_net or mvsrun.REQ_DSN != want_req:
+        raise JccError(
+            "mvsrun is inconsistent for %r: NET_DSN=%s (want %s), "
+            "REQ_DSN=%s (want %s) -- call mvsrun.select() rather than "
+            "setting the globals"
+            % (mvsrun.NETNAME, mvsrun.NET_DSN, want_net,
+               mvsrun.REQ_DSN, want_req))
+    # The response dataset must not be any of row 6's: row 6's records
+    # are what row 7 is judged against (`run_compare`), so a run that
+    # overwrote one would destroy its own comparand.
+    rsp = jcc_rsp_dsn()
+    for other in mvsrun.NETS.values():
+        if rsp == "%s.ONFLY.%s" % (USER, other["rsp"]):
+            raise JccError("row 7 would write row 6's response dataset %s"
+                           % rsp)
+    return jcc_job(), rsp
+
+
 def run_deck():
-    """Job ONFJRUN: the same thirteen units as row 6, built by JCC.
+    """The same thirteen units as row 6, built by JCC, for one network.
+
+    The job is `ONFJRUN` for `srext` and `ONFJPRUN` for `path` (D-462);
+    `check_names()` states the invariant that keeps those straight.
 
     The source list, the defines and above all the LINK ORDER are
     tools/mvsrun.py's, taken from it by calling `_sources()` rather than
@@ -407,6 +515,8 @@ def run_deck():
     The GCCMVS flags in each entry's third field are ignored here: they
     are GCC spellings.  Nothing else about the entries is changed.
     """
+    job, rsp_dsn = check_names()
+
     sources = [(src, member) for (src, member, *_rest)
                in [tuple(e) + ((),) * (3 - len(e)) for e in
                    mvsrun._sources()]]
@@ -414,7 +524,7 @@ def run_deck():
     if got != mvsrun.UNIT_MEMBERS:
         raise JccError("link order changed: %s" % (got,))
 
-    d = deck("ONFJRUN", sources, mvsrun.HEADERS, prelink=True,
+    d = deck(job, sources, mvsrun.HEADERS, prelink=True,
              listing=False, title="ONFLY JCC ROW7")
     assert d[-1] == "//"
     d = d[:-1]
@@ -437,7 +547,7 @@ def run_deck():
     # otherwise fails at allocation with NOT CATLGD 2, reported nowhere
     # near the DD that caused it.
     d.append("//SCRATCH2 EXEC PGM=IEFBR14,COND=(4,LT)")
-    d.append("//D1       DD DSN=%s,DISP=(MOD,DELETE)," % JRSP_DSN)
+    d.append("//D1       DD DSN=%s,DISP=(MOD,DELETE)," % rsp_dsn)
     d.append("//            UNIT=SYSDA,SPACE=(TRK,(1,1))")
     d.append("//*")
     d.append("//GO       EXEC PGM=*.LKED.SYSLMOD,COND=(4,LT),")
@@ -453,13 +563,13 @@ def run_deck():
     # is what keeps the compiler the only difference between them.
     d.append("//ONFNET   DD DSN=%s,DISP=SHR" % mvsrun.NET_DSN)
     d.append("//ONFREQ   DD DSN=%s,DISP=SHR" % mvsrun.REQ_DSN)
-    d.append("//ONFRSP   DD DSN=%s,DISP=(,CATLG,DELETE)," % JRSP_DSN)
+    d.append("//ONFRSP   DD DSN=%s,DISP=(,CATLG,DELETE)," % rsp_dsn)
     d.append("//            UNIT=SYSDA,SPACE=(TRK,(2,1)),")
     d.append("//            DCB=(RECFM=FB,LRECL=412,BLKSIZE=4120)")
     d.append("//*")
     d.append("//DUMP     EXEC PGM=IDCAMS,COND=(8,LT)")
     d.append("//SYSPRINT DD SYSOUT=*")
-    d.append("//ONFRSP   DD DSN=%s,DISP=SHR" % JRSP_DSN)
+    d.append("//ONFRSP   DD DSN=%s,DISP=SHR" % rsp_dsn)
     d.append("//SYSIN    DD *")
     d.append("  PRINT INFILE(ONFRSP) DUMP")
     d.append("/*")
@@ -805,40 +915,96 @@ def run_rdrprobe(argv):
     return 0
 
 
-def run_run(argv):
-    """Submit ONFJRUN and recover what it wrote.
+#: How long `--run` waits for JES2's END banner.
+#:
+#: Four hours, not the two this carried while row 7 was `srext` only.
+#: The `path` half is fourteen requests on a 913-neuron network instead
+#: of five on a 501-neuron one, and row 6 ran exactly that work TWICE
+#: with its GO step costing `CPU 63 min 04.79 s` on a quiet host
+#: (ONFPRUN JOB 279) and `CPU 157 min 52.69 s` on one shared with the
+#: full-brain campaign (JOB 308) -- the same job, the same engine, the
+#: same fourteen requests, two and a half times apart.  JCC's code is
+#: 0.874x GCCMVS's cost on the identical `srext` work, so the honest
+#: upper bound here is over two hours of GO alone plus thirteen
+#: compiles, a PRELINK and a link.
+#:
+#: The cost of this being too small is not a retry: `collect` returns
+#: None and the listing is lost AFTER the CPU has already been spent.
+RUN_TIMEOUT = 14400
 
-    The network reaches the GO step exactly as it reaches row 6's: on
-    cards, through the reader device, loaded with `devinit` before the
-    job is submitted (Gate G2's winning transport, D-150).  Reading it
-    the same way is deliberate -- row 7 is meant to differ from row 6 in
-    the compiler and in nothing else.
+
+def run_run(argv):
+    """Submit the run job and recover what it wrote.
+
+    The job is `ONFJRUN` for `srext` and `ONFJPRUN` for `path` (D-462).
+
+    The network reaches the GO step exactly as it reaches row 6's: from
+    the catalogued dataset D-286 installed, which both rows read, so
+    that row 7 differs from row 6 in the compiler and in nothing else.
     """
     d = run_deck()
+    job = jcc_job()
     mvsub.check_cards(d)
     if "--print" in argv:
         sys.stdout.write("\n".join(d) + "\n")
         return 0
 
-    sys.stdout.write("mvsjcc: ONFJRUN, %d cards, %d translation units, "
-                     "longest %d columns, network %s from %s\n"
-                     % (len(d), len(mvsrun.UNIT_MEMBERS),
+    sys.stdout.write("mvsjcc: %s, %d cards, %d translation units, "
+                     "longest %d columns, network %s from %s, "
+                     "response to %s\n"
+                     % (job, len(d), len(mvsrun.UNIT_MEMBERS),
                         max(len(c) for c in d), mvsrun.NETNAME,
-                        mvsrun.NET_DSN))
+                        mvsrun.NET_DSN, jcc_rsp_dsn()))
 
     t0 = time.time()
     before = mvsub.submit(d)
-    out = mvsub.collect("ONFJRUN", before, timeout=7200)
+    out = mvsub.collect(job, before, timeout=RUN_TIMEOUT)
     if out is None:
-        sys.stderr.write("mvsjcc: TIMEOUT waiting for ONFJRUN\n")
+        sys.stderr.write("mvsjcc: TIMEOUT waiting for %s after %d s\n"
+                         % (job, RUN_TIMEOUT))
         return 1
-    sys.stdout.write("mvsjcc: ONFJRUN finished in %.1f s\n"
-                     % (time.time() - t0))
+    sys.stdout.write("mvsjcc: %s finished in %.1f s\n"
+                     % (job, time.time() - t0))
+    return process_run(out, argv)
+
+
+def run_recover(argv):
+    """Process a finished run job's listing straight from the printer.
+
+    D-465, and the same mechanism `tools/mvsrun.py::recover` has had
+    since Phase E.  The run job can outlive the process that submitted
+    it: `srext` is about sixteen minutes and `path` is HOURS, and a
+    submitter that is killed takes nothing with it, because MVS still
+    has the job and JES2 still has the output.
+
+    The LAST complete START/END pair is the one taken, not the first: a
+    job name that has run before appears in the printer more than once,
+    and the earlier listing is a previous run's.
+
+    Without this the only recovery is to run the job again, at another
+    one to three hours of TK5.
+    """
+    job = jcc_job()
+    text = mvsub.read_printer()
+    starts = [m.start() for m in
+              re.finditer(r"START\s+JOB\s+\d+\s+" + re.escape(job)
+                           + r"\b", text)]
+    ends = [m.end() for m in
+            re.finditer(r"END\s+JOB\s+\d+\s+" + re.escape(job) + r"\b",
+                         text)]
+    if not starts or not ends or ends[-1] < starts[-1]:
+        sys.stderr.write("mvsjcc: no completed %s in the printer "
+                         "(%d start(s), %d end(s))\n"
+                         % (job, len(starts), len(ends)))
+        return 1
+    out = text[starts[-1]:ends[-1]]
+    sys.stdout.write("mvsjcc: recovered %d characters of %s listing from "
+                     "the printer\n" % (len(out), job))
     return process_run(out, argv)
 
 
 def process_run(out, argv):
-    """Everything ONFJRUN's listing is read for."""
+    """Everything the run job's listing is read for."""
     sys.stdout.write("\n".join(mvsub.summarise(out)) + "\n")
     for n, fp in mvsrun.fingerprints(out):
         sys.stdout.write("mvsjcc: ONF301I request %d FP=%s\n" % (n, fp))
@@ -856,10 +1022,10 @@ def process_run(out, argv):
                      "IDCAMS dump\n" % len(recs))
     want = len(mvsrun.expected_records())
     if len(recs) != want or m is None:
-        sys.stderr.write("mvsjcc: ONFJRUN did not produce %d response "
+        sys.stderr.write("mvsjcc: %s did not produce %d response "
                          "records (%d recovered, ONF302I %s); nothing "
                          "written\n"
-                         % (want, len(recs),
+                         % (jcc_job(), want, len(recs),
                             "absent" if m is None else "present"))
         return 1
     if outdir:
@@ -869,7 +1035,10 @@ def process_run(out, argv):
         with open(path, "wb") as f:
             for r in recs:
                 f.write(r)
-        lst = os.path.join(outdir, "ONFJRUN.txt")
+        # Named for the job, so the listing on disk says which half of
+        # row 7 produced it -- the same reason D-462 gives the two
+        # halves different job names in the first place.
+        lst = os.path.join(outdir, "%s.txt" % jcc_job())
         io.open(lst, "w", encoding="ascii", errors="replace",
                 newline="").write(out.replace("\r\n", "\n"))
         sys.stdout.write("mvsjcc: wrote %s (%d bytes) and %s\n"
@@ -928,22 +1097,55 @@ def run_compare(argv):
     return 0 if ok else 1
 
 
-USAGE = ("usage: python tools/mvsjcc.py --probe | --ddprobe | --ccprobe "
-         "| --rdrprobe | --mini <which> | --run [--out DIR] "
+USAGE = ("usage: python tools/mvsjcc.py [--net srext|path] --probe "
+         "| --ddprobe | --ccprobe | --rdrprobe | --mini <which> "
+         "| --run [--out DIR] | --recover [--out DIR] "
          "| --compare <jccdir> <refdir>")
 
 
+def take_net(argv):
+    """Consume a leading `--net NAME` and point `mvsrun` at it.
+
+    Until 2026-09-18 this file REFUSED --net outright, because row 7 was
+    the `srext` half of Section 8.4 and nothing else, and because
+    tools/mvsrun.py does take --net while the two modules share
+    `select()` state: a reader who assumed the option worked would have
+    got a job that silently ran the wrong network under the right job
+    name.  D-458 makes the `path` half this session's scope and D-462
+    gives each network its own job name and response dataset, so that
+    failure mode is gone by construction rather than by refusal.  What
+    the refusal was protecting is now asserted in `check_names()`, which
+    every deck goes through.
+
+    `srext` stays the default, so every existing caller that says no
+    --net behaves exactly as before (D-259).
+    """
+    rest = []
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--net":
+            if i + 1 >= len(argv):
+                sys.stderr.write("mvsjcc: --net needs a network name "
+                                 "(one of %s)\n" % ", ".join(
+                                     sorted(JCC_NAMES)))
+                return None
+            name = argv[i + 1]
+            if name not in JCC_NAMES:
+                sys.stderr.write("mvsjcc: unknown network %r; row 7 "
+                                 "knows %s\n"
+                                 % (name, ", ".join(sorted(JCC_NAMES))))
+                return None
+            mvsrun.select(name)
+            i += 2
+            continue
+        rest.append(argv[i])
+        i += 1
+    return rest
+
+
 def main(argv):
-    # Row 7 is `srext` only, and this file takes no --net.  Saying so
-    # here rather than leaving it implicit: tools/mvsrun.py DOES take
-    # --net, the two modules share `select()` state, and a reader who
-    # assumed the option worked would get a job that silently ran the
-    # wrong network under the right job name.  `srext` is the network
-    # the MVP ships (D-205) and the only one row 7 claims.
-    if "--net" in argv:
-        sys.stderr.write("mvsjcc: --net is not accepted; row 7 is the "
-                         "srext half of Section 8.4 (D-259, D-273). Use "
-                         "tools/mvsrun.py for the path network.\n")
+    argv = take_net(argv)
+    if argv is None:
         return 2
     if not argv:
         print(USAGE)
@@ -960,8 +1162,10 @@ def main(argv):
         return run_mini(argv[1:])
     if argv[0] == "--run":
         # D-328.  Only --run: it is the ACC-5 row 7 job, 22 steps and
-        # about 16 minutes of TK5.  The probes above finish in a minute
-        # or two and a window for one would outlive the thing it watches.
+        # about 16 minutes of TK5 for `srext` -- and one to three HOURS
+        # for `path`, which is what RUN_TIMEOUT is sized against.  The
+        # probes above finish in a minute or two and a window for one
+        # would outlive the thing it watches.
         if "--print" not in argv and "--no-window" not in argv:
             try:
                 sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -971,6 +1175,8 @@ def main(argv):
                 sys.stdout.write("mvsjcc: no progress window (%s)\n"
                                  % exc)
         return run_run(argv[1:])
+    if argv[0] == "--recover":
+        return run_recover(argv[1:])
     if argv[0] == "--compare":
         return run_compare(argv[1:])
     print(USAGE)
