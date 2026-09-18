@@ -49,19 +49,60 @@ slice 3 was producing and is *supposed* to fail until it exists.
   `RC= 0000` **within fifteen seconds**. JCC compiles far faster than
   GCCMVS, whose `COMP1` alone cost 43.54 s in the row 6 `path` job. The
   whole cost of this job is the `GO` step.
-* `GO` began 13:34:48 and was **still running at 14:34**, 59 minutes in,
-  when the shutdown was ordered. It never reached JES2's END banner, so
-  nothing was spooled to the printer and **`--recover` cannot retrieve it**:
-  `run_recover` correctly reports `0 start(s), 0 end(s)` for a job that
-  never ended.
+* `GO` began 13:34:48 and was cancelled at 14:38:55 by `/C ONFJPRUN`, giving
+  `IEF450I ONFJPRUN GO - ABEND S222 U0000`, which is the operator-cancel
+  code and not a defect.
 * `$HASP308 ONFJPRUN ESTIMATED TIME EXCEEDED` appeared at 14:33:50. **This
   is benign.** It is JES2 comparing elapsed time against the accounting
   estimate on the JOB card, `JOB (001)`, not a cancellation. The governing
   limit is `TIME=1440`, twenty-four hours. Row 6's `path` run drew the same
   message on JOB 304.
 
-The run must be repeated in full. There is no partial credit: the response
-dataset is written by the `GO` step and the step did not finish.
+The run must be repeated in full: the response dataset is written by the
+`GO` step, the step abended, and the `DUMP` step is `COND=(8,LT)` so it was
+skipped. `mvsjcc` reported `recovered 0 response records from the IDCAMS
+dump` and exited 1, correctly.
+
+### 2.1 But it did not die silently, and what it said matters
+
+The cancel spooled the job, so the listing survives and is committed as
+`data/phase-e/jcc/ONFJPRUN-partial-JOB398.txt`. Two things in it change the
+plan for the next run.
+
+**Two requests completed, and both agree with Section 8.4:**
+
+    ONF301I REQUEST 1 COMPLETE FP=6C143127        golden G-01 6C143127
+    ONF301I REQUEST 2 COMPLETE FP=5CAB2AA0        golden G-02 5CAB2AA0
+
+This is the **first JCC evidence on the `path` network in the project's
+history**, and as far as it goes it is agreement. It is not row 7 and must
+not be recorded as row 7: two of fourteen, no response records, no
+whole-record comparison under D-261, and neither of the three rejection
+paths among them.
+
+**The cost is far worse than the estimate the owner was given.**
+
+    IEF374I STEP /GO / STOP 26261.1238
+            CPU 63MIN 51.67SEC  SRB 0MIN 00.04SEC  VIRT 2568K  SYS 340K
+
+Row 6 ran **all fourteen** requests in `CPU 63 min 04.79 s` (VL-91, JOB 279).
+JCC spent **63 min 51.67 s** and reported **two**. The 0.874 factor this
+session extrapolated from `srext` is therefore **not transferable to
+`path`**, and the "55 min to 2 h 18 min" figure in the plan of record and in
+D-461 is wrong for JCC. A straight scaling over the twelve requests that
+actually simulate suggests something in the region of **six hours of GO
+CPU**, but that is an estimate from a single truncated sample and should be
+labelled as such.
+
+**One thing that is NOT established**: whether only two requests completed,
+or whether more completed and their `printf` output was still in the C
+runtime's buffer when the S222 abend discarded it. Nothing in the listing
+distinguishes those. Treat "two completed" as *two reported*.
+
+Before the next run, decide what to do about this: a six-hour job may want
+the suite split across several jobs, or the requests reordered so the three
+rejection paths (G-11, G-12, G-13), which barely simulate at all, are
+reached early. **That is an owner decision and has not been asked.**
 
 ---
 
@@ -139,11 +180,35 @@ succeeds.
 
 ## 5. Lab state at shutdown
 
-Hercules was stopped cleanly rather than killed: the in-flight job was
-cancelled and JES2 allowed to drain before MVS was quiesced, which is the
-sequence D-293 established, because a shutdown around an active initiator is
-how a 1981 operating system ends up with half-written datasets. See the
-session's closing report for the commands actually issued.
+Hercules was stopped cleanly rather than killed, in D-293's sequence,
+because a shutdown around an active initiator is how a 1981 operating
+system ends up with half-written datasets. What was issued, in order:
+
+    /C ONFJPRUN                  IEE301I ONFJPRUN CANCEL COMMAND ACCEPTED
+                                 IEF450I ONFJPRUN GO - ABEND S222 U0000
+                                 $HASP150 ONFJPRUN ON PRINTER1 11,176 LINES
+                                 $HASP250 ONFJPRUN IS PURGED
+    script scripts/shutdown      BSPRS08I - Immediate Shutdown Requested!
+                                 $HASP097 PRINTER1/2/3, PUNCH1, READER1
+                                 and LINE1..LINE4 all IS DRAINED
+                                 BSPSD999 - Shutting down MVS
+                                 stopall; sysclear completed
+                                 HHC01427I Main storage released
+                                 HHC01422I Configuration released
+
+**Cancel the job first.** The output only reached the printer because the
+job was cancelled and therefore *ended*; JES2 spools on end, not during. Had
+Hercules been killed instead, the 63 minutes of CPU would have produced
+nothing at all, including the two fingerprints in section 2.1.
+
+**`exec scripts/shutdown` does not work on this build**: it answers
+`HHC02227E Shell/Exec commands are disabled`. The working form is
+`script scripts/shutdown`, which is the Hercules script reader rather than a
+shell escape. That cost one wasted console round trip here.
+
+Verified down four ways: no `hercules` process, console port 8038 closed,
+reader port 3505 closed, and the log ending in `Configuration released`.
+No `qemu`, `runnet` or stray `python3.13` process was left behind either.
 
 `HERC01.ONFLY.JPRSP` may exist as a partial or uncatalogued dataset from the
 cancelled `GO` step. Nothing needs doing about it: `run_deck()`'s own
