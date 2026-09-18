@@ -2188,12 +2188,31 @@ def admit(jobs):
                       "reported per D-202 (VL-76)"),
             "backends": ("NATIVE, SOFT3E and SOFT2C agree bit-for-bit on "
                          "300 of 300 comparisons (VL-78)"),
-            "not_proven": ("Every result is x86-64. Nothing is proven for "
-                           "Linux s390x, MVS 3.8j or z/OS; the v1.1 header "
-                           "has never been decoded by GCCMVS. ACC-4 fails "
-                           "(VL-64, VL-65) and compares the full brain "
-                           "against Shiu, not this network. ACC-5, ACC-6 "
-                           "and ACC-7 are unevaluated on it."),
+            # D-450, D-452, D-454.  This note went stale in five clauses
+            # as Phases D and E landed, and it cannot be refreshed by
+            # re-running this module: the admission it belongs to
+            # re-derives the subcircuit, and D-269 records what a
+            # single differing byte would cost.  `prep/netman.py` amends
+            # it in place instead; this string is corrected so that an
+            # admission does not revert that amend, and
+            # `tests/test_netman.py` holds the two to the same text.
+            "not_proven": ("Nothing is proven for z/OS: Section 8.3 row "
+                           "8 is empty. ACC-1, ACC-2 and ACC-3 are "
+                           "x86-64 results (VL-76, VL-77, VL-78, VL-98, "
+                           "VL-105). ACC-4 compares the full brain "
+                           "against Shiu, not this network, and passes "
+                           "on the shape clause as amended by D-340 and "
+                           "D-341, with magnitude deviations at 10 and "
+                           "40 Hz reported, not tested (VL-112). Proven "
+                           "since this note was first written: Linux "
+                           "s390x under QEMU (D-234), and MVS 3.8j, "
+                           "where GCCMVS decoded the v1.1 header and "
+                           "both GCCMVS and JCC reproduced the five "
+                           "srext golden fingerprints: ACC-5 rows 6 and "
+                           "7 (VL-91, VL-93, VL-95, VL-96), ACC-6 PASS "
+                           "(VL-102, VL-106), ACC-7 PASS (VL-104). Row "
+                           "7 covers the five srext requests only. Both "
+                           "labs are emulators (VL-01)."),
         },
         "decisions": ["D-190", "D-191", "D-193", "D-200", "D-202", "D-205"],
         "limits": ["VL-76", "VL-77", "VL-78"],

@@ -18,9 +18,11 @@ ACC-4 as written (Section 6.4, floors from D-166):
   magnitude  each validation point is within +-25% of the reference, or
              within +-2 Hz, whichever is larger.
 
-Interpretation recorded as proposal P-11 (the SRS does not say which standard
-error): the allowed decrease from rate r_i to r_{i+1} is the standard error of
-ONFLY's own mean at r_i, sd_i / sqrt(30).
+Which standard error, fixed by D-448 (2026-09-18, adopting P-11): the
+allowed decrease from rate r_i to r_{i+1} is the standard error of
+ONFLY's own mean at r_i, sd_i / sqrt(n) over the n = 30 seeds of
+D-353.  Section 6.4's ACC-4 text now says so; until D-448 it did not,
+and this module was the only place the reading was written down.
 
 ACC-1 (qualitative feeding) and ACC-2 (silence at rate 0) are computed too,
 but ACC-1 is defined on the MVS subcircuit, so its value here is a preview of
@@ -125,6 +127,8 @@ def reeval(path):
           % os.path.basename(path))
     print("  the measurement is unchanged: %s"
           % d.get("platform", "(platform not recorded)"))
+    print("  shape clause: ONFLY's own standard error at the earlier "
+          "rate, sd/sqrt(n) (D-448)")
     print("%6s %10s %8s %8s %10s %8s %6s"
           % ("rate", "onfly", "sd", "se", "reference", "tol", "mag"))
     for r in rates:
@@ -340,7 +344,7 @@ def main():
                                  (any_spike >= 0.9 * N_SEEDS and mean > 0),
         }
 
-    # shape: no decrease beyond one SE of the earlier point (P-11)
+    # shape: no decrease beyond one SE of the earlier point (D-448)
     shape_ok = True
     decreases = []
     rates = list(VAL_RATES)
@@ -391,7 +395,9 @@ def main():
         "acc4": {"shape_pass": shape_ok, "decreases_beyond_se": decreases,
                  "onset_onfly_hz": onset_onfly, "onset_reference_hz": onset_ref,
                  "onset_pass": onset_ok, "magnitude_pass": magnitude_ok,
-                 "pass": acc4, "interpretation": "P-11"},
+                 "pass": acc4,
+                 "interpretation":
+                     "D-448 (ONFLY's own SE at the earlier rate)"},
         "acc2_x86_native": {"readout_spikes_at_rate_0": [x["spikes"]
                                                          for x in ro0],
                             "pass": acc2},

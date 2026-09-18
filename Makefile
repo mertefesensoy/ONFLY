@@ -642,6 +642,12 @@ prep:
 # shipped network index for index.  prep/geom.py itself needs the
 # gitignored annotations feather; this does not.
 	$(PYTHON) tests/test_geom.py
+# D-455: the shipped network's acceptance note is prose no code reads,
+# so a revert of it would be silent.  prep/extract.py's admission step
+# rewrites networks.srext wholesale and would drop D-452's correction;
+# this holds the manifest, the generator's own string and prep/netman.py
+# to each other.  Pure Python, no connectome, under a second.
+	$(PYTHON) tests/test_netman.py
 
 # --- TE-09: ONFLYENG, verify-only mode and the run manifest ---------------
 # The minimal engine level of D-78: the self-test, the FR-LOD-02 load checks,
