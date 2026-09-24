@@ -6,7 +6,7 @@
   "acc3_precision_note": "P-18 (D-357): 40 Hz within the reference's own precision -- margin below the reference mean's standard error over 30 seeds",
   "decision": "D-181, amended by D-289 and D-357",
   "edges": 10783,
-  "elapsed_s": 47,
+  "elapsed_s": 78,
   "need_bytes": 255688,
   "network": "onfnet-malecns-v1.0-srext.bin",
   "neurons": 501,
