@@ -1,24 +1,27 @@
 # ONFLY open-source launch and outreach, before Phase F
 
-**APPROVED as drafted by the owner on 2026-09-24 (O-5), and published in
-full in `docs/plan` at the owner's choice (O-6).** This file is the proposal
-P-40 (provisional number) records. The number is provisional because a
-parallel session holds D-468 to D-478 and P-39 on an unmerged branch (slice
-A). Approval does not start any slice early: slice A comes first, and each
+**APPROVED as drafted by the owner on 2026-09-24 (OA-5), and published in
+full in `docs/plan` at the owner's choice (OA-6).** This file is the proposal
+P-41 (provisional number) records. The number is provisional because a
+parallel session holds D-468 to D-480, P-39 and P-40 on an unmerged branch
+(slice A). Until the renumbering of 2026-09-24 this plan called itself P-40;
+that number went to the parallel branch's own proposal (D-480), so the pushed
+commits f2e4b2f, 4b1de9f, f8d2a05 and 11c074d say "P-40" in their subjects
+and mean this plan. Approval does not start any slice early: slice A comes first, and each
 open decision in Section 10 is still put to the owner and recorded as a D-row.
 
 | Field | Value |
 |---|---|
 | Date | 2026-09-24 |
-| Status | APPROVED 2026-09-24 (O-5); not started (slice A waits on the parallel session) |
-| Proposal | P-40 (provisional number; confirmed when this branch merges after the parallel session's) |
+| Status | APPROVED 2026-09-24 (OA-5); not started (slice A waits on the parallel session) |
+| Proposal | P-41 (provisional number: the next free one at the parallel branch's 00a73fb, confirmed or renumbered at slice A3; P-40 until the renumbering of 2026-09-24) |
 | Scope | Launching the already public repository github.com/mertefesensoy/ONFLY so that other people can find it, understand it truthfully and replicate what it claims, **before** Phase F. Not a phase: no phase opens or closes here. Phases A to E and G stay COMPLETE; Phase F stays blocked on IBM Z access the project does not have; Phase H stays blocked on TBD-13 |
-| Authorising owner answers | O-1 (scrub forward only), O-2 (rewrite the IBM summary as a public overview), O-3 (neutral term plus a decision row), O-4 (all four audiences, sequenced by this plan), O-5 (plan approved), O-6 (published in full), O-7 (commit and push the working branch), O-8 and O-9 (the two no-access confirmations of 3.2), O-10 (Wave -1 scope for the IBM Community post); see 0.1 |
-| Standing decisions it obeys | D-126 (phase order A, B, C, D, E, G, F, H: the IBM Z access request is made with Phase G in hand), D-132 (no INTERCOMM-derived material enters the repository), D-50 (MaleCNS is CC BY 4.0 and needs attribution wherever it or its derivatives appear), D-62 (the repository is MIT), D-478 (every commit has one author, the owner, with no co-author or tool-attribution trailer; on the parallel branch, unmerged when this was drafted) |
+| Authorising owner answers | OA-1 (scrub forward only), OA-2 (rewrite the IBM summary as a public overview), OA-3 (neutral term plus a decision row), OA-4 (all four audiences, sequenced by this plan), OA-5 (plan approved), OA-6 (published in full), OA-7 (commit and push the working branch), OA-8 and OA-9 (the two no-access confirmations of 3.2), OA-10 (Wave -1 scope for the IBM Community post); see 0.1 |
+| Standing decisions it obeys | D-126 (phase order A, B, C, D, E, G, F, H: the IBM Z access request is made with Phase G in hand), D-132 (no INTERCOMM-derived material enters the repository), D-50 (MaleCNS is CC BY 4.0 and needs attribution wherever it or its derivatives appear), D-62 (the repository is MIT), D-478 (every commit has one author, the owner, with no co-author or tool-attribution trailer) and D-479 (no new text names the program; OA-3's neutral wording applied to new text), both on the parallel branch and unmerged |
 | Inputs | Six read-only audits of 2026-09-24 (exposure, licensing, replication, hygiene, claims, outreach), a completeness critic, and four critics of the draft. None of them ran a build or a test |
 | Platforms | None measured. Every command in Section 11 is a check to run when the work is done; items marked "to be written" do not exist yet |
 
-**What approving P-40 approves.** The plan in principle, and these
+**What approving P-41 approves.** The plan in principle, and these
 build-system changes, each of which still lands only with its slice's owner
 check: a `requirements.txt`; a Linux x86-64 `ONFPLAT` value and a branch in
 `engine/include/onfplat.h`; Makefile targets `namelint`, `test-nonet` and
@@ -31,23 +34,30 @@ directory with CI. The owner may instead approve slice by slice.
 
 ## 0.1 The owner answers this plan rests on
 
-Given on 2026-09-24 through AskUserQuestion and recorded here as O-1 to O-10.
-They are **not yet D-rows**: at slice A3, before any code that depends on
-them, each becomes its own row in Appendix A.1 with the next free number after
-D-478, and P-40 enters Appendix A.2 struck as approved by O-5's row.
+Given on 2026-09-24 through AskUserQuestion and recorded here as OA-1 to OA-10
+("owner answer"). They were numbered O-1 to O-10 until the renumbering of
+2026-09-24, and commits f2e4b2f to f2fa6cb, the status snapshot of that day and
+the website repository's post record cite them that way. They were renamed
+because SRS Section 8.2 already uses O-1 to O-5 for the oracles. They are **not
+yet D-rows**: at slice A3, before any code that depends on them, each becomes
+its own row in Appendix A.1 with the next free numbers at merge time (D-481
+onward as of 00a73fb), and P-41 enters Appendix A.2 struck as approved by
+OA-5's row. Where D-479 already records part of an answer (OA-1's forward-only
+scrub and OA-3's wording for new text), the new rows cite it rather than
+repeat it.
 
 | ID | Question | Answer | Alternatives offered |
 |---|---|---|---|
-| O-1 | Git history that names the hosted IBM Z access program | **Scrub forward only.** Replace the name in current files and add a guard so it cannot return. History is not rewritten | A fresh public repository with the old one private; a filter-repo rewrite and force-push |
-| O-2 | `ONFLY-IBM-Summary.md` and `.docx` | **Rewrite as a public overview** with no access request and no program name | Remove it and keep it private; keep it and scrub the name |
-| O-3 | SRS rows that name the program | **Neutral term plus a decision.** Replace the name in place with wording such as "a hosted IBM Z environment", and record the wording policy as a new D-row that does not name the program | Visible redaction marks; free rewrite of the rows |
-| O-4 | Audiences | **All four, sequenced by this plan:** neuroscience and connectomics researchers; mainframe hobbyists (Hercules, TK5); the IBM Z and open mainframe community; general developers | Not recorded |
-| O-5 | Approve this plan (P-40)? | **Approve** as drafted | Change; discuss first |
-| O-6 | Where the plan lives, given that it describes surfaces outside the repository and the scrub | **All public in `docs/plan`**, following the project's convention | Full plan private in the gitignored `local/` with a short public version (the engineer's recommendation); all private until slice B lands |
-| O-7 | Git in the drafting session | **Commit, and push the working branch** `claude/project-status-cee560`; `main` is not touched and `docs/ONFLY-SRS.md` is not edited while the parallel session holds it | Commit locally without pushing (the engineer's recommendation); no git changes |
-| O-8 | Plan 3.2 confirmation (1): has any ONFLY code, JCL, COBOL, data or prototype ever been built, uploaded or run on an IBM Z system, under any account held now or before? | **No.** The only mainframe environment ONFLY has run on is MVS 3.8j emulated by Hercules on the owner's laptop, which comes before any IBM Z system and involves no IBM Z account | Asked as a yes or no confirmation |
-| O-9 | Plan 3.2 confirmation (2): an active IBM Z account of any kind today? | **None.** The wording "the project does not have IBM Z access yet" stands | An account not usable for ONFLY; an account whose terms might allow project work |
-| O-10 | Wave -1 scope for the live IBM Community post | **Two facts and the name only**, in one save: the acceptance-criteria paragraph (with a one-line dated correction) and the synapse count, both contradicted by the SRS (D-202, D-340, D-341; VL-13, D-56), and the program's name replaced silently. The title, SEO description, CICS paragraph, caption, bio, disclosure line and the discussion thread stay as they are; for 7.1 rule 6 they count as accepted by the owner. The exact edits are kept in the owner's private notes. **Applied by the owner on 2026-09-24 and verified live the same day** by an anonymous fetch: all four edits present word for word, the name absent, no moderation hold | The full rewrite drafted first; the two facts only; leave the post unchanged |
+| OA-1 | Git history that names the hosted IBM Z access program | **Scrub forward only.** Replace the name in current files and add a guard so it cannot return. History is not rewritten | A fresh public repository with the old one private; a filter-repo rewrite and force-push |
+| OA-2 | `ONFLY-IBM-Summary.md` and `.docx` | **Rewrite as a public overview** with no access request and no program name | Remove it and keep it private; keep it and scrub the name |
+| OA-3 | SRS rows that name the program | **Neutral term plus a decision.** Replace the name in place with wording such as "a hosted IBM Z environment", and record the wording policy as a new D-row that does not name the program | Visible redaction marks; free rewrite of the rows |
+| OA-4 | Audiences | **All four, sequenced by this plan:** neuroscience and connectomics researchers; mainframe hobbyists (Hercules, TK5); the IBM Z and open mainframe community; general developers | Not recorded |
+| OA-5 | Approve this plan (then numbered P-40, now P-41)? | **Approve** as drafted | Change; discuss first |
+| OA-6 | Where the plan lives, given that it describes surfaces outside the repository and the scrub | **All public in `docs/plan`**, following the project's convention | Full plan private in the gitignored `local/` with a short public version (the engineer's recommendation); all private until slice B lands |
+| OA-7 | Git in the drafting session | **Commit, and push the working branch** `claude/project-status-cee560`; `main` is not touched and `docs/ONFLY-SRS.md` is not edited while the parallel session holds it | Commit locally without pushing (the engineer's recommendation); no git changes |
+| OA-8 | Plan 3.2 confirmation (1): has any ONFLY code, JCL, COBOL, data or prototype ever been built, uploaded or run on an IBM Z system, under any account held now or before? | **No.** The only mainframe environment ONFLY has run on is MVS 3.8j emulated by Hercules on the owner's laptop, which comes before any IBM Z system and involves no IBM Z account | Asked as a yes or no confirmation |
+| OA-9 | Plan 3.2 confirmation (2): an active IBM Z account of any kind today? | **None.** The wording "the project does not have IBM Z access yet" stands | An account not usable for ONFLY; an account whose terms might allow project work |
+| OA-10 | Wave -1 scope for the live IBM Community post | **Two facts and the name only**, in one save: the acceptance-criteria paragraph (with a one-line dated correction) and the synapse count, both contradicted by the SRS (D-202, D-340, D-341; VL-13, D-56), and the program's name replaced silently. The title, SEO description, CICS paragraph, caption, bio, disclosure line and the discussion thread stay as they are; for 7.1 rule 6 they count as accepted by the owner. The exact edits are kept in the owner's private notes. **Applied by the owner on 2026-09-24 and verified live the same day** by an anonymous fetch: all four edits present word for word, the name absent, no moderation hold | The full rewrite drafted first; the two facts only; leave the post unchanged |
 
 Two owner constraints are absolute. First, the name of the hosted IBM Z
 access program does not appear in any public documentation from now on, in
@@ -108,7 +118,7 @@ Stated as findings. Counts are at `main` (4a25639) unless marked.
 | Group | Finding | Evidence |
 |---|---|---|
 | Name exposure | **23 occurrences in 8 tracked Markdown files**, 15 in `docs/ONFLY-SRS.md` (D-01, D-23, D-296, D-437, D-442, D-444, D-458, P-34, C-07, TBD-13, 1.1, 2.3, 9.2 row F) | exposure NAME-01, replication X7, licensing LIC-01 |
-| Name exposure | **9 more inside the two tracked `.docx` files** (summary 2, SRS 7), invisible to `git grep` because they are zip archives. Re-counted for this plan with the 11.1 scan: 32 at 4a25639, 33 on the parallel branch's tip f0ec691 | exposure NAME-02 |
+| Name exposure | **9 more inside the two tracked `.docx` files** (summary 2, SRS 7), invisible to `git grep` because they are zip archives. Re-counted for this plan with the 11.1 scan: 32 at 4a25639, 33 on the parallel branch's tip f0ec691, and 32 there again at 00a73fb once D-479 neutralised D-468's occurrence | exposure NAME-02 |
 | Name exposure | **Beyond a forward scrub's reach:** two commit messages and every tree on `main`, the PR refs, the parallel session's branch pushed today, a force-pushed branch whose old commits GitHub still serves by SHA, cloned copies and likely archives. Exact references are in the owner's private notes | exposure HIST-01, critic GAP-1, GAP-2 |
 | Outreach already live | The IBM Community post and thread predate the register: the post says acceptance criteria were fixed before measurement (contradicted by D-202, D-340, D-341), its title and search description call the emulated lab a mainframe without qualification, its CICS sentence is stale since D-442, its synapse count lacks VL-13's scope, and it carries no disclosure line. The full list is in private notes | outreach critic; post record |
 | First impression | No root README; the root summary is stale, partly false and addressed to IBM | hygiene F-01, F-02; claims F-01 |
@@ -151,7 +161,7 @@ Confirmed fine: no raw MaleCNS or FlyWire data, no INTERCOMM-derived code and
 no Raincode, JCC or IBM binaries were ever committed; no secret-shaped content
 exists on any ref; no code parses the SRS, so a wording scrub breaks no test.
 
-**What forward scrubbing can and cannot do.** O-1 controls what a visitor
+**What forward scrubbing can and cannot do.** OA-1 controls what a visitor
 finds in the current tree from the day the scrub lands. It cannot un-publish
 commit messages, earlier trees, PR refs, today's branch, commits served by
 SHA, cloned copies or archives. The plan never claims the name is "gone",
@@ -189,7 +199,7 @@ yet. MVS and s390x results are emulated (Hercules, QEMU)."
 | GitHub repository description | Short form, at the end |
 | SRS 1.1, replacing the parenthetical that names the program | First sentence of the long form, citing the standing VL row of item 32 and SRS 8.3 row 8 being empty |
 | SRS 2.3 platform matrix and 9.2 row F | "not available to this project yet" |
-| `docs/overview.md` (O-2) | Long form, first section |
+| `docs/overview.md` (OA-2) | Long form, first section |
 | Release notes and outreach posts | Short or long form |
 
 It is reviewed, and changed only by a D-row, whenever anything adds a
@@ -204,7 +214,7 @@ work yet." Only if (1) is confirmed, public FAQ copy may add: "The maintainer
 has used IBM Z learning systems for coursework; ONFLY was never built or run
 on them."
 
-**Both confirmations were given on 2026-09-24 (O-8, O-9).** (1) ONFLY has
+**Both confirmations were given on 2026-09-24 (OA-8, OA-9).** (1) ONFLY has
 never touched an IBM Z system under any account: the only mainframe
 environment it has run on is MVS 3.8j emulated by Hercules on the owner's
 laptop, which is not IBM Z hardware and involves no IBM Z account. (2) The
@@ -214,7 +224,7 @@ therefore stand unchanged, and CAN-03 is usable.
 ### 3.3 Vocabulary
 
 Historical records are not rewritten for vocabulary; the name scrub is the
-one exception (O-3). If item 18 is (a), SRS Appendix F gains three entries:
+one exception (OA-3). If item 18 is (a), SRS Appendix F gains three entries:
 
 * **mainframe (in this repository's records):** the emulated System/370
   running MVS 3.8j under Hercules on an x86-64 laptop (the TK5 lab). It never
@@ -274,7 +284,7 @@ steps and G5 becomes a plain clean-clone check.
 
 | Slice | What | Reversible | Depends on |
 |---|---|---|---|
-| A | Coordinate with the parallel session, wait for its merge, number O-1 to O-4 | yes | nothing |
+| A | Coordinate with the parallel session, wait for its merge, number OA-1 to OA-10 | yes | nothing |
 | B | Name scrub, D-rows, guard | mostly (the D-rows are public record) | A |
 | C | Licence and notices | yes | B |
 | D | Truthful public surface | yes | B (parallel with C) |
@@ -293,26 +303,29 @@ to G (7.2).
 
 ### Slice A: coordinate with the parallel session
 
-The session on `claude/onfly-senior-engineer-ac25b2` holds D-468 to D-478 and
-P-39, is re-running the row 7 `path` job with a 12 h collect window (D-471;
-JOB 400 was lost and resubmitted, D-477), and will edit
-`docs/ONFLY-SRS.md` again. Its tip was 0d6fd6f at briefing and f0ec691 when
-this was drafted. Its D-468 re-introduces the program name.
+The session on `claude/onfly-senior-engineer-ac25b2` holds D-468 to D-480,
+P-39 and P-40. It re-ran the row 7 `path` job (D-471; JOB 400 was lost,
+D-477) and filled the row with JOB 402 (VL-138), and it may edit
+`docs/ONFLY-SRS.md` again before it merges. Its tip was 0d6fd6f at briefing,
+f0ec691 when this was drafted and 00a73fb at the status check of 2026-09-24.
+Its D-468 introduced the program name; D-479 neutralised that occurrence in a
+forward commit and adopted the neutral wording for all new text.
 
 | Step | Work |
 |---|---|
-| A1 | The owner tells that session, through the owner's own channel, that new text must not use the program's name |
+| A1 | The owner tells that session, through the owner's own channel, that new text must not use the program's name. **Done 2026-09-24: D-479 records it on that branch** |
 | A2 | No commit here touches `docs/ONFLY-SRS.md` until that branch has merged; this plan stays in `docs/plan/` |
-| A3 | After the merge, rebase; P-40 gets its final number; O-1 to O-4 each become a D-row (the wording policy per item 42); slice B's occurrence list is rebuilt by scan, not from the audits' line numbers |
+| A3 | After the merge, rebase; P-41 is confirmed, or renumbered if the merge took it; OA-1 to OA-10 each become a D-row with the next free numbers (the wording policy per item 42), citing D-479 where it already records part of an answer; slice B's occurrence list is rebuilt by scan, not from the audits' line numbers |
 
 **Exit:** three things. The owner confirms the parallel session is closed;
-the branch has no commit `main` lacks; D-478 is on `main`. The private memory
-files scan clean (11.14). On a hand-off instead of a merge, B4's hooks are
+the branch has no commit `main` lacks; D-480, the branch's last row at
+00a73fb, is on `main` (if the branch adds rows before merging, check its last
+row instead). The private memory files scan clean (11.14). On a hand-off instead of a merge, B4's hooks are
 not installed until that session has stopped. **Verify:**
 
     git fetch origin && git rev-list --count origin/main..origin/claude/onfly-senior-engineer-ac25b2
     git cherry origin/main origin/claude/onfly-senior-engineer-ac25b2 | grep -c '^+'
-    git show origin/main:docs/ONFLY-SRS.md | grep -c '^| D-478 '
+    git show origin/main:docs/ONFLY-SRS.md | grep -c '^| D-480 '
 
 Expected: `0`, `0` (use the second if the branch was rebased), `1`.
 
@@ -320,9 +333,9 @@ Expected: `0`, `0` (use the second if the branch was rebased), `1`.
 
 | Step | Work |
 |---|---|
-| B1 | Every occurrence 11.1 reports is replaced in place. Where the sentence states a property of that one program (C-07, D-23, the SRS 2.3 row, TBD-13, D-01), the name becomes "the hosted IBM Z environment the project plans to request". "A hosted IBM Z environment" is used only where the sentence is generic, and "the IBM Z access request" where it is about the request. Includes the merged D-468 and the frozen snapshot `docs/status/2026-09-16-status.md` |
-| B2 | `git rm ONFLY-IBM-Summary.md ONFLY-IBM-Summary.docx`: the old text is stale and partly false, so it is not edited (O-2); slice D writes the overview new. `docs/ONFLY-SRS.docx` per item 14. Zips are checked with 11.1, never with `git grep`. The root has no introduction between B and D, and nothing is announced in that window |
-| B3 | The wording-policy D-row, worded as below (one row with O-3's or separate, item 42); the slice's implementation doc uses the same wording; the old-to-new map is kept in private notes only |
+| B1 | Every occurrence 11.1 reports is replaced in place. Where the sentence states a property of that one program (C-07, D-23, the SRS 2.3 row, TBD-13, D-01), the name becomes "the hosted IBM Z environment the project plans to request". "A hosted IBM Z environment" is used only where the sentence is generic, and "the IBM Z access request" where it is about the request. Includes the frozen snapshot `docs/status/2026-09-16-status.md`; D-468 no longer needs it, because D-479 neutralised its occurrence |
+| B2 | `git rm ONFLY-IBM-Summary.md ONFLY-IBM-Summary.docx`: the old text is stale and partly false, so it is not edited (OA-2); slice D writes the overview new. `docs/ONFLY-SRS.docx` per item 14. Zips are checked with 11.1, never with `git grep`. The root has no introduction between B and D, and nothing is announced in that window |
+| B3 | The wording-policy D-row, worded as below (one row with OA-3's or separate, item 42); the slice's implementation doc uses the same wording; the old-to-new map is kept in private notes only |
 | B4 | The guard (below) |
 | B5 | A record, not work: the planning session of 2026-09-24 that drafted this plan replaced the name in the two private memory files that used it and recorded the naming rule there, so later sessions stop reintroducing it. 11.14 re-checks them |
 | B6 | Pushed at once if item 30 is (c), to end name exposure in the current tree |
@@ -423,7 +436,7 @@ entry; local checks pass; GitHub reports MIT after the push. **Verify:**
 | Step | Work |
 |---|---|
 | D1 | Root `README.md`, in order: one-paragraph description (CAN-01); the no-access statement; a status table (phases with closing D-rows; matrix rows with counts; row 8 empty); what you can reproduce, three tiers, linking `REPLICATING.md`; tested platforms (x86-64 Windows MinGW32, Linux once E4 lands; macOS and arm64 untested, reports welcome through the replication template); the limits with CAN-15; a repository map; licence, notices and the SoftFloat 2c summary; INTERCOMM is under Tetragon LLC terms with a non-commercial clause, is not included, and the 3270 demonstration cannot be reproduced from a clone; trademarks; the item 9 line; how the project is built (item 4); how to cite. One small static poster image linking to the short GIF, with alt text and the attribution caption of 7.1 |
-| D2 | `docs/overview.md` (O-2), written new from Section 5, not by editing the old summary. No request, no program name, no IBM titles beside a request. `md2docx.js` per item 14 |
+| D2 | `docs/overview.md` (OA-2), written new from Section 5, not by editing the old summary. No request, no program name, no IBM titles beside a request. `md2docx.js` per item 14 |
 | D3 | The 3.3 glossary entries in SRS Appendix F, if item 18 is (a) |
 | D4 | `docs/README.md`, a reading guide, so newcomers do not start with an 813 KB single page; short READMEs for `generated/` (committed on purpose: MVS has no Python) and `tools/` |
 | D5 | SRS front matter, each by a D-row: version and date (SRS:8-9); reader classes at SRS:23 and :117, which name "IBM reviewers" and the one-page summary; the tagline (item 16); SRS 1.1, 2.3, C-07 and 9.2 row F per 3.2; the ACC-3 margin and `acc4.json` note (item 19) |
@@ -465,7 +478,7 @@ with `ONFLY_FIXTURES` unset and `ONFLY_NOSKIP=1`. **Verify:** 11.8 and 11.9.
 | F4 | Issue templates: `bug_report.yml` (platform, compiler and version, backend, ONFnnn messages, `make test` counts); `replication_report.yml` (OS, ABI, compiler and version, backend, network SHA-256, G-01 to G-19 fingerprints, SKIP count), the route by which a stranger's result becomes a candidate matrix entry; `config.yml` pointing to the one canonical inbox (item 12); a PR template |
 | F5 | `CITATION.cff` (ONFLY, MaleCNS, Shiu et al. 2024, FlyWire; `license: MIT` with the C2 opening sentence in its abstract; affiliation per item 29), `CHANGELOG.md` seeded from the phase markers, `.mailmap` per item 36 |
 | F6 | CI (to be written) with supply-chain controls: actions pinned to full commit SHAs; `permissions: contents: read`; `persist-credentials: false` on checkout; `push` and `pull_request`, never `pull_request_target`; no secrets; `timeout-minutes` and `concurrency` per job; pip installs from `==` pins, with hashes if feasible; `gcc -v`, `python -VV` and `pip freeze` logged; Dependabot for actions; a CODEOWNERS entry for `.github/`. Jobs that must exist and pass at launch: `name-guard` (whole tree and Office files, pushed-range messages with `fetch-depth: 0`, handling an all-zero `before` SHA, counts only); `python-bare` (Python checks on a bare checkout); `nonet-linux` (`test-nonet` on ubuntu-latest, `ONFLY_NOSKIP=1`); `nonet-windows` (windows-latest MSYS2 MINGW32, which matches `x86w`'s ONFPLAT value but not its recorded toolchain). `golden` (networks verified by `fixtures.py --check` before any test) lands in G5, when networks can be downloaded |
-| F7 | Settings, all owner actions: description ending in the short statement; topics; Discussions per item 12; wiki and projects off; auto-delete head branches; social preview (if derived from MaleCNS imagery, the image itself carries "Data: MaleCNS v1.0, CC BY 4.0, modified"); default `GITHUB_TOKEN` read-only; Actions may not create or approve PRs; only GitHub-owned and listed actions allowed; approval required for workflows from outside contributors' forks; secret scanning and push protection on; a ruleset on `main` blocking force-push and deletion (O-1 rules out a rewrite, so it blocks nothing needed; it goes on after slice B) |
+| F7 | Settings, all owner actions: description ending in the short statement; topics; Discussions per item 12; wiki and projects off; auto-delete head branches; social preview (if derived from MaleCNS imagery, the image itself carries "Data: MaleCNS v1.0, CC BY 4.0, modified"); default `GITHUB_TOKEN` read-only; Actions may not create or approve PRs; only GitHub-owned and listed actions allowed; approval required for workflows from outside contributors' forks; secret scanning and push protection on; a ruleset on `main` blocking force-push and deletion (OA-1 rules out a rewrite, so it blocks nothing needed; it goes on after slice B) |
 
 **Exit:** the community profile lists every file; the four named jobs exist
 and pass on `main`. **Verify:** 11.6 and 11.10 after push.
@@ -552,7 +565,7 @@ Condensed from the claims audit. Evidence IDs are SRS rows.
 |---|---|---|---|
 | CAN-01 | "ONFLY simulates the sugar-to-feeding circuit of the male fruit fly: a 501-neuron subcircuit taken from the MaleCNS v1.0 connectome, run with the leaky integrate-and-fire model of Shiu et al. (2024) in a portable C89 engine with a COBOL batch driver." | SR-EXT-02, D-205, D-66, D-71 | Drawn from a scoped network holding 39.0% of MaleCNS synapses (VL-13); pharyngeal and taste-peg stimulus (VL-12); one fitted input term (D-205) |
 | CAN-02 | "All 19 golden requests produce identical fingerprints and response records on x86-64 (a Python reference and three C floating-point builds) and on Linux s390x under QEMU. On MVS 3.8j under Hercules with the GCCMVS compiler the fingerprints are identical, and the response records are identical byte for byte apart from one text field that MVS stores in EBCDIC. With a second MVS compiler, JCC, 5 of the 19 have been checked so far." | 8.3, VL-91, VL-95, VL-99, VL-101, VL-136, VL-137, D-261 | Update the JCC count if row 7 fills; row 8 empty; consistency, not correctness (VL-05) |
-| CAN-03 | "ONFLY has not run on IBM Z hardware, and the project does not have IBM Z access yet: every s390x and MVS result comes from emulators (QEMU and Hercules) on one x86-64 laptop." | Row 8 empty; the standing VL row (item 32) and item 2's D-row, once written; the owner's confirmations O-8 and O-9 | Usable since O-8 and O-9 (2026-09-24); revisit whenever a platform is added (3.2) |
+| CAN-03 | "ONFLY has not run on IBM Z hardware, and the project does not have IBM Z access yet: every s390x and MVS result comes from emulators (QEMU and Hercules) on one x86-64 laptop." | Row 8 empty; the standing VL row (item 32) and item 2's D-row, once written; the owner's confirmations OA-8 and OA-9 | Usable since OA-8 and OA-9 (2026-09-24); revisit whenever a platform is added (3.2) |
 | CAN-04 | "The s390x results come from Ubuntu 24.04 running under QEMU's instruction-by-instruction emulation, so they show the code gives the same results on a big-endian system, but say nothing about floating point on real s390x hardware." | VL-82, VL-01, VL-99, VL-05 | QEMU TCG only |
 | CAN-05 | "Under Hercules 4.9.1 on an Intel Core i7-13650HX laptop, one standard 1000 ms request on the shipped network used 161 s of emulated CPU, inside the project's 10-minute budget; this is an emulator figure from one run and says nothing about IBM Z performance." | VL-106, VL-04 | One sample; never quote MIPS |
 | CAN-06 | "On x86-64, sugar at 40, 60, 120 and 200 Hz made the MN9 feeding motor neurons fire in all 30 seeds at every rate, and zero sugar produced zero spikes in all 501 neurons; these science checks have been run on x86-64 only." | VL-105 | 10 Hz untested (reference is 0) |
@@ -653,7 +666,7 @@ Wall clocks are **as recorded** on the owner's host (Intel Core i7-13650HX,
    date."
 6. **Corrections.** A factual error in a post is corrected in the register
    first, then in the same channel, visibly and with a date. Bringing old copy
-   under the naming rule is a silent in-place edit under O-3 and is never
+   under the naming rule is a silent in-place edit under OA-3 and is never
    announced. No new wave starts while any live ONFLY copy the owner controls
    breaks a MUST-NOT.
 7. Private replies from authors, maintainers or reviewers are never quoted or
@@ -682,7 +695,7 @@ wave 0.
 
 | Wave | Dates (targets, re-verify) | Gate | Audience | Channels (CORE) | Angle | Success signal |
 |---|---|---|---|---|---|---|
-| -1 Correct what is live | From approval of P-40; not gated on A to G | Owner login | Readers of existing copy | Inventory first: the IBM Community post and thread, the ONFLY pages and the SoftFloat article on the personal site, LinkedIn Featured, speaker bios, whatever the weekly blog task has published. Then one batched save to the blog (each save may re-queue moderation), checking the search-description panel as well as the body | Corrections: the fixes listed in private notes, silent where 7.1 rule 6 says so; a dated visible correction ("Correction, `<date>`: an earlier version said the acceptance criteria were fixed before measurement. Two were changed after results were seen: ACC-3 no longer tests 10 Hz, and ACC-4 no longer tests magnitude. Details: `<link>`."); title and search text qualified to "emulated MVS 3.8j"; the disclosure line; the CICS sentence updated; the synapse count scoped (VL-13) | No live copy the owner controls breaks a MUST-NOT |
+| -1 Correct what is live | From approval of P-41; not gated on A to G | Owner login | Readers of existing copy | Inventory first: the IBM Community post and thread, the ONFLY pages and the SoftFloat article on the personal site, LinkedIn Featured, speaker bios, whatever the weekly blog task has published. Then one batched save to the blog (each save may re-queue moderation), checking the search-description panel as well as the body | Corrections: the fixes listed in private notes, silent where 7.1 rule 6 says so; a dated visible correction ("Correction, `<date>`: an earlier version said the acceptance criteria were fixed before measurement. Two were changed after results were seen: ACC-3 no longer tests 10 Hz, and ACC-4 no longer tests magnitude. Details: `<link>`."); title and search text qualified to "emulated MVS 3.8j"; the disclosure line; the CICS sentence updated; the synapse count scoped (VL-13) | No live copy the owner controls breaks a MUST-NOT |
 | 0 Readiness | now to about 2026-10-11 | none | none | none | none | Slices A to F and H0 done |
 | W1a Trusted testers | 2026-10-12 to 10-25, before G | E, F, H0 | 3 or 4 people the owner knows (for example a TEDU faculty member or classmate on Linux, one on Windows, one TK5 hobbyist if available) | Private invitation to a release-candidate branch, with no GitHub release and no Zenodo hook | Each has one task: clean-clone R0 and R1 plus a `replication_report` issue, or a read of README, overview and write-up against Section 5 | At least 2 testers reach R1 from a clean clone and file reports |
 | W1b Upstream and authors | L+1 to L+21; L target 2026-10-26 | G | Upstream maintainers; the model's authors | The GCCMVS report, only with its reproducer (7.3 a); JCC and TK5 findings to their maintainers; one email to the corresponding author of Shiu et al. with the first author in CC, asking for technical feedback, not endorsement, pointing to the stable release | Concrete findings with evidence | The GCCMVS report answered within 30 days (a signal, not a gate); corrections fixed |
@@ -843,14 +856,15 @@ and line endings normalised (D-414).
 
 ## 10. Open decisions for the owner
 
-Not settled by O-1 to O-4; each is resolved by a D-row, never on silence.
+Not settled by OA-1 to OA-10 unless marked; each is resolved by a D-row, never
+on silence. Items 2 and 3 are settled in substance, and their rows say how.
 "Legal" marks items where qualified input is advisable (3.5).
 
 | # | Decision | Options | Recommendation | Legal |
 |---|---|---|---|---|
 | 1 | Naming-ban scope beyond this repository: surfaces the owner controls outside ONFLY (listed in private notes) | (a) repository only; (b) every public page or post that mentions ONFLY; (c) every public surface. Under (b), whether the certification entry on the personal website stays is a separate choice: (b1) keep it, on a page that does not mention ONFLY; (b2) remove it | (b), with (b1) or (b2) left to the owner | |
-| 2 | No-access wording, and the two confirmations of 3.2 | (a) about the project (3.2); (b) about the person; (c) also say the request is unsent | (a); the confirmations were given as O-8 and O-9; (c) adds nothing D-126 does not already say | |
-| 3 | Coordination with the parallel session | (a) scrub after its merge; (b) pause its SRS edits now; (c) it scrubs its own D-468 before merging | (a), plus A1 | |
+| 2 | No-access wording, and the two confirmations of 3.2 | (a) about the project (3.2); (b) about the person; (c) also say the request is unsent | **Settled in substance by OA-8 and OA-9 (2026-09-24): (a) stands**; it enters Appendix A.1 as a D-row at A3. (c) adds nothing D-126 does not already say | |
+| 3 | Coordination with the parallel session | (a) scrub after its merge; (b) pause its SRS edits now; (c) it scrubs its own D-468 before merging | **Resolved by D-479 (2026-09-24, on the parallel branch): (c), plus A1.** That session neutralised its own D-468 in a forward commit; every other occurrence waits for slice B | |
 | 4 | AI-use disclosure, given D-478 and venue policies (JOSS and TÜBİTAK 2209-A require one; re-verify). An entry condition for W2a | (a) a short README section: tools, what they did, how outputs were verified; (b) only where a venue requires; (c) none | (a): SRS:23 already names an agentic tool and pre-rewrite commits with trailers are fetchable by SHA. D-478 governs commit metadata only, so there is no conflict. The jurisdiction-dependent copyright status of tool-generated code is a question for paper authorship statements, not resolved here | |
 | 5 | Network distribution | (a) commit `srext` and `path` (1,122,968 B; reverses `.gitignore:29`), which removes the E/G ordering dependency; (b) release assets with SHA256SUMS, staged locally for E (the order of Section 4); (c) a Zenodo dataset under CC BY 4.0; same question for `hop2` and `full` (21.6 MB, 299.5 MB) | (b), with (c) later if a data DOI is wanted; `hop2` and `full` regenerate-only. Decide after item 8 | yes |
 | 6 | The `make test` gate, with a date by which the owner chooses | (a) wait for the row 7 run; (b) amend D-464 so a missing row 7 recording reports PENDING, not FAIL. D-464 required both halves because a test that skips a missing recording lets the path half rot silently ("Requiring both is the point", Makefile:820-838); so (b) needs a committed marker naming its D-row, `run_mvsjcc.py` printing PENDING plus that D-row, and failure if marker and recording are both present or both absent; (c) `make test` for replicators and `make evidence` (mvsrun, mvsjcc, names) keeping D-464's strictness as R0 | (a) if it lands before slice E closes; else (c), which keeps D-464 intact; never launch red | |
@@ -889,7 +903,7 @@ Not settled by O-1 to O-4; each is resolved by a D-row, never on silence.
 | 39 | Host of the write-up | (a) in the repository, rendered by GitHub; (b) the personal site, after item 1; (c) dev.to | (a), or (b) after item 1, with the repository as the call to action | |
 | 40 | ONFLY copy produced outside this plan: the weekly blog task and the backlink tracker's items (a second IBM Community article, speaker bios, an IBM Developer tutorial, a TEDU page, Devnot, Kommunity) | (a) one calendar: the task paused for ONFLY until the register is committed, then given the register and the naming rule as inputs, every PR it opens passing the Section 11 scans; tracker items folded into the waves; (b) run separately | (a); every ONFLY post links the repository as its call to action; whether ONFLY outreach serves the backlink strategy at all is the owner's call | |
 | 41 | TÜBİTAK 2209-A (the 2025 call ran 13 Oct to 19 Nov; re-verify), which collides with W1 and W2 | (a) apply, forward-looking work only, with a TEDU advisor; (b) skip this cycle | Owner's call; (a) only if it does not displace CORE outreach | |
-| 42 | O-3's D-row and the wording-policy row | (a) one row; (b) two rows | (b): the answer and the policy it produces are separate records | |
+| 42 | OA-3's D-row and the wording-policy row | (a) one row; (b) two rows | (b): the answer and the policy it produces are separate records | |
 
 ---
 
@@ -900,7 +914,8 @@ program's name in any encoding.** Each reads it from the environment variable
 `ONFLY_NAME_B64`, which the owner sets from private notes. The scans do not
 use the slice B guard, so they check it rather than trust it, and they have no
 allowlist, so any hit is inspected by hand. On `main` at 4a25639, 11.1
-reports 32 (23 in Markdown, 9 in the two `.docx`), 33 on f0ec691, and 11.3
+reports 32 (23 in Markdown, 9 in the two `.docx`), 33 on f0ec691 and 32 on
+00a73fb, and 11.3
 over all of `main` reports 2; the targets after slice B are 0 for the tree and
 0 from the scrub commit on.
 
@@ -1072,8 +1087,9 @@ Expected: `0 0`.
 
 - `docs/ONFLY-SRS.md`: 1.1, 2.3, 6.4 (ACC-3, ACC-4), 8.3 and 8.4, 9.2;
   Appendix A.1 (D-35, D-50, D-62, D-126, D-132, D-164, D-202, D-205, D-261,
-  D-340, D-341, D-388, D-414, D-420, D-464, D-467, and D-468 to D-478 once
-  merged); A.2 (P-38, P-39, P-40); B (TBD-13); D (VL-01, VL-04, VL-05, VL-12,
+  D-340, D-341, D-388, D-414, D-420, D-464, D-467, and D-468 to D-480 once
+  merged); A.2 (P-38, P-39, the parallel branch's P-40, and P-41 for this
+  plan); B (TBD-13); D (VL-01, VL-04, VL-05, VL-12,
   VL-13, VL-63, VL-78, VL-82, VL-86, VL-88, VL-91, VL-96 to VL-98, VL-104 to
   VL-114, VL-118 to VL-137); F (glossary); G (references); NFR-LIC-01
 - `docs/plan/2026-09-18-acc5-row7-path.md` and
