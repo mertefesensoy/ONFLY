@@ -13,7 +13,7 @@ open decision in Section 10 is still put to the owner and recorded as a D-row.
 | Status | APPROVED 2026-09-24 (O-5); not started (slice A waits on the parallel session) |
 | Proposal | P-40 (provisional number; confirmed when this branch merges after the parallel session's) |
 | Scope | Launching the already public repository github.com/mertefesensoy/ONFLY so that other people can find it, understand it truthfully and replicate what it claims, **before** Phase F. Not a phase: no phase opens or closes here. Phases A to E and G stay COMPLETE; Phase F stays blocked on IBM Z access the project does not have; Phase H stays blocked on TBD-13 |
-| Authorising owner answers | O-1 (scrub forward only), O-2 (rewrite the IBM summary as a public overview), O-3 (neutral term plus a decision row), O-4 (all four audiences, sequenced by this plan), O-5 (plan approved), O-6 (published in full), O-7 (commit and push the working branch), O-8 and O-9 (the two no-access confirmations of 3.2); see 0.1 |
+| Authorising owner answers | O-1 (scrub forward only), O-2 (rewrite the IBM summary as a public overview), O-3 (neutral term plus a decision row), O-4 (all four audiences, sequenced by this plan), O-5 (plan approved), O-6 (published in full), O-7 (commit and push the working branch), O-8 and O-9 (the two no-access confirmations of 3.2), O-10 (Wave -1 scope for the IBM Community post); see 0.1 |
 | Standing decisions it obeys | D-126 (phase order A, B, C, D, E, G, F, H: the IBM Z access request is made with Phase G in hand), D-132 (no INTERCOMM-derived material enters the repository), D-50 (MaleCNS is CC BY 4.0 and needs attribution wherever it or its derivatives appear), D-62 (the repository is MIT), D-478 (every commit has one author, the owner, with no co-author or tool-attribution trailer; on the parallel branch, unmerged when this was drafted) |
 | Inputs | Six read-only audits of 2026-09-24 (exposure, licensing, replication, hygiene, claims, outreach), a completeness critic, and four critics of the draft. None of them ran a build or a test |
 | Platforms | None measured. Every command in Section 11 is a check to run when the work is done; items marked "to be written" do not exist yet |
@@ -31,7 +31,7 @@ directory with CI. The owner may instead approve slice by slice.
 
 ## 0.1 The owner answers this plan rests on
 
-Given on 2026-09-24 through AskUserQuestion and recorded here as O-1 to O-9.
+Given on 2026-09-24 through AskUserQuestion and recorded here as O-1 to O-10.
 They are **not yet D-rows**: at slice A3, before any code that depends on
 them, each becomes its own row in Appendix A.1 with the next free number after
 D-478, and P-40 enters Appendix A.2 struck as approved by O-5's row.
@@ -47,6 +47,7 @@ D-478, and P-40 enters Appendix A.2 struck as approved by O-5's row.
 | O-7 | Git in the drafting session | **Commit, and push the working branch** `claude/project-status-cee560`; `main` is not touched and `docs/ONFLY-SRS.md` is not edited while the parallel session holds it | Commit locally without pushing (the engineer's recommendation); no git changes |
 | O-8 | Plan 3.2 confirmation (1): has any ONFLY code, JCL, COBOL, data or prototype ever been built, uploaded or run on an IBM Z system, under any account held now or before? | **No.** The only mainframe environment ONFLY has run on is MVS 3.8j emulated by Hercules on the owner's laptop, which comes before any IBM Z system and involves no IBM Z account | Asked as a yes or no confirmation |
 | O-9 | Plan 3.2 confirmation (2): an active IBM Z account of any kind today? | **None.** The wording "the project does not have IBM Z access yet" stands | An account not usable for ONFLY; an account whose terms might allow project work |
+| O-10 | Wave -1 scope for the live IBM Community post | **Two facts and the name only**, in one save: the acceptance-criteria paragraph (with a one-line dated correction) and the synapse count, both contradicted by the SRS (D-202, D-340, D-341; VL-13, D-56), and the program's name replaced silently. The title, SEO description, CICS paragraph, caption, bio, disclosure line and the discussion thread stay as they are; for 7.1 rule 6 they count as accepted by the owner. The exact edits are kept in the owner's private notes | The full rewrite drafted first; the two facts only; leave the post unchanged |
 
 Two owner constraints are absolute. First, the name of the hosted IBM Z
 access program does not appear in any public documentation from now on, in
