@@ -5,7 +5,7 @@
 | Date | 2026-09-24 |
 | Author | Mert Efe Sensoy |
 | Phase / gate | None. Planning work between Phase G (COMPLETE, D-442) and Phase F (blocked on IBM Z access the project does not have) |
-| Owner decisions relied on | O-1 to O-7 of 2026-09-24, recorded in the plan's Section 0.1 and numbered as D-rows at its slice A3; D-126, D-132, D-50, D-62; D-478 (on the parallel branch) |
+| Owner decisions relied on | O-1 to O-9 of 2026-09-24, recorded in the plan's Section 0.1 and numbered as D-rows at its slice A3; D-126, D-132, D-50, D-62; D-478 (on the parallel branch) |
 | Requirements touched | None changed. Cited: NFR-LIC-01, ACC-1 to ACC-7, Section 8.3 |
 | Open items closed | none |
 
@@ -48,7 +48,8 @@ The work had three stages, and every repository step in it was read-only.
    consequential findings on disk. None of them ran a build, a test or a lab.
 2. **Owner questions.** Four decisions shaped the plan's structure and were
    put to the owner before drafting (O-1 to O-4). Three more came at approval
-   (O-5 to O-7).
+   (O-5 to O-7), and the two no-access confirmations of the plan's 3.2 came
+   after it was pushed (O-8, O-9).
 3. **Draft, critique, revise.** One draft was written. Four independent
    critics reviewed it: honesty and name leaks, licensing, engineering
    sequencing, and outreach capacity. Each returned concrete fixes, and the
@@ -87,17 +88,22 @@ any new figure.
   in base64, and the honesty critic caught it. The final plan reads the token
   from an environment variable, and its committed guard keeps only a salted
   digest.
-- **The no-access statement is about the project, not the person.** The
-  owner personally holds a certificate from the program. Before first
-  publication, the plan requires the owner to confirm that no ONFLY artifact
-  was ever built or run on any IBM Z account the owner holds or has held.
+- **The no-access statement is about the project, not the person.** A
+  statement about the owner's own access could be read against the owner's
+  IBM community activity, so the plan's wording describes what ONFLY has run
+  on. It also required two confirmations before first publication, and both
+  were given on 2026-09-24. O-8: no ONFLY artifact was ever built, uploaded or
+  run on any IBM Z system under any account; the only mainframe environment it
+  has run on is MVS 3.8j emulated by Hercules. O-9: the owner has no active
+  IBM Z account today. The wording "the project does not have IBM Z access
+  yet" therefore stands.
 - **Publishing the full plan (O-6).** The engineer recommended a private full
   plan plus a short public version, because the plan describes surfaces
   outside the repository and the scrub itself. The owner chose to publish it
   all, following the project's convention for plans of record.
 - **No SRS edit today.** A parallel session holds D-468 to D-478 and P-39,
   unmerged, and is still editing the SRS. The owner answers are therefore
-  recorded as O-1 to O-7 in the plan and become D-rows at its slice A3,
+  recorded as O-1 to O-9 in the plan and become D-rows at its slice A3,
   after that branch merges. This avoids two sessions claiming the same
   decision numbers.
 

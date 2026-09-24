@@ -13,7 +13,7 @@ open decision in Section 10 is still put to the owner and recorded as a D-row.
 | Status | APPROVED 2026-09-24 (O-5); not started (slice A waits on the parallel session) |
 | Proposal | P-40 (provisional number; confirmed when this branch merges after the parallel session's) |
 | Scope | Launching the already public repository github.com/mertefesensoy/ONFLY so that other people can find it, understand it truthfully and replicate what it claims, **before** Phase F. Not a phase: no phase opens or closes here. Phases A to E and G stay COMPLETE; Phase F stays blocked on IBM Z access the project does not have; Phase H stays blocked on TBD-13 |
-| Authorising owner answers | O-1 (scrub forward only), O-2 (rewrite the IBM summary as a public overview), O-3 (neutral term plus a decision row), O-4 (all four audiences, sequenced by this plan), O-5 (plan approved), O-6 (published in full), O-7 (commit and push the working branch); see 0.1 |
+| Authorising owner answers | O-1 (scrub forward only), O-2 (rewrite the IBM summary as a public overview), O-3 (neutral term plus a decision row), O-4 (all four audiences, sequenced by this plan), O-5 (plan approved), O-6 (published in full), O-7 (commit and push the working branch), O-8 and O-9 (the two no-access confirmations of 3.2); see 0.1 |
 | Standing decisions it obeys | D-126 (phase order A, B, C, D, E, G, F, H: the IBM Z access request is made with Phase G in hand), D-132 (no INTERCOMM-derived material enters the repository), D-50 (MaleCNS is CC BY 4.0 and needs attribution wherever it or its derivatives appear), D-62 (the repository is MIT), D-478 (every commit has one author, the owner, with no co-author or tool-attribution trailer; on the parallel branch, unmerged when this was drafted) |
 | Inputs | Six read-only audits of 2026-09-24 (exposure, licensing, replication, hygiene, claims, outreach), a completeness critic, and four critics of the draft. None of them ran a build or a test |
 | Platforms | None measured. Every command in Section 11 is a check to run when the work is done; items marked "to be written" do not exist yet |
@@ -31,7 +31,7 @@ directory with CI. The owner may instead approve slice by slice.
 
 ## 0.1 The owner answers this plan rests on
 
-Given on 2026-09-24 through AskUserQuestion and recorded here as O-1 to O-7.
+Given on 2026-09-24 through AskUserQuestion and recorded here as O-1 to O-9.
 They are **not yet D-rows**: at slice A3, before any code that depends on
 them, each becomes its own row in Appendix A.1 with the next free number after
 D-478, and P-40 enters Appendix A.2 struck as approved by O-5's row.
@@ -45,6 +45,8 @@ D-478, and P-40 enters Appendix A.2 struck as approved by O-5's row.
 | O-5 | Approve this plan (P-40)? | **Approve** as drafted | Change; discuss first |
 | O-6 | Where the plan lives, given that it describes surfaces outside the repository and the scrub | **All public in `docs/plan`**, following the project's convention | Full plan private in the gitignored `local/` with a short public version (the engineer's recommendation); all private until slice B lands |
 | O-7 | Git in the drafting session | **Commit, and push the working branch** `claude/project-status-cee560`; `main` is not touched and `docs/ONFLY-SRS.md` is not edited while the parallel session holds it | Commit locally without pushing (the engineer's recommendation); no git changes |
+| O-8 | Plan 3.2 confirmation (1): has any ONFLY code, JCL, COBOL, data or prototype ever been built, uploaded or run on an IBM Z system, under any account held now or before? | **No.** The only mainframe environment ONFLY has run on is MVS 3.8j emulated by Hercules on the owner's laptop, which comes before any IBM Z system and involves no IBM Z account | Asked as a yes or no confirmation |
+| O-9 | Plan 3.2 confirmation (2): an active IBM Z account of any kind today? | **None.** The wording "the project does not have IBM Z access yet" stands | An account not usable for ONFLY; an account whose terms might allow project work |
 
 Two owner constraints are absolute. First, the name of the hosted IBM Z
 access program does not appear in any public documentation from now on, in
@@ -200,6 +202,13 @@ is yes, the second sentence becomes "No IBM Z system is available for ONFLY's
 work yet." Only if (1) is confirmed, public FAQ copy may add: "The maintainer
 has used IBM Z learning systems for coursework; ONFLY was never built or run
 on them."
+
+**Both confirmations were given on 2026-09-24 (O-8, O-9).** (1) ONFLY has
+never touched an IBM Z system under any account: the only mainframe
+environment it has run on is MVS 3.8j emulated by Hercules on the owner's
+laptop, which is not IBM Z hardware and involves no IBM Z account. (2) The
+owner has no active IBM Z account today. The long and short forms above
+therefore stand unchanged, and CAN-03 is usable.
 
 ### 3.3 Vocabulary
 
@@ -542,7 +551,7 @@ Condensed from the claims audit. Evidence IDs are SRS rows.
 |---|---|---|---|
 | CAN-01 | "ONFLY simulates the sugar-to-feeding circuit of the male fruit fly: a 501-neuron subcircuit taken from the MaleCNS v1.0 connectome, run with the leaky integrate-and-fire model of Shiu et al. (2024) in a portable C89 engine with a COBOL batch driver." | SR-EXT-02, D-205, D-66, D-71 | Drawn from a scoped network holding 39.0% of MaleCNS synapses (VL-13); pharyngeal and taste-peg stimulus (VL-12); one fitted input term (D-205) |
 | CAN-02 | "All 19 golden requests produce identical fingerprints and response records on x86-64 (a Python reference and three C floating-point builds) and on Linux s390x under QEMU. On MVS 3.8j under Hercules with the GCCMVS compiler the fingerprints are identical, and the response records are identical byte for byte apart from one text field that MVS stores in EBCDIC. With a second MVS compiler, JCC, 5 of the 19 have been checked so far." | 8.3, VL-91, VL-95, VL-99, VL-101, VL-136, VL-137, D-261 | Update the JCC count if row 7 fills; row 8 empty; consistency, not correctness (VL-05) |
-| CAN-03 | "ONFLY has not run on IBM Z hardware, and the project does not have IBM Z access yet: every s390x and MVS result comes from emulators (QEMU and Hercules) on one x86-64 laptop." | Row 8 empty; the standing VL row (item 32) and item 2's D-row, once written | Not usable until item 2's confirmations are recorded |
+| CAN-03 | "ONFLY has not run on IBM Z hardware, and the project does not have IBM Z access yet: every s390x and MVS result comes from emulators (QEMU and Hercules) on one x86-64 laptop." | Row 8 empty; the standing VL row (item 32) and item 2's D-row, once written; the owner's confirmations O-8 and O-9 | Usable since O-8 and O-9 (2026-09-24); revisit whenever a platform is added (3.2) |
 | CAN-04 | "The s390x results come from Ubuntu 24.04 running under QEMU's instruction-by-instruction emulation, so they show the code gives the same results on a big-endian system, but say nothing about floating point on real s390x hardware." | VL-82, VL-01, VL-99, VL-05 | QEMU TCG only |
 | CAN-05 | "Under Hercules 4.9.1 on an Intel Core i7-13650HX laptop, one standard 1000 ms request on the shipped network used 161 s of emulated CPU, inside the project's 10-minute budget; this is an emulator figure from one run and says nothing about IBM Z performance." | VL-106, VL-04 | One sample; never quote MIPS |
 | CAN-06 | "On x86-64, sugar at 40, 60, 120 and 200 Hz made the MN9 feeding motor neurons fire in all 30 seeds at every rate, and zero sugar produced zero spikes in all 501 neurons; these science checks have been run on x86-64 only." | VL-105 | 10 Hz untested (reference is 0) |
@@ -839,7 +848,7 @@ Not settled by O-1 to O-4; each is resolved by a D-row, never on silence.
 | # | Decision | Options | Recommendation | Legal |
 |---|---|---|---|---|
 | 1 | Naming-ban scope beyond this repository: surfaces the owner controls outside ONFLY (listed in private notes) | (a) repository only; (b) every public page or post that mentions ONFLY; (c) every public surface. Under (b), whether the certification entry on the personal website stays is a separate choice: (b1) keep it, on a page that does not mention ONFLY; (b2) remove it | (b), with (b1) or (b2) left to the owner | |
-| 2 | No-access wording, and the two confirmations of 3.2 | (a) about the project (3.2); (b) about the person; (c) also say the request is unsent | (a), after the confirmations; (c) adds nothing D-126 does not already say | |
+| 2 | No-access wording, and the two confirmations of 3.2 | (a) about the project (3.2); (b) about the person; (c) also say the request is unsent | (a); the confirmations were given as O-8 and O-9; (c) adds nothing D-126 does not already say | |
 | 3 | Coordination with the parallel session | (a) scrub after its merge; (b) pause its SRS edits now; (c) it scrubs its own D-468 before merging | (a), plus A1 | |
 | 4 | AI-use disclosure, given D-478 and venue policies (JOSS and TÜBİTAK 2209-A require one; re-verify). An entry condition for W2a | (a) a short README section: tools, what they did, how outputs were verified; (b) only where a venue requires; (c) none | (a): SRS:23 already names an agentic tool and pre-rewrite commits with trailers are fetchable by SHA. D-478 governs commit metadata only, so there is no conflict. The jurisdiction-dependent copyright status of tool-generated code is a question for paper authorship statements, not resolved here | |
 | 5 | Network distribution | (a) commit `srext` and `path` (1,122,968 B; reverses `.gitignore:29`), which removes the E/G ordering dependency; (b) release assets with SHA256SUMS, staged locally for E (the order of Section 4); (c) a Zenodo dataset under CC BY 4.0; same question for `hop2` and `full` (21.6 MB, 299.5 MB) | (b), with (c) later if a data DOI is wanted; `hop2` and `full` regenerate-only. Decide after item 8 | yes |
