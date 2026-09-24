@@ -104,6 +104,7 @@ def measure():
     return {
         "job": job, "fps": fps, "n": man.get("N"),
         "cpu": "%s min %s s" % (b.group(3), b.group(4)),
+        "cpu_s": int(b.group(3)) * 60 + float(b.group(4)),
         "start": a.group(2), "stop": b.group(2), "wall_min": wall,
         "steps": len(steps),
         "codes": sorted(set(c for _j, _s, c in steps)),
@@ -132,6 +133,29 @@ def row_text(m):
         "hand.)*" % (fp, m["job"], m["n"], m["cpu"]))
 
 
+#: Row 6's `path` GO CPU on the identical fourteen requests under
+#: GCCMVS, quiet host (VL-91, JOB 279) and contended host (D-463,
+#: JOB 308); and D-467's cancelled JCC run, JOB 398.  Cited, not
+#: measured here: they are the comparands for this run's cost.
+ROW6_QUIET_S = 63 * 60 + 4.79
+ROW6_BUSY_S = 157 * 60 + 52.69
+JOB398_S = 63 * 60 + 51.67
+
+
+def cost_text(m):
+    return (
+        "**Cost: the six-hour estimate D-471 carried is refuted.** The "
+        "whole suite took %.2f min of `GO` CPU, %.3fx row 6's quiet-host "
+        "GCCMVS figure (63 min 04.79 s, VL-91) and %.3fx its contended "
+        "one (157 min 52.69 s, D-463). D-467's JOB 398 had reported only "
+        "two requests after 63 min 51.67 s, %.0f%% of this run's whole "
+        "cost; whether it had finished more whose `printf` output was "
+        "still buffered at the cancel, or ran on a contended host, is "
+        "NOT established by this run."
+        % (m["cpu_s"] / 60.0, m["cpu_s"] / ROW6_QUIET_S,
+           m["cpu_s"] / ROW6_BUSY_S, 100.0 * JOB398_S / m["cpu_s"]))
+
+
 def vl_text(m):
     codes = ", ".join(m["codes"])
     summ = ("`ONF302I STEP SUMMARY: %s OK, %s WARN, %s ERROR`"
@@ -152,15 +176,16 @@ def vl_text(m):
         "D-472, compared every record whole under D-261 and every "
         "fingerprint against Section 8.4. The three rejection paths "
         "G-11, G-12 and G-13 have now been reached by a second code "
-        "generator. **D-467's lost run is superseded, not recovered:** "
-        "its two reported fingerprints agreed and this run repeats the "
-        "whole suite. **Not proven:** TK5 under Hercules on this host "
+        "generator. %s **D-467's JOB 398 and D-477's JOB 400 are "
+        "superseded, not recovered:** JOB 398's two reported "
+        "fingerprints agreed, JOB 400 left none, and this run repeats "
+        "the whole suite. **Not proven:** TK5 under Hercules on this host "
         "only (VL-04); one run, so the CPU figure is one sample and "
         "row 6's own spread (VL-91, D-463) shows host contention moves "
         "it by 2.5x; nothing here says anything about z/OS (row 8) |"
         % (m["n"], m["job"], m["steps"], codes,
            "/".join(m["go_code"]) or "?", summ, hhmm(m["start"]),
-           hhmm(m["stop"]), m["wall_min"], m["cpu"]))
+           hhmm(m["stop"]), m["wall_min"], m["cpu"], cost_text(m)))
 
 
 def main(argv):
