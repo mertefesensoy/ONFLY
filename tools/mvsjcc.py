@@ -930,7 +930,13 @@ def run_rdrprobe(argv):
 #:
 #: The cost of this being too small is not a retry: `collect` returns
 #: None and the listing is lost AFTER the CPU has already been spent.
-RUN_TIMEOUT = 14400
+#:
+#: D-471 raised it from 14400 s to twelve hours.  D-467's lost `path`
+#: run reported only two of fourteen requests after 63 min 51.67 s of
+#: GO CPU, so the 0.874 factor above does NOT transfer from `srext` to
+#: `path`; a straight scaling suggests about six hours, an estimate
+#: from one truncated sample.  `--recover` (D-465) is the backstop.
+RUN_TIMEOUT = 43200
 
 
 def run_run(argv):
@@ -1065,6 +1071,11 @@ def run_compare(argv):
         sys.stderr.write("usage: mvsjcc.py --compare <jccdir> <refdir>\n")
         return 2
     jccdir, refdir = argv[0], argv[1]
+    why = row7_listing(jccdir)
+    if why:
+        sys.stderr.write("mvsjcc: refusing to judge %s as ACC-5 row 7: "
+                         "%s (D-472)\n" % (jccdir, why))
+        return 2
     name = "rsp-%s-2c.bin" % mvsrun.NETNAME
     jcc = mvsrun.read_records(os.path.join(jccdir, name))
     ref = mvsrun.read_records(os.path.join(refdir, name))
@@ -1093,8 +1104,40 @@ def run_compare(argv):
         ok = ok and good
         sys.stdout.write("  %-4s %-5s fp=%s  golden=%s\n"
                          % ("ok" if good else "FAIL", gid, got, wantfp))
-    sys.stdout.write("mvsjcc: ACC-5 row 7 %s\n" % ("PASS" if ok else "FAIL"))
+    sys.stdout.write("mvsjcc: ACC-5 row 7 %s (%s, measured %s)\n"
+                     % ("PASS" if ok else "FAIL", mvsrun.NETNAME, jccdir))
     return 0 if ok else 1
+
+
+#: The first JES2 separator banner of a listing: `START JOB nnn NAME`.
+JES2_START = re.compile(r"START\s+JOB\s+(\d+)\s+(\S+)")
+
+
+def row7_listing(jccdir):
+    """Why `jccdir` is not row 7's recording for this network, or None.
+
+    D-472, adopting P-38 in its strong form.  `--compare` used to label
+    whatever directory it was given "ACC-5 row 7", and on 2026-09-18 it
+    printed a PASS over row 6's GCCMVS records.  Row 7's recording is
+    the directory `process_run()` writes: the response file beside the
+    listing `<job>.txt`, where <job> is `jcc_job()` for the selected
+    network (D-462).  The listing's NAME alone proves nothing, since a
+    file can be renamed, so its first JES2 START banner must name the
+    same job.  What this cannot prove is which compiler ran: that rests
+    on the job name being row 7's and nothing else submitting it.
+    """
+    job = jcc_job()
+    lst = os.path.join(jccdir, "%s.txt" % job)
+    if not os.path.isfile(lst):
+        return "no %s.txt listing there" % job
+    with io.open(lst, encoding="ascii", errors="replace") as f:
+        m = JES2_START.search(f.read(4096))
+    if m is None:
+        return "%s.txt carries no JES2 START banner" % job
+    if m.group(2) != job:
+        return ("%s.txt is JOB %s %s, not %s"
+                % (job, m.group(1), m.group(2), job))
+    return None
 
 
 USAGE = ("usage: python tools/mvsjcc.py [--net srext|path] --probe "
