@@ -400,6 +400,24 @@ def main():
               if gold else "no golden entries")
     mvsrun.select("srext")
 
+    # --- the SRS says what the recording says (D-473) ----------------
+    # Section 8.3 row 7's `path` sentence and VL-138 were written by
+    # tools/row7amend.py from rsp-path-2c.bin and ONFJPRUN.txt.  If
+    # either the recording or the SRS text drifts, the two must stop
+    # agreeing here rather than in a reader's head.
+    import io
+    import row7amend
+    try:
+        m = row7amend.measure()
+        srs = io.open(row7amend.SRS, encoding="utf-8").read()
+        check("row7amend: row 7's path sentence matches the recording",
+              row7amend.row_text(m) in srs, "JOB %s" % m["job"])
+        check("row7amend: VL-138 matches the recording",
+              row7amend.vl_text(m) in srs, "GO CPU %s" % m["cpu"])
+    except row7amend.AmendError as exc:
+        check("row7amend: the recording is row 7's", False, str(exc))
+    mvsrun.select("srext")
+
     # --- the probe programs are well-formed C ------------------------
     sources = {"ddprobe": mvsjcc.ddprobe_source(), "rdrprobe": mvsjcc.RDR_SRC}
     for k, v in sorted(mvsjcc.MINI.items()):
