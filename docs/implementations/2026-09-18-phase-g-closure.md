@@ -25,7 +25,7 @@ Every other finished phase carries a marker of the form
 named exactly this shape of defect a **record gap** when Phase E had it, and
 D-348 closed that one the same day.
 
-The gap was not cosmetic. D-126 makes the IBM Z Xplore permissions request
+The gap was not cosmetic. D-126 makes the IBM Z access request
 **with Phase G in hand**, and Phase F's dependency column reads
 "E; permissions granted". A reader consulting Section 9.2 to decide whether
 Phase G was in hand found three paragraphs of evidence and no conclusion.

@@ -30,8 +30,8 @@ Foundations — COMPLETE 2026-09-14 (D-252)**", "**E — MVS MVP — COMPLETE
 2026-09-16 (D-348)**". Phase E carried exactly this gap for a day, and the
 2026-09-16 status snapshot named it a *record gap* before D-348 closed it.
 
-A record gap is not a cosmetic problem here. Phase F is blocked on IBM Z
-Xplore permissions, and D-126 says the permissions request is made **with
+A record gap is not a cosmetic problem here. Phase F is blocked on the IBM Z
+access request, and D-126 says the permissions request is made **with
 Phase G in hand**. A reviewer reading Section 9.2 to decide whether Phase G is
 in hand finds three paragraphs of evidence and no verdict.
 

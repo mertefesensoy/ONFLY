@@ -158,7 +158,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy generated
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint liclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req sub mvsrun names fixtures fixtures-check
+.PHONY: all test generate lint liclint namelint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req sub mvsrun names fixtures fixtures-check
 
 all: test
 
@@ -208,6 +208,16 @@ lint: $(GENERATED)
 # it reads the git index, not the build.
 liclint:
 	$(PYTHON) tools/lint_lic.py
+
+# --- name guard (D-479, D-484, D-507) --------------------------------------
+# No public ONFLY text names the hosted IBM Z access program Phase F depends
+# on.  Slice B of the launch plan (P-41) scrubbed the current tree; this
+# keeps it scrubbed, holding the name only as a salted digest (D-503).  The
+# self-test needs no secret (D-506).  Not the IR-NAM check: that is `names`.
+# No prerequisites: it reads the git index, not the build.
+namelint:
+	$(PYTHON) tools/lint_name.py --self-test
+	$(PYTHON) tools/lint_name.py --tree
 
 $(BUILD):
 	$(PYTHON) -c "import os; os.path.isdir('$(BUILD)') or os.makedirs('$(BUILD)')"
@@ -784,9 +794,9 @@ runners: $(BUILD) $(GENERATED) runner
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint liclint col80 c04 c04mvs sub mvsrun mvsjcc ic3270 names tt01 tt02 c2c sfs shim layout units fp kernel syn \
+test: lint liclint namelint col80 c04 c04mvs sub mvsrun mvsjcc ic3270 names tt01 tt02 c2c sfs shim layout units fp kernel syn \
       decode eng req golden prep
-	@echo "ONFLY: NR-05 + licence + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE; plus IR-NAM-01..03 over the emitted names files, and the Phase E MVS decks and recordings -- TX-01 under D-261 and ACC-5 row 6 for all nineteen Section 8.4 requests, and ACC-5 row 7 for all nineteen Section 8.4 requests JCC built and ran; plus the streamed fixture digests, D-202's ACC-3 exclusion rule, and TP-09 holding the TBD-06 seed tool to the recorded ACC-1 and ACC-3 verdicts; plus the 3270 transaction path off-lab -- the script protocol, the region and build decks, and the three facts VL-129 paid for"
+	@echo "ONFLY: NR-05 + licence + name + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE; plus IR-NAM-01..03 over the emitted names files, and the Phase E MVS decks and recordings -- TX-01 under D-261 and ACC-5 row 6 for all nineteen Section 8.4 requests, and ACC-5 row 7 for all nineteen Section 8.4 requests JCC built and ran; plus the streamed fixture digests, D-202's ACC-3 exclusion rule, and TP-09 holding the TBD-06 seed tool to the recorded ACC-1 and ACC-3 verdicts; plus the 3270 transaction path off-lab -- the script protocol, the region and build decks, and the three facts VL-129 paid for"
 
 # D-249.  `summarise()` in tools/mvsub.py turns a few thousand lines of
 # JES2 output into the handful a person reads -- and, through the gate

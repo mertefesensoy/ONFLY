@@ -1,7 +1,8 @@
 # ONFLY open-source launch and outreach, before Phase F
 
 **APPROVED as drafted on 2026-09-24 (D-488) and published in full at the
-owner's choice (D-489). Slice A COMPLETE 2026-09-25 (D-494).** This file is
+owner's choice (D-489). Slice A COMPLETE 2026-09-25 (D-494). Slice B
+COMPLETE 2026-09-25 (D-500 to D-512).** This file is
 the proposal P-41 records; Appendix A.2 carries it, struck as approved. Until
 the renumbering of 2026-09-24 it called itself P-40; that number went to
 D-480's proposal, so the pushed commits f2e4b2f, 4b1de9f, f8d2a05 and 11c074d
@@ -12,7 +13,7 @@ recorded as a D-row.
 | Field | Value |
 |---|---|
 | Date | 2026-09-24 |
-| Status | APPROVED 2026-09-24 (D-488); slice A COMPLETE 2026-09-25 (D-494); slice B is next |
+| Status | APPROVED 2026-09-24 (D-488); slice A COMPLETE 2026-09-25 (D-494); slice B COMPLETE 2026-09-25 (D-500 to D-512); slices C and D are next |
 | Proposal | P-41, confirmed at slice A3 on 2026-09-25 (D-494); P-40 until the renumbering of 2026-09-24 |
 | Scope | Launching the already public repository github.com/mertefesensoy/ONFLY so that other people can find it, understand it truthfully and replicate what it claims, **before** Phase F. Not a phase: no phase opens or closes here. Phases A to E and G stay COMPLETE; Phase F stays blocked on IBM Z access the project does not have; Phase H stays blocked on TBD-13 |
 | Authorising owner answers | recorded as D-484 to D-493: OA-1 (scrub forward only), OA-2 (rewrite the IBM summary as a public overview), OA-3 (neutral term plus a decision row), OA-4 (all four audiences, sequenced by this plan), OA-5 (plan approved), OA-6 (published in full), OA-7 (commit and push the working branch), OA-8 and OA-9 (the two no-access confirmations of 3.2), OA-10 (Wave -1 scope for the IBM Community post); see 0.1 |
@@ -332,7 +333,7 @@ done, and it was idle. At 9ad60e9 the three commands gave `0`, `0` and `1`,
 and the memory files scanned 0 (11.14). The session's hooks were never
 installed, so B4 is unconstrained.
 
-### Slice B: name scrub, decision rows and guard
+### Slice B: name scrub, decision rows and guard (COMPLETE 2026-09-25, D-500 to D-512)
 
 | Step | Work |
 |---|---|
@@ -395,6 +396,22 @@ confirmed) in the style of the existing lints:
 **Exit:** 11.1 and 11.2 report 0; the self-test and the hook checks of 11.10
 pass; the D-rows and implementation doc exist. **Verify:** 11.1, 11.2, 11.3,
 11.10, and `python tools/lint_name.py --self-test`.
+
+**Met 2026-09-25 (D-500 to D-512), by the plan of record P-42 (D-506).** All 21
+Markdown occurrences were reworded in place (D-512); `ONFLY-IBM-Summary.md`
+and its `.docx` were removed (D-485); `docs/ONFLY-SRS.docx` was regenerated
+from the scrubbed SRS (D-502, D-508). The guard is `tools/lint_name.py` with
+the `namelint` target (D-507), holding the token and six allowlisted words
+as salted digests only (D-503); its self-test runs on a synthetic token and
+needs no secret (D-506). Measured on x86-64 Windows: the self-test at `40
+checks, 0 failed` without the token and `84 checks, 0 failed` with it;
+`--tree` at `tree clean`; in a throwaway worktree at 2529abf, a staged sample
+and a message carrying the token both refused and a clean commit accepted;
+`core.hooksPath` unset. 11.1 on the staged tree, 11.2, 11.3 on the commit
+message and 11.13 are in `docs/implementations/2026-09-25-open-source-launch-slice-b.md`.
+Two amendments to this section, both by owner answer: `--tree` SKIPs where
+git cannot read the tree (D-510), and the broader private list is a
+mechanism the owner installs (D-509).
 
 ### Slice C: licence and notices (parallel with D)
 
@@ -861,7 +878,7 @@ and line endings normalised (D-414).
 ## 10. Open decisions for the owner
 
 Not settled by OA-1 to OA-10 unless marked; each is resolved by a D-row, never
-on silence. Items 2, 3, 6 and 42 are closed, and their rows name the D-row that
+on silence. Items 2, 3, 6, 14, 30, 31, 36 and 42 are closed, and their rows name the D-row that
 closed them.
 "Legal" marks items where qualified input is advisable (3.5).
 
@@ -880,7 +897,7 @@ closed them.
 | 11 | Version scheme; closes before slice E | (a) SemVer from v0.1.0; (b) first tag v0.5.0, matching the `ONF_ENGVER` "0.5.0" every evidence file prints; (c) v1.0.0 | (b): one number in front of readers; `ONF_ENGVER` bumped by hand thereafter; the owner defines 1.0.0 (for example row 8 filled) | |
 | 12 | Support policy, reply budget, canonical inbox | Tiers and window as in F3; weekly outreach hour cap; issues or Discussions as the one inbox | Supported: x86-64 suite, evidence audit; best effort: s390x, TK5; unsupported: Raincode, INTERCOMM, z/OS; 14-day window for issues, daily checks for 7 days on posts; issues as the inbox and Discussions off at launch | |
 | 13 | Where the overview lives | (a) `docs/overview.md`; (b) repository root; (c) README only | (a) | |
-| 14 | `.docx` exports and `md2docx.js` | (a) remove both tracked `.docx`, export as release assets on request, move `md2docx.js` to `tools/` with a neutral palette; (b) regenerate and keep tracking | (a): tracked binary exports drift and cannot be grepped | |
+| 14 | `.docx` exports and `md2docx.js` | (a) remove both tracked `.docx`, export as release assets on request, move `md2docx.js` to `tools/` with a neutral palette; (b) regenerate and keep tracking | (a): tracked binary exports drift and cannot be grepped. **Closed 2026-09-25 by D-502 as (b):** the SRS export is regenerated and kept, with `docx@9.7.2` installed outside the tree (D-508); `md2docx.js` stays where it is | |
 | 15 | Retiring session branches (after G) | (a) remote branches deleted, pointer tags local only (amends the D-443, D-446, D-460 practice); (b) keep | (a) after the parallel branch merges; deletion hides branches, not commits | |
 | 16 | Tagline "A fruit fly's brain, served as a CICS transaction" (SRS:3) | (a) replace; (b) qualify; (c) keep | (a), e.g. "A fruit fly's sugar-feeding circuit in C89 and COBOL, with identical outputs from x86-64 to emulated MVS 3.8j" | |
 | 17 | Indirect references to the request (D-01, D-126 and others; "IBM reviewers" at SRS:23, :117) | (a) keep decision rationale, rewrite reader classes; (b) remove all | (a): the ban is on the name | |
@@ -896,13 +913,13 @@ closed them.
 | 27 | Decision log citing commits no branch reaches (D-478 cites two) | (a) allow, marked unreachable; (b) cite the rewritten commits | (a) | |
 | 28 | Fixing `\| tail -1` changes what earlier greens covered | (a) fix and record; (b) leave | (a) | |
 | 29 | Copyright ownership and affiliation, before slice G: confirm no agreement or policy (university IP policy, IBM programme terms, internship or employment agreement, a grant) assigns, exclusively licenses or claims rights in ONFLY or requires an acknowledgement; decide whether TED University appears in `CITATION.cff`, Zenodo metadata, preprints and posts | (a) no affiliation, personal project; (b) affiliation after checking the university's publicity policy | (a) until checked | yes |
-| 30 | Push cadence | (a) push each slice to `main` as it lands (per-slice GitHub checks; intermediate states public); (b) hold B to F on a branch and push once; (c) push B at once to end name exposure in the current tree, then batch C to F | (c); every GitHub-side check runs after the push | |
-| 31 | How the committed guard and the scans hold the token | (a) accept encoded forms in the tree; (b) scripts read it from a gitignored file or environment variable, CI from an Actions secret (guard skipped on fork PRs); (c) the committed guard keeps only a salted digest, ad hoc scans read `ONFLY_NAME_B64` from the environment, and no public text carries an encoded form or describes the allowlist's words | (c): works in CI without secrets and keeps every public file free of the word in any form | |
+| 30 | Push cadence | (a) push each slice to `main` as it lands (per-slice GitHub checks; intermediate states public); (b) hold B to F on a branch and push once; (c) push B at once to end name exposure in the current tree, then batch C to F | (c); every GitHub-side check runs after the push. **Closed 2026-09-25 by D-504 as (c)** | |
+| 31 | How the committed guard and the scans hold the token | (a) accept encoded forms in the tree; (b) scripts read it from a gitignored file or environment variable, CI from an Actions secret (guard skipped on fork PRs); (c) the committed guard keeps only a salted digest, ad hoc scans read `ONFLY_NAME_B64` from the environment, and no public text carries an encoded form or describes the allowlist's words | (c): works in CI without secrets and keeps every public file free of the word in any form. **Closed 2026-09-25 by D-503 as (c)** | |
 | 32 | A standing VL entry "no IBM Z hardware has been used", dated and citing item 2's D-row | (a) yes; (b) README only | (a); SRS 1.1 and CAN-03 then cite it | |
 | 33 | PR #1 body wording ("the document handed to IBM") and its earlier revision | (a) edit the body; (b) leave it | (a), knowing that edit history stays visible | |
 | 34 | ONFLY in an IBM programme capacity | (a) never: ONFLY posts are personal, not logged as advocacy acts or deliverables, not posted in programme-only spaces; (b) allowed after a written answer from the programme managers on whether a personal IBM Community post by an ambassador falls under the content-licence clause, and whether stating the role title in a disclosure is allowed under the branding clause. Also: whether the existing post and thread were logged as advocacy acts | (a) until that answer exists; W2b waits for it | yes |
 | 35 | D-132 wording against tracked `tools/mvsicom.py`, which generates JCL naming INTERCOMM datasets and relinking ICOMCR | (a) reword D-132, or add a note, so tracked generators that only name INTERCOMM datasets and procedures are explicitly allowed; (b) move the generator into `local/` | Owner's call after legal input; (b) is the conservative default | yes |
-| 36 | Owner email in tracked files (none today; D-478 writes it into SRS:1108; a `.mailmap` would too) | (a) accept, since it is in every commit's metadata; (b) keep it out: no `.mailmap`, and D-478's address reviewed when B edits the merged SRS | Owner's call | |
+| 36 | Owner email in tracked files (none today; D-478 writes it into SRS:1108; a `.mailmap` would too) | (a) accept, since it is in every commit's metadata; (b) keep it out: no `.mailmap`, and D-478's address reviewed when B edits the merged SRS | Owner's call. **Closed 2026-09-25 by D-505 as (a):** D-478 is left as written | |
 | 37 | A Software Heritage save | (a) request one after G6; (b) leave it to the archive's own crawler. First check existing visits (11.15) | Owner's call; if (a), only after G6 | |
 | 38 | `clips` default output (D-388, D-389 set it to overwrite tracked GIFs) | (a) default to `build/`, tracked GIFs updated only by an explicit flag; (b) keep | (a), by a D-row amending D-388 | |
 | 39 | Host of the write-up | (a) in the repository, rendered by GitHub; (b) the personal site, after item 1; (c) dev.to | (a), or (b) after item 1, with the repository as the call to action | |
