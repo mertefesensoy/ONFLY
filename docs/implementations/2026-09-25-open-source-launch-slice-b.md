@@ -165,9 +165,22 @@ no command below contains the name.
    ^24 || >=26` while this host runs 20.16.0. The export ran and verifies as
    above, but it was produced on an engine version the dependency does not
    claim to support.
-6. **11.1 on the commit, 11.2, 11.3 and 11.13,** and `mingw32-make test`
-   including `namelint`: the commands and outputs are in the session report
-   of 2026-09-25, run after this doc was written.
+6. **Before the commit.** 11.1 on the staged tree (`git write-tree`, 419c393):
+   `total 0`, exit 0. 11.2 over the three untracked files: `hits: 0`. 11.13:
+   `em dashes: 0` in the added files and `0` in the added SRS lines (the
+   files P-41's 11.13 also names, `CITATION.cff`, `CHANGELOG.md` and
+   `data/README.md`, do not exist until slices C and D). 11.14 over the
+   private memory files: `hits: 0`. `mingw32-make fixtures`, then
+   `mingw32-make testfloat` (exit 0), then `mingw32-make test`, which now
+   runs `namelint` (`self-test 40 checks, 0 failed`, `tree clean, 1059
+   tracked files`): `MAKE_EXIT=0`, 21:25:00 to 21:36:11, on SOFT3E, SOFT2C
+   and NATIVE with MinGW gcc 6.3.0.
+7. **The commit and the push.** ab1ae9f passed the installed hooks. 11.1 on
+   ab1ae9f: `total 0`, exit 0, against 32 on 2529abf. 11.3 over
+   `ab1ae9f^..HEAD`: `hits: 0`. `main` was fast-forwarded `2529abf..ab1ae9f`
+   and pushed with the working branch (D-501, D-504). This paragraph was
+   added by a follow-up commit, and the session report of 2026-09-25 re-runs
+   the checks on the final commit.
 
 **An incident, recorded because it touched other worktrees' metadata.** The
 throwaway worktree's cleanup ran `git worktree prune`, which the plan did not
