@@ -2,7 +2,8 @@
 
 **APPROVED as drafted on 2026-09-24 (D-488) and published in full at the
 owner's choice (D-489). Slice A COMPLETE 2026-09-25 (D-494). Slice B
-COMPLETE 2026-09-25 (D-500 to D-512).** This file is
+COMPLETE 2026-09-25 (D-500 to D-512). Slices C and D COMPLETE 2026-09-26
+(D-513 to D-541).** This file is
 the proposal P-41 records; Appendix A.2 carries it, struck as approved. Until
 the renumbering of 2026-09-24 it called itself P-40; that number went to
 D-480's proposal, so the pushed commits f2e4b2f, 4b1de9f, f8d2a05 and 11c074d
@@ -13,7 +14,7 @@ recorded as a D-row.
 | Field | Value |
 |---|---|
 | Date | 2026-09-24 |
-| Status | APPROVED 2026-09-24 (D-488); slice A COMPLETE 2026-09-25 (D-494); slice B COMPLETE 2026-09-25 (D-500 to D-512); slices C and D are next |
+| Status | APPROVED 2026-09-24 (D-488); slice A COMPLETE 2026-09-25 (D-494); slice B COMPLETE 2026-09-25 (D-500 to D-512); slices C and D COMPLETE 2026-09-26 (D-513 to D-541), on the working branch until D-504's batch; slice E is next |
 | Proposal | P-41, confirmed at slice A3 on 2026-09-25 (D-494); P-40 until the renumbering of 2026-09-24 |
 | Scope | Launching the already public repository github.com/mertefesensoy/ONFLY so that other people can find it, understand it truthfully and replicate what it claims, **before** Phase F. Not a phase: no phase opens or closes here. Phases A to E and G stay COMPLETE; Phase F stays blocked on IBM Z access the project does not have; Phase H stays blocked on TBD-13 |
 | Authorising owner answers | recorded as D-484 to D-493: OA-1 (scrub forward only), OA-2 (rewrite the IBM summary as a public overview), OA-3 (neutral term plus a decision row), OA-4 (all four audiences, sequenced by this plan), OA-5 (plan approved), OA-6 (published in full), OA-7 (commit and push the working branch), OA-8 and OA-9 (the two no-access confirmations of 3.2), OA-10 (Wave -1 scope for the IBM Community post); see 0.1 |
@@ -413,7 +414,7 @@ Two amendments to this section, both by owner answer: `--tree` SKIPs where
 git cannot read the tree (D-510), and the broader private list is a
 mechanism the owner installs (D-509).
 
-### Slice C: licence and notices (parallel with D)
+### Slice C: licence and notices (COMPLETE 2026-09-26, D-513 to D-541)
 
 | Step | Work |
 |---|---|
@@ -451,7 +452,19 @@ entry; local checks pass; GitHub reports MIT after the push. **Verify:**
 --check`, identical `build/obj/*.o` hashes before and after C7, 11.12, and
 11.5 after push.
 
-### Slice D: a truthful public surface (parallel with C)
+**Met 2026-09-26 (D-513 to D-541), by the plan of record P-43 (D-531), run
+together with slice D.** `tools/lint_ntc.py` (11.12's check, `ntclint` in
+`make test`) finds 6 components, 15 item 8 paths and 22 tools named, and
+`LICENSE` the MIT text alone; `reuse lint` 6.2.0 reports 1069 of 1069 files
+compliant; `derive3e.py --check` exits 0; `onfrpk.o` and `onfprim.o` are
+byte-identical before and after C7 under the Makefile's own flags;
+`mingw32-make test` exits 0 on SOFT3E, SOFT2C and NATIVE. GitHub reads
+`MIT` on the pushed working branch (`license?ref=`); 11.5 on `main` stays
+`NOASSERTION` until D-504's batch reaches it (D-514). FlyWire's status is
+open (D-515) and `data/g0/` is outside the MaleCNS row (D-539). The record
+is `docs/implementations/2026-09-26-open-source-launch-slice-c.md`.
+
+### Slice D: a truthful public surface (COMPLETE 2026-09-26, D-513 to D-541)
 
 | Step | Work |
 |---|---|
@@ -465,6 +478,18 @@ entry; local checks pass; GitHub reports MIT after the push. **Verify:**
 **Exit:** every factual sentence in README and overview maps to a CAN entry;
 the no-access statement is everywhere 3.2 lists. **Verify:** 11.7, 11.13, and
 a read of README against Section 5 by a W1a reader.
+
+**Met 2026-09-26 (D-513 to D-541), with one verify step carried.** The
+README and `docs/overview.md` were approved by the owner as drafted
+(D-532 to D-534), and every item in them is mapped to a CAN entry or a
+structural source in the slice's record. The no-access statement is in
+the README, the overview, SRS 1.1, 2.3, C-07 and 9.2 row F, and the
+repository description (D-540); 11.7 gives 1, 1 and 3. 11.13 gives 0 in
+every added file and 0 new on edited SRS lines, with 3 inherited (D-536);
+measured by decoding as UTF-8, because a piped check reads 0 whatever it
+is given on this host (D-537). **Carried:** the W1a reader's read, which
+needs someone other than the owner and the engineer, before slice G. The
+record is `docs/implementations/2026-09-26-open-source-launch-slice-d.md`.
 
 ### Slice E: replicability
 

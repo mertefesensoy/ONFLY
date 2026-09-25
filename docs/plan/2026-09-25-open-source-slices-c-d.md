@@ -4,7 +4,7 @@
 |---|---|
 | Scope | D-513: slices C and D of `docs/plan/2026-09-24-open-source-launch.md` (P-41, approved by D-488), together |
 | Decisions it rests on | D-514 push the working branch only; D-515 item 8 pending legal input; D-516 item 20 CC BY 4.0; D-517 item 21 amend C-08; D-518 item 23 "Şensoy"; D-519 item 10 no roles; D-520 item 29 personal project; D-521 `reuse` pinned in scratch; D-522 item 4 AI-use section; D-523 item 16 tagline kept; D-524 item 17 reader classes only; D-525 item 18 glossary; D-526 item 19 correct and annotate; D-527 item 32 a VL row; D-528 item 9 deferred; D-529 item 13 `docs/overview.md` without `.docx`; D-530 no README image. Earlier: D-50, D-62, D-132, D-478, D-484 to D-512 |
-| Proposal | P-43 |
+| Proposal | P-43, APPROVED as drafted 2026-09-25 (D-531); carried out and slices C and D marked COMPLETE 2026-09-26 (D-541) |
 | Not a phase | No Section 9 phase opens or closes. The exits are P-41's own for C and D, as D-513 states them |
 | Platform | x86-64 Windows 11, MinGW.org gcc 6.3.0 (32-bit), Python 3.13.14. Nothing here runs on s390x, MVS or z/OS |
 

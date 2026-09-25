@@ -135,8 +135,8 @@ All on x86-64 Windows 11: MinGW.org gcc 6.3.0 (32-bit), Python 3.13.14,
 | C-V3 | `python tools/lint_lic.py --verbose` | `scanned 924 tracked source files`, `ok`, with `.md` and `.json` now scanned |
 | C-V4 | `python softfloat/derive3e.py --check` | `matches upstream's bodies`, exit 0 |
 | C-V5 | `gcc $(SFFLAGS) $(INC) $(SFINC) -c` of `onfrpk.c` and `onfprim.c`, before and after C7, compared with `cmp` | `onfrpk.o` `e8b421da...0c4` and `onfprim.o` `40e8f6f2...db5` both before and after; `cmp` silent. Two builds of the unchanged source first gave identical hashes, so the comparison can detect a change |
-| C-V6 | `gh api 'repos/mertefesensoy/ONFLY/license?ref=<branch>'` | Recorded in section 7 of slice D's doc, after the push |
-| T-V1 | `mingw32-make test` | Recorded in slice D's doc, section 6 |
+| C-V6 | `gh api 'repos/mertefesensoy/ONFLY/license?ref=claude/onfly-senior-engineer-6f4aba'` after pushing c8233a6 | `"spdx":"MIT"`, `"name":"MIT License"`. `main` still reads `NOASSERTION` (D-514); details in slice D's doc, section 7 |
+| T-V1 | `mingw32-make test` | `MAKE_EXIT=0` on SOFT3E, SOFT2C and NATIVE, `ntclint` inside it; details in slice D's doc, section 7 |
 
 **Not proven.**
 * The notices are a record of what upstream pages say, read on one day. They

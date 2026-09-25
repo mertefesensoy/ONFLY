@@ -208,7 +208,21 @@ changed. The notices and README files were untracked during this run, so
 `lint_lic` and `lint_name` scanned them only after the commit, in the final
 run.
 
-The push and GitHub's licence reading are recorded in the follow-up commit.
+**The commit and the push.** c8233a6 passed the installed hooks. It was
+pushed to `origin/claude/onfly-senior-engineer-6f4aba` only (D-514);
+`git ls-remote` then showed the branch at c8233a6 and `main` still at
+cb20a28.
+
+**C-V6, GitHub's own reading.**
+* `gh api 'repos/mertefesensoy/ONFLY/license?ref=claude/onfly-senior-engineer-6f4aba'`
+  returned `{"name":"MIT License","path":"LICENSE","spdx":"MIT"}`.
+* The same call without `ref`, which reads `main`, still returned
+  `NOASSERTION`. It will read MIT only when D-504's batch reaches `main`.
+* `readme?ref=` on the branch returned `README.md`.
+
+The owner then marked slices C and D COMPLETE (D-541). The final
+`mingw32-make test` on the committed tree is in this session's closing
+report.
 
 ## 8. Related docs
 
