@@ -67,6 +67,24 @@ def check(name, ok, detail=""):
                      % ("ok" if ok else "FAIL", name, detail))
 
 
+def compare_quiet(argv):
+    """`mvsjcc.run_compare(argv)` with its output captured, not printed.
+
+    Returns (exit code, everything written to stdout and stderr).
+    """
+    import io
+    out, err = sys.stdout, sys.stderr
+    buf = io.StringIO()
+    sys.stdout = sys.stderr = buf
+    try:
+        rc = mvsjcc.run_compare(argv)
+    except Exception as exc:            # a crash is a refusal, loudly
+        rc = "raised %s" % type(exc).__name__
+    finally:
+        sys.stdout, sys.stderr = out, err
+    return rc, buf.getvalue()
+
+
 def go_cards(deck, step="GO"):
     """One step's cards: its EXEC card, its continuation and its DDs."""
     out = []
@@ -287,6 +305,52 @@ def main():
           any("RECFM=FB,LRECL=80" in c for c in inst),
           "DCB=(RECFM=FB,LRECL=80,BLKSIZE=3200)")
 
+    # --- the run outlives a six-hour GO step (D-471) -----------------
+    # D-467's lost run reported two of fourteen `path` requests after
+    # 63 min 51.67 s of GO CPU.  A collect window shorter than the job
+    # turns a run that is still going into a TIMEOUT the operator reads
+    # as a failure.
+    check("RUN_TIMEOUT is at least 12 h (D-471)",
+          mvsjcc.RUN_TIMEOUT >= 43200, "%d s" % mvsjcc.RUN_TIMEOUT)
+
+    # --- --compare judges only row 7's own recording (D-472, P-38) ---
+    # On 2026-09-18 `--compare data/phase-e/mvs` printed "ACC-5 row 7
+    # PASS" over row 6's GCCMVS records.  The verdict must now be
+    # impossible over any directory that does not hold the listing of
+    # row 7's own job for the selected network.
+    mvsrun.select("path")
+    rc, text = compare_quiet([os.path.join(ROOT, "data", "phase-e", "mvs"),
+                              os.path.join(ROOT, "data", "phase-d", "x86w")])
+    check("path: --compare refuses row 6's GCCMVS directory",
+          rc != 0 and "row 7 PASS" not in text, "rc=%s" % rc)
+    import shutil
+    import tempfile
+    tmp = tempfile.mkdtemp(prefix="onfp38")
+    try:
+        # Row 6's path records under row 7's listing NAME, but carrying
+        # row 6's JES2 banner: a renamed listing is still the wrong job.
+        shutil.copy(os.path.join(ROOT, "data", "phase-e", "mvs",
+                                 "rsp-path-2c.bin"), tmp)
+        shutil.copy(os.path.join(ROOT, "data", "phase-e", "mvs",
+                                 "ONFPRUN.txt"),
+                    os.path.join(tmp, "ONFJPRUN.txt"))
+        rc, text = compare_quiet(
+            [tmp, os.path.join(ROOT, "data", "phase-d", "x86w")])
+        check("path: --compare refuses a renamed listing",
+              rc != 0 and "row 7 PASS" not in text, "rc=%s" % rc)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    mvsrun.select("srext")
+    jccdir = os.path.join(ROOT, "data", "phase-e", "jcc")
+    rc, text = compare_quiet([jccdir,
+                              os.path.join(ROOT, "data", "phase-d", "x86w")])
+    verdict = [l for l in text.splitlines() if "row 7 PASS" in l]
+    check("srext: --compare accepts row 7's own recording",
+          rc == 0 and len(verdict) == 1, "rc=%s" % rc)
+    check("srext: the verdict line names the measured directory",
+          len(verdict) == 1 and jccdir in verdict[0],
+          verdict[0] if verdict else "no verdict")
+
     # --- the recorded TK5 run ----------------------------------------
     # The same shape tests/run_mvsrun.py uses for row 6: the evidence
     # itself is checked from a clone, not just the deck that would
@@ -334,6 +398,24 @@ def main():
               "%d of %d: %s..%s" % (len(got), len(gold),
                                     gold[0][0], gold[-1][0])
               if gold else "no golden entries")
+    mvsrun.select("srext")
+
+    # --- the SRS says what the recording says (D-473) ----------------
+    # Section 8.3 row 7's `path` sentence and VL-138 were written by
+    # tools/row7amend.py from rsp-path-2c.bin and ONFJPRUN.txt.  If
+    # either the recording or the SRS text drifts, the two must stop
+    # agreeing here rather than in a reader's head.
+    import io
+    import row7amend
+    try:
+        m = row7amend.measure()
+        srs = io.open(row7amend.SRS, encoding="utf-8").read()
+        check("row7amend: row 7's path sentence matches the recording",
+              row7amend.row_text(m) in srs, "JOB %s" % m["job"])
+        check("row7amend: VL-138 matches the recording",
+              row7amend.vl_text(m) in srs, "GO CPU %s" % m["cpu"])
+    except row7amend.AmendError as exc:
+        check("row7amend: the recording is row 7's", False, str(exc))
     mvsrun.select("srext")
 
     # --- the probe programs are well-formed C ------------------------
