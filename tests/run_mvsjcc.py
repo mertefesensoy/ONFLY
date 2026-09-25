@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Everything about ACC-5 row 7 that can be judged without TK5.
 
-`tools/mvsjcc.py` builds an 8,390-card deck and submits it to a
-mainframe, so what it *produces* can only be judged there.  What can be
+`tools/mvsjcc.py` builds an 8,390-card deck and submits it to the
+emulated MVS lab, so what it *produces* can only be judged there.  What can be
 judged here is everything whose failure would waste that run, plus the
 one property row 7 exists to have and could silently lose.
 
@@ -40,7 +40,7 @@ unique ignoring case (C-04).
 **The probe programs are well-formed C.**  Every probe source is built
 by string-joining lines in Python, which is exactly how an escaped
 newline gets into the middle of a C string literal -- it happened once
-in this session and cost a mainframe run.  So each generated source is
+in this session and cost an emulated-MVS run.  So each generated source is
 checked to contain no embedded newline and to have balanced braces.
 
 Run:
@@ -357,7 +357,7 @@ def main():
     # produce it.  A recording that silently went missing, or that
     # stopped agreeing with the golden suite, would otherwise be
     # noticed only the next time somebody spent ten minutes of
-    # mainframe time.
+    # emulated-MVS time.
     #
     # Both halves are required, not merely whichever happens to be on
     # disk: the whole point of D-458 is that row 7 covers all nineteen

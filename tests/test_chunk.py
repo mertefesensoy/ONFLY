@@ -226,7 +226,7 @@ class FingerprintInputs(unittest.TestCase):
     def test_it_matches_the_shipped_g17_value(self):
         # Anchors the arguments above to a real Section 8.4 entry, so a
         # change to IR-COM-05's canonical string fails here and not only
-        # on a mainframe.  G-17: srext, SUGR, 200 Hz, 1000 ms, seed 1.
+        # on emulated MVS.  G-17: srext, SUGR, 200 Hz, 1000 ms, seed 1.
         self.assertEqual("%08X" % _fp.fingerprint(*self.ARGS), "F9C7EE77")
 
 

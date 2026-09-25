@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Phase E slice 1: make ONFLY SIMULATE on MVS 3.8j (D-255, D-258).
 
-Everything ONFLY has ever done on a mainframe stops short of the one
+Everything ONFLY has ever done on emulated MVS stops short of the one
 thing the project is for.  Gate G1 got SoftFloat 2c running there; Gate
 G2 got a network file there and had ONFLYENG verify it; `tools/mvsker.py`
 ran the Appendix C kernel there against the oracle; Gate G4 compiled and
@@ -21,7 +21,7 @@ WHAT IS BEING CLAIMED, AND HOW IT IS JUDGED
 Row 6 of the SRS Section 8.3 determinism matrix -- TK5 MVS 3.8j / SOFT2C
 / GCCMVS -- is the only row of that matrix that has never been filled.
 ACC-5 is satisfied when each golden request produces the same fingerprint
-in every row, so until this runs, ACC-5 is not a mainframe claim at all.
+in every row, so until this runs, ACC-5 is not an MVS claim at all.
 
 The judgement is deliberately NOT "the fingerprints look right".  It is a
 byte comparison of the whole ONFRSP dataset against the x86-64 recording
@@ -1185,7 +1185,7 @@ def process_run(out, argv):
         # Named for the JOB, not for a literal.  Hardcoding "ONFERUN"
         # meant the `path` run overwrote the `srext` listing -- the one
         # piece of evidence that cannot be regenerated without another
-        # fourteen minutes of mainframe time.
+        # fourteen minutes of emulated-MVS time.
         lst = os.path.join(outdir, "%s.txt" % RUN_JOB)
         io.open(lst, "w", encoding="ascii", errors="replace",
                 newline="").write(out.replace("\r\n", "\n"))

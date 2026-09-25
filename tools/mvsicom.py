@@ -384,7 +384,7 @@ def install_deck():
     subsystem member -- are the ones ONFLY appends to; copying them
     fresh each time is what makes this whole command idempotent, and
     it is also why no line of the shipped content is ever written down
-    off the mainframe (D-132).  The other two are the table sources
+    off the emulated MVS lab (D-132).  The other two are the table sources
     themselves, copied unchanged, because the assembly procedure reads
     its input from the USER library and would otherwise not find them.
 

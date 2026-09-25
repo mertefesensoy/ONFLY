@@ -6,13 +6,22 @@ every request independently in Python -- the kernel from the oracle and the
 fingerprint from its own reading of IR-COM-05 -- and compares fingerprints.
 
 What this establishes and what it does not: agreement here shows the C engine
-and the oracle produce identical fingerprints on this host. ACC-5 additionally
-requires the same fingerprints on Linux s390x, MVS 3.8j and z/OS, none of which
-is available here, so rows 4 to 8 of the Section 8.3 matrix stay unrun. VL-05
-also applies: identical fingerprints prove consistency, not correctness.
+and the oracle produce identical fingerprints on the host it runs on. ACC-5
+additionally requires the same fingerprints on the other Section 8.3 rows.
+Rows 4 and 5, Linux s390x under QEMU, run this same script in the guest;
+rows 6 and 7, MVS 3.8j under the Hercules emulator, are recorded in
+data/phase-e/ and checked by tests/run_mvsrun.py and tests/run_mvsjcc.py;
+row 8, z/OS, is empty, because the project does not have IBM Z access yet
+(VL-139). VL-05 also applies: identical fingerprints prove consistency, not
+correctness.
 
-The durations come from D-37 and D-42 and are PROVISIONAL. Gate G3 fixes the
-real values, and changing a duration changes every fingerprint below.
+The 1000 ms standard duration is fixed by D-73 and the 1300 ms maximum by
+D-138. G-07's 100 ms "short" duration is D-42's, and every Section 8.3 row was
+recorded with it, so changing any duration would change the fingerprints
+below and every recording that holds them.
+(Brought up to date 2026-09-25 by P-41 slice D, D-531: this docstring still
+described the Phase B harness, when rows 4 to 8 were unrun and the durations
+provisional.)
 
 Run:  python tests/run_gld.py <path-to-tstgld-executable>
 """
@@ -32,7 +41,7 @@ from onfly_oracle import kernel as okernel       # noqa: E402
 from onfly_oracle.crc32 import crc32             # noqa: E402
 from onfly_oracle.fingerprint import fingerprint  # noqa: E402
 
-STD_MS, SHORT_MS = 1000, 100          # D-37, D-42 -- provisional
+STD_MS, SHORT_MS = 1000, 100          # D-37, D-42; standard fixed by D-73
 RC_OK, RC_WARN, RC_ERR = 0, 4, 8      # Appendix E RC column, proposal P-08
 
 #: The real network the suite runs against (D-70).  Its parameters are read

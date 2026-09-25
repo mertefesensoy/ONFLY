@@ -1,0 +1,20 @@
+LicenseRef-FlyWire-Pending: status open
+
+The files annotated with this identifier in REUSE.toml hold, or were
+produced from, the reference curve ONFLY calibrates against. That curve
+was produced by re-running Shiu et al.'s published MIT code on FlyWire
+connectome files from snapshot 630, which are not in this repository.
+
+FlyWire's guidelines (https://flywire.ai/guidelines) state that its
+public release data is under CC BY-NC 4.0, a non-commercial licence.
+That page names release v783 and does not name snapshot 630 explicitly.
+
+ONFLY takes no position yet on whether these files, or the synaptic
+weight fitted to the curve, are adapted material under FlyWire's terms.
+The question is recorded as open in docs/ONFLY-SRS.md, decision D-515,
+and is decided before any release. Until then, nothing in this
+repository relicenses FlyWire data, and the MIT licence in LICENSE is not
+claimed for these files. THIRD_PARTY_NOTICES.md, section 6, lists the
+files and the papers FlyWire asks users to cite.
+
+This text is a status notice, not a licence grant, and not legal advice.

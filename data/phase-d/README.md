@@ -66,3 +66,12 @@ Nothing about MVS 3.8j or z/OS. TX-01 is defined against MVS response
 records, no MVS engine exists yet, and it is therefore reported PARTIAL for
 the whole of Phase D (D-219, VL-83). And the s390x row is a QEMU TCG
 emulation, not hardware (VL-82).
+
+**Update, 2026-09-25 (P-41 slice D, D-531).** The paragraph above is kept as
+it was written when Phase D closed. An MVS engine has existed since
+2026-09-15. On MVS 3.8j under the Hercules emulator, built by GCCMVS, all
+nineteen Section 8.4 requests give the golden fingerprints, and the response
+records are identical byte for byte apart from the one text field MVS stores
+in EBCDIC (D-261; Section 8.3 row 6). Built by a second MVS compiler, JCC,
+all nineteen reproduce the same way (row 7, VL-138). Those recordings are in
+`data/phase-e/`. Nothing here has run on z/OS or on IBM Z hardware (VL-139).

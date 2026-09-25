@@ -24,7 +24,7 @@ appearing to certify. So what is pinned here is that it REFUSES: on a
 sleep, and on an unreadable clock.
 
 These tests call trust() directly with synthetic numbers. They need no
-mainframe, no Hercules and no network, and they run in milliseconds.
+TK5, no Hercules and no network, and they run in milliseconds.
 
 Run:  python tests/test_trust.py
 """

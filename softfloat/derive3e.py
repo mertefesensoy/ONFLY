@@ -32,6 +32,14 @@ the 2426 fp vectors on both backends, cmpback's bit-for-bit comparison and
 the ACC-5 golden fingerprints.  Those fingerprints were computed before any
 of this existed, so if a primitive changed behaviour they would move.
 
+THE LICENCE TEXT
+----------------
+The generated file reproduces third_party/SoftFloat-3e/COPYING.txt in
+full, read from that file at generation time rather than retyped, because
+the licence's first condition asks every redistribution of source to
+retain the conditions and the disclaimer, not a pointer to them (P-41 C7,
+D-531).  It is a comment: the object file does not change.
+
 Output: softfloat/onfprim.c.  Never edit by hand (IR-COM-01).
 
 Run:  python softfloat/derive3e.py [--check]
@@ -44,6 +52,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "third_party", "SoftFloat-3e", "source")
 OUT = os.path.join(ROOT, "softfloat", "onfprim.c")
+COPYING = os.path.join(ROOT, "third_party", "SoftFloat-3e", "COPYING.txt")
 
 # (upstream file, guarded name, new name)
 PRIMS = [
@@ -74,14 +83,18 @@ HEADER = """\
  * third_party/ is untouched and stays byte-identical to the released
  * archive (D-28, D-35).  Berkeley SoftFloat Release 3e is by John R.
  * Hauser, copyright 2011-2018 The Regents of the University of
- * California, three-clause BSD; the full text is in
- * third_party/SoftFloat-3e/COPYING.txt.
+ * California, three-clause BSD; the full text follows this comment,
+ * reproduced from third_party/SoftFloat-3e/COPYING.txt.
  *
  * That these copies behave identically is not proven by copying them.  It
  * is proven by the x86 suite still passing afterwards -- in particular by
  * the ACC-5 golden fingerprints, which were computed before any of this
  * existed and would move if a primitive changed.
  */
+"""
+
+PRELUDE = """\
+
 #include <stdint.h>
 #include "platform.h"
 
@@ -148,8 +161,22 @@ def body_of(filename, guarded, newname):
     return block.strip("\n")
 
 
+def licence():
+    """Upstream's COPYING.txt, from its copyright line on, as a comment."""
+    text = io.open(COPYING, encoding="ascii").read()
+    start = text.find("Copyright ")
+    if start < 0 or "*/" in text:
+        raise SystemExit("derive3e: %s has changed shape; revisit" % COPYING)
+    body = text[start:].rstrip("\n")
+    return ("/*" + "=" * 76 + "\n\n"
+            "Berkeley SoftFloat Release 3e's licence, reproduced from\n"
+            "third_party/SoftFloat-3e/COPYING.txt as its first condition "
+            "requires.\n\n"
+            + body + "\n\n" + "=" * 77 + "*/\n")
+
+
 def render():
-    parts = [HEADER]
+    parts = [HEADER + licence() + PRELUDE]
     for filename, guarded, newname in PRIMS:
         parts.append("")
         parts.append("/* ---- from %s: %s ---- */" % (filename, guarded))

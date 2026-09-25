@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Everything about the 3270 transaction path that can be judged here.
 
-`tools/ic3270.py` drives a real terminal emulator against a real
-mainframe and `tools/mvsicom.py` starts and stops a real region, so
+`tools/ic3270.py` drives a real terminal emulator against the emulated
+MVS lab and `tools/mvsicom.py` starts and stops a real region, so
 what they *do* can only be judged on TK5.  What can be judged on this
 host is everything whose failure would waste a lab session -- and, more
 importantly, the three facts VL-129 paid for, each of which looks like
@@ -16,7 +16,7 @@ the MVS console -- which is what made this look for an hour like a
 terminal that was not defined.  The rule lives in one place,
 `Session.command`, and this pins it there.  If someone later "tidies"
 the comma away, the failure will be an hour of the same confusion on a
-running mainframe; here it is one line of output.
+running lab; here it is one line of output.
 
 **The logon is `APPLID=`, not `APPLID(...)`.**  The parenthesised form
 is what every modern reference gives.  On TK5 it is passed to TSO and

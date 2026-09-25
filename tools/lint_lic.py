@@ -89,9 +89,13 @@ EXEMPT_DIRS = ("docs/implementations/",)
 # could carry a pasted INTERCOMM copybook as easily as a COBOL file could;
 # a lint that silently skipped a whole language would have stopped
 # protecting anything, which is the failure D-390 records.
+# ".md" and ".json" were added by P-41 slice C (D-531): the launch adds
+# public Markdown and every new file should be under this guard.  Measured
+# when they were added, no tracked .md or .json outside the exemptions
+# named an INTERCOMM macro, so they added coverage and no finding.
 SOURCE_SUFFIXES = (".cbl", ".cpy", ".cob", ".asm", ".mac", ".jcl",
                    ".c", ".h", ".py", ".txt", ".inc",
-                   ".cs", ".csproj", ".bms")
+                   ".cs", ".csproj", ".bms", ".md", ".json")
 
 
 def tracked_files():

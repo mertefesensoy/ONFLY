@@ -61,7 +61,7 @@ RPT_RE = re.compile(r"READOUT\s+(\d+)\s+ID=\s*(\d+)\s+(\S+)\s+"
 def say(text):
     """Print and flush.
 
-    This tool waits minutes on a mainframe, and Python block-buffers
+    This tool waits minutes on emulated MVS, and Python block-buffers
     stdout when it is a file rather than a terminal -- so an
     unflushed run shows nothing at all until it exits, and there is
     no way to tell "waiting" from "hung".  Measured 2026-09-17.

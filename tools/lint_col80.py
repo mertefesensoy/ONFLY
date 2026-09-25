@@ -48,7 +48,7 @@ TABSTOP = 8
 #
 # ".cs" and ".csproj" are deliberately NOT here, and the omission is stated
 # rather than left to be noticed (D-398).  C# is not card image, no
-# mainframe tool ever reads it, and an 80-column rule on it would be
+# MVS tool ever reads it, and an 80-column rule on it would be
 # ceremony.  Note that ".cs" does not match the ".c" entry: endswith(".c")
 # is false for a name ending in "s".
 #

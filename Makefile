@@ -158,7 +158,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy generated
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint liclint namelint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req sub mvsrun names fixtures fixtures-check
+.PHONY: all test generate lint liclint namelint ntclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req sub mvsrun names fixtures fixtures-check
 
 all: test
 
@@ -218,6 +218,19 @@ liclint:
 namelint:
 	$(PYTHON) tools/lint_name.py --self-test
 	$(PYTHON) tools/lint_name.py --tree
+
+# --- notices check (NFR-LIC-01, P-41 11.12, D-531) ------------------------
+# Third-party terms live in one register, THIRD_PARTY_NOTICES.md, and
+# LICENSE is the MIT text alone, so that GitHub can detect it.  A register
+# kept by care drifts silently the first time a path is renamed, so this
+# holds it to the component list in tools/lint_ntc.py: every component,
+# every FlyWire-derived path P-41 item 8 inventories, every tool used but
+# not included, the BSD text in the two derived SoftFloat 3e files, and the
+# two data notices.  It checks that things are named, not that what is said
+# about them is right.  No prerequisites: it reads files, not the build.
+ntclint:
+	$(PYTHON) tools/lint_ntc.py --self-test
+	$(PYTHON) tools/lint_ntc.py
 
 $(BUILD):
 	$(PYTHON) -c "import os; os.path.isdir('$(BUILD)') or os.makedirs('$(BUILD)')"
@@ -290,15 +303,18 @@ decode: $(BUILD) $(GENERATED)
 	$(PYTHON) tests/run_dec.py $(BUILD)/tstdec.exe
 
 # --- ACC-5: the golden request suite (SRS 8.4) ---------------------------
-# Runs all thirteen golden requests through validate, simulate and
-# fingerprint on both backends, checks every fingerprint against the
-# oracle, then requires the two backends to agree.  That is rows 1, 2 and 3
-# of the Section 8.3 determinism matrix.  Rows 4 to 8 need Linux s390x,
-# MVS 3.8j and z/OS and cannot run on this host.
+# Runs every Section 8.4 golden request through validate, simulate and
+# fingerprint on all three backends, SOFT3E, NATIVE and SOFT2C, checks every
+# fingerprint against the oracle, then requires the backends to agree
+# (tools/cmpgld.py).  That is rows 1, 2, 3 and 3b of the Section 8.3
+# determinism matrix.  Rows 4 and 5 are Linux s390x and run in the guest;
+# rows 6 and 7 are MVS 3.8j under the Hercules emulator, checked here from
+# their recordings by the mvsrun and mvsjcc targets; row 8, z/OS, is empty.
 #
-# The durations come from D-37 and D-42 and are PROVISIONAL: TBD-06 is open
-# and Gate G3 fixes the real values.  Changing one changes every
-# fingerprint, so these are not yet reference values.
+# The durations are fixed: the 1000 ms standard by D-73 and the 1300 ms
+# maximum by D-138, which closed TBD-06's duration items.  Changing one
+# would change every fingerprint.  (Brought up to date 2026-09-25 by P-41
+# slice D, D-531: this comment still described the Phase B harness.)
 golden: $(BUILD) $(GENERATED) softfloat/onfsub.c $(SF2CSRC) generated/onf2cnm.h
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/tstgld_soft.exe \
 	  tests/tstgld.c engine/src/onfreq.c generated/onfcom.c \
@@ -794,9 +810,9 @@ runners: $(BUILD) $(GENERATED) runner
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint liclint namelint col80 c04 c04mvs sub mvsrun mvsjcc ic3270 names tt01 tt02 c2c sfs shim layout units fp kernel syn \
+test: lint liclint namelint ntclint col80 c04 c04mvs sub mvsrun mvsjcc ic3270 names tt01 tt02 c2c sfs shim layout units fp kernel syn \
       decode eng req golden prep
-	@echo "ONFLY: NR-05 + licence + name + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE; plus IR-NAM-01..03 over the emitted names files, and the Phase E MVS decks and recordings -- TX-01 under D-261 and ACC-5 row 6 for all nineteen Section 8.4 requests, and ACC-5 row 7 for all nineteen Section 8.4 requests JCC built and ran; plus the streamed fixture digests, D-202's ACC-3 exclusion rule, and TP-09 holding the TBD-06 seed tool to the recorded ACC-1 and ACC-3 verdicts; plus the 3270 transaction path off-lab -- the script protocol, the region and build decks, and the three facts VL-129 paid for"
+	@echo "ONFLY: NR-05 + licence + name + notices + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE; plus IR-NAM-01..03 over the emitted names files, and the Phase E MVS decks and recordings -- TX-01 under D-261 and ACC-5 row 6 for all nineteen Section 8.4 requests, and ACC-5 row 7 for all nineteen Section 8.4 requests JCC built and ran; plus the streamed fixture digests, D-202's ACC-3 exclusion rule, and TP-09 holding the TBD-06 seed tool to the recorded ACC-1 and ACC-3 verdicts; plus the 3270 transaction path off-lab -- the script protocol, the region and build decks, and the three facts VL-129 paid for"
 
 # D-249.  `summarise()` in tools/mvsub.py turns a few thousand lines of
 # JES2 output into the handful a person reads -- and, through the gate
@@ -808,7 +824,7 @@ sub:
 
 # Phase E slice 1 (D-255, D-258).  tools/mvsrun.py is submitted to TK5,
 # so almost nothing in it can be tested here -- but everything that
-# would WASTE a mainframe run can be: column limits, delimiter
+# would WASTE an emulated-MVS run can be: column limits, delimiter
 # collisions, C-04 member names, the link order, IR-JCL-01's DD names
 # on the GO step, and the assertion that the control cards pack to
 # exactly the bytes data/phase-d/x86w/req-srext.bin holds, which is
@@ -850,13 +866,13 @@ mvsjcc:
 	$(PYTHON) tests/run_mvsjcc.py
 
 # Phase G slice 1 (D-424 ... D-428, VL-129).  tools/ic3270.py drives a
-# real terminal emulator against a real mainframe and tools/mvsicom.py
+# real terminal emulator against the emulated MVS lab and tools/mvsicom.py
 # starts and stops a real region, so what they DO can only be judged on
 # TK5.  What is judged here is the script protocol, the region deck's
 # column limits, and the three facts VL-129 paid for and that look like
 # details: the verb must be comma-terminated, the logon is APPLID= and
 # not APPLID(...), and a device must be named because TK5 gives 00C0 to
-# TSO.  Each of those, if lost, costs an hour on a running mainframe
+# TSO.  Each of those, if lost, costs an hour on the running lab
 # and gives a symptom that points somewhere else.  Pure Python; no
 # Hercules, no emulator, no network.
 ic3270:

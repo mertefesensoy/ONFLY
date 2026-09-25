@@ -8,7 +8,10 @@ The physics is Shiu's, untouched: ``model.py`` and ``utils.py`` in this
 directory are vendored verbatim from github.com/philshiu/Drosophila_brain_model
 (MIT; digests in ``MANIFEST.json``).  Each trial is ``model.run_trial`` on the
 FlyWire 630 completeness and connectivity files, exactly as ``figures.ipynb``
-cell 5 drives it for Figure 1D: the 21 right-hemisphere labellar sugar GRNs as
+cell 5 drives it for Figure 1D.  (The FlyWire files are not in this
+repository and FlyWire states its public data is non-commercial, CC BY-NC
+4.0; see THIRD_PARTY_NOTICES.md, section 6, and SRS D-515.)  Inputs: the 21
+right-hemisphere labellar sugar GRNs as
 Poisson inputs at rate r, ``t_run`` = 1000 ms, ``n_run`` = 30 trials, MN9 rate
 = spikes / t_run averaged over trials (``utils.get_rate``).
 

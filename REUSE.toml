@@ -1,0 +1,128 @@
+# Machine-readable licence annotations for ONFLY (REUSE Specification 3.3).
+#
+# THIRD_PARTY_NOTICES.md is the register a person reads (NFR-LIC-01); this
+# file says the same thing per path so that `reuse lint` can check it.  The
+# two are kept in step by hand, and tools/lint_ntc.py checks the register.
+#
+# Order matters: when more than one annotation matches a path, the LAST one
+# wins.  So the catch-all for ONFLY's own files comes first and every
+# third-party or derived path follows it.  Every annotation overrides any
+# in-file comment, so a file that merely mentions a licence tag cannot
+# change what this file says.
+#
+# Added 2026-09-25 by P-41 slice C (P-43, D-531).  Not legal advice.
+
+version = 1
+SPDX-PackageName = "ONFLY"
+SPDX-PackageDownloadLocation = "https://github.com/mertefesensoy/ONFLY"
+
+# ONFLY's own files: MIT (D-62).
+[[annotations]]
+path = "**"
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Mert Efe Şensoy"
+SPDX-License-Identifier = "MIT"
+
+# MaleCNS v1.0 derived data and media: CC BY 4.0 upstream (D-50), and
+# ONFLY's own contribution under CC BY 4.0 too (D-516).
+[[annotations]]
+path = [
+    "data/networks/**",
+    "data/geom/**",
+    "data/calibration/**",
+    "data/phase-d/**",
+    "data/phase-e/**",
+    "docs/malecns-*",
+    "docs/media/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = [
+    "HHMI Janelia, MRC Laboratory of Molecular Biology, University of Cambridge and Google Research (MaleCNS v1.0)",
+    "2026 Mert Efe Şensoy",
+]
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# The data READMEs are ONFLY's prose about the data, not data.
+[[annotations]]
+path = ["data/README.md", "data/phase-d/README.md"]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Mert Efe Şensoy"
+SPDX-License-Identifier = "MIT"
+
+# Berkeley SoftFloat 3e and TestFloat 3e, vendored unmodified (D-28).
+[[annotations]]
+path = ["third_party/SoftFloat-3e/**", "third_party/TestFloat-3e/**"]
+precedence = "override"
+SPDX-FileCopyrightText = "2011-2018 The Regents of the University of California"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+# ONFLY's derived SoftFloat 3e files and the TestFloat-generated vectors.
+[[annotations]]
+path = [
+    "softfloat/onfrpk.c",
+    "softfloat/onfsub.c",
+    "softfloat/onfprim.c",
+    "generated/onftfv.h",
+]
+precedence = "override"
+SPDX-FileCopyrightText = [
+    "2011-2018 The Regents of the University of California",
+    "2026 Mert Efe Şensoy",
+]
+SPDX-License-Identifier = "BSD-3-Clause"
+
+# Berkeley SoftFloat 2c: not BSD (third_party/MANIFEST.md).
+[[annotations]]
+path = "third_party/SoftFloat-2c/**"
+precedence = "override"
+SPDX-FileCopyrightText = "John R. Hauser"
+SPDX-License-Identifier = "LicenseRef-SoftFloat-2c"
+
+# ONFLY's SoftFloat 2c configuration, a derivative work of 2c's templates.
+[[annotations]]
+path = "softfloat/c2c/**"
+precedence = "override"
+SPDX-FileCopyrightText = ["John R. Hauser", "2026 Mert Efe Şensoy"]
+SPDX-License-Identifier = "LicenseRef-SoftFloat-2c"
+
+# Shiu et al.'s model code, vendored verbatim, MIT with other holders.
+[[annotations]]
+path = [
+    "reference/shiu/model.py",
+    "reference/shiu/utils.py",
+    "reference/shiu/LICENSE",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2023 Philip Shiu and Nico Spiller"
+SPDX-License-Identifier = "MIT"
+
+# FlyWire-derived material: status open (D-515).  Nothing here relicenses
+# FlyWire data, and MIT is not claimed for these paths.
+[[annotations]]
+path = [
+    "reference/shiu/results/**",
+    "reference/shiu/rerun.py",
+    "data/calibration/acc1-candidate.json",
+    "data/calibration/acc4.json",
+    "data/calibration/acc4-phg9.json",
+    "data/calibration/acc4-right.json",
+    "data/calibration/acc4-tpgrn.json",
+    "data/calibration/search-log.json",
+    "data/calibration/search-log-rerun.json",
+    "data/calibration/seeds.json",
+    "data/calibration/wsens-d52-s30.json",
+    "data/calibration/wsens-right-s30.json",
+    "data/calibration/wsens-tpgrn-s30.json",
+    "data/calibration/wsens-tpgrn-s4.json",
+    "docs/implementations/2026-09-12-phase-c-calibration.md",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Mert Efe Şensoy"
+SPDX-License-Identifier = "LicenseRef-FlyWire-Pending"
+
+# The SRS quotes the curve in places; its own text is ONFLY's.
+[[annotations]]
+path = ["docs/ONFLY-SRS.md", "docs/ONFLY-SRS.docx"]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Mert Efe Şensoy"
+SPDX-License-Identifier = "MIT AND LicenseRef-FlyWire-Pending"

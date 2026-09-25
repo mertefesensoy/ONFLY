@@ -1,0 +1,200 @@
+# ONFLY
+
+ONFLY simulates the sugar-to-feeding circuit of the male fruit fly: a
+501-neuron subcircuit taken from the MaleCNS v1.0 connectome, run with the
+leaky integrate-and-fire model of Shiu et al. (2024) in a portable C89 engine
+with a COBOL batch driver. On MVS, whose System/370 architecture has no IEEE
+floating point, the engine does its IEEE 754 arithmetic in software (Berkeley
+SoftFloat), and the nineteen golden requests give the same fingerprints on
+every platform in the table below, from x86-64 to MVS 3.8j running under an
+emulator.
+
+> **ONFLY has not run on IBM Z hardware. The project does not have IBM Z
+> access yet.** Every MVS result in this repository comes from MVS 3.8j
+> running under the Hercules emulator, and every s390x result from Linux
+> running under QEMU, both on one x86-64 laptop. Nothing here has run on
+> z/OS or on IBM CICS Transaction Server.
+
+The specification, every decision and every verification limit are in
+[`docs/ONFLY-SRS.md`](docs/ONFLY-SRS.md). A shorter account is
+[`docs/overview.md`](docs/overview.md), and [`docs/README.md`](docs/README.md)
+suggests where to start reading.
+
+## Status
+
+| Phase | What it covers | State |
+|---|---|---|
+| A | Environment, the SoftFloat port, transport, performance and COBOL spikes | Complete (D-252) |
+| B | Engine and Python reference oracle on x86-64 | Complete (D-47) |
+| C | Science on x86-64: calibration, subcircuit extraction, acceptance criteria | Complete (D-206) |
+| D | Linux s390x under QEMU | Complete (D-234) |
+| E | The MVS 3.8j batch job under Hercules, and the acceptance criteria ACC-1 to ACC-7 | Complete (D-348) |
+| G | A transaction demonstrator: `EXEC CICS` source under a CICS-compatible runtime on Windows, a 3270 flow on the emulated MVS lab, and a live view | Complete (D-442) |
+| F | z/OS | Not started: the project does not have IBM Z access yet |
+| H | IBM CICS on z/OS | Not started; depends on F |
+
+The phase letters are labels, not an order; the order was A, B, C, D, E, G,
+then F and H.
+
+Determinism, the golden fingerprints of the nineteen Section 8.4 requests
+(SRS Section 8.3):
+
+| Row | Platform | Floating point | Compiler | Requests matching |
+|---|---|---|---|---|
+| 1 | x86-64 | Python reference | none | 19 of 19 |
+| 2 | x86-64 | native | MinGW gcc 6.3.0 | 19 of 19 |
+| 3 | x86-64 | SoftFloat 3e | MinGW gcc 6.3.0 | 19 of 19 |
+| 3b | x86-64 | SoftFloat 2c | MinGW gcc 6.3.0 | 19 of 19 |
+| 4 | Linux s390x under QEMU | SoftFloat 3e | gcc 13.3.0 | 19 of 19 |
+| 5 | Linux s390x under QEMU | native | gcc 13.3.0 | 19 of 19 |
+| 6 | MVS 3.8j under Hercules | SoftFloat 2c | GCCMVS 3.2.3 | 19 of 19 |
+| 7 | MVS 3.8j under Hercules | SoftFloat 2c | JCC 1.50.00 | 19 of 19 |
+| 8 | z/OS | | | empty |
+
+On MVS the response records are identical to the x86-64 ones byte for byte
+apart from one text field that MVS stores in EBCDIC. Identical fingerprints
+show that the platforms agree with each other; they do not show that any of
+them is correct.
+
+## What you can reproduce today
+
+**1. Check the recorded evidence.** Needs Python 3 and the files in this
+repository; it compares recordings, it does not re-run them.
+
+```
+python tests/run_tx.py --compare data/phase-d/x86w data/phase-d/s390x
+python tests/run_mvsrun.py
+python tests/run_mvsjcc.py
+```
+
+**2. Build and run the x86-64 suite.** Not yet possible from a clone. The
+suite needs the two network files, `srext` (171,768 bytes) and `path`
+(951,200 bytes), which are not distributed yet; their digests are in
+[`data/networks/MANIFEST.json`](data/networks/MANIFEST.json). On x86-64 it
+has been run only with the recorded toolchain, 32-bit MinGW gcc 6.3.0 on
+Windows, with GNU Make and Python 3.13 with numpy and pandas:
+`mingw32-make fixtures && mingw32-make testfloat && mingw32-make test`.
+
+**3. The emulated labs.** Linux s390x needs your own QEMU guest; the MVS rows
+need your own TK5 system on Hercules and hours of emulated CPU. The 3270
+demonstration cannot be reproduced from this repository at all, because the
+transaction monitor it runs under, INTERCOMM, is under a non-commercial
+licence and is kept out of this tree.
+
+Tested platforms: x86-64 Windows 11 with 32-bit MinGW gcc 6.3.0; Linux s390x
+(Ubuntu 24.04, gcc 13.3.0) under QEMU; MVS 3.8j under SDL Hercules 4.9.1 with
+GCCMVS and JCC. Linux on x86-64, macOS and arm64 are untested.
+
+## Limits
+
+* **The science was measured on x86-64 only.** On x86-64, sugar at 40, 60,
+  120 and 200 Hz made the MN9 feeding motor neurons fire in all 30 seeds at
+  every rate, and zero sugar produced zero spikes in all 501 neurons. MVS
+  shows the fingerprints agree, not the science directly.
+* **The subcircuit carries one fitted input term** standing in for the
+  neurons it leaves out. With it, the 501-neuron subcircuit stays within 10%
+  of the MN9 rate of the 184,099-neuron annotated MaleCNS network (39.0% of
+  its synapses) at 40, 60, 120 and 200 Hz; 10 Hz is excluded because that
+  network's rate is too variable there to test against. At 40 Hz the margin
+  is smaller than the reference's own standard error, and a campaign
+  re-measured with new seeds is estimated to pass 52 to 60% of the time.
+* **Agreement with Shiu et al. is in shape, not magnitude.** Compared with
+  their model of the female FlyWire connectome, re-run from their published
+  code, ONFLY's model on the annotated MaleCNS network rises with sugar in
+  the same shape but fires more at low rates: 3.67 Hz at 10 Hz where the
+  reference is silent, and 14.35 Hz against 4.73 Hz at 40 Hz. No single
+  synaptic weight removes that gap.
+* **Two acceptance criteria were changed after we saw the results:** ACC-3
+  no longer tests 10 Hz, and ACC-4 no longer tests magnitude. Both changes
+  and the failing numbers are recorded in the specification (D-202, D-340,
+  D-341).
+* **The s390x results come from Ubuntu 24.04 under QEMU's
+  instruction-by-instruction emulation.** They show the code gives the same
+  results on a big-endian system, and say nothing about floating point on
+  real s390x hardware.
+* **Performance figures are emulator figures.** Under Hercules 4.9.1 on an
+  Intel Core i7-13650HX laptop, one standard 1000 ms request on the shipped
+  network used 161 s of emulated CPU, inside the project's 10-minute budget.
+  That is one run and says nothing about IBM Z performance.
+* **The transaction is written in real `EXEC CICS` and runs on x86-64
+  Windows under Raincode's CICS-compatible runtime, not under IBM CICS.** Its
+  menu-screen program has never executed for lack of a licence, and running
+  it concurrently is untested. On the emulated MVS lab, typing a request on a
+  3270 session under INTERCOMM, a transaction monitor that is not CICS,
+  starts an ONFLY batch run and then shows its result and golden
+  fingerprint.
+* **The emulated MVS job streams its spike data to the host while it is
+  still running**, and for the five shipped-network golden requests that
+  stream is byte-identical to the x86-64 one once line endings are
+  normalised. Comparing those streams line by line exposed a GCCMVS
+  code-generation fault that had turned every +0.0 in the MVS kernel into a
+  tiny subnormal, a difference no fingerprint had caught; it is worked
+  around, not fully characterised.
+
+## Repository map
+
+| Path | What it holds |
+|---|---|
+| `engine/` | The C89 engine, ONFLYENG |
+| `cobol/` | The COBOL driver template, ONFLYDRV |
+| `layout/`, `generated/` | The record layout's master definition and the files generated from it; generated files are committed because MVS has no Python |
+| `softfloat/`, `third_party/` | The float layer and the vendored SoftFloat and TestFloat releases |
+| `oracle/`, `prep/` | The Python reference kernel and the preparation pipeline |
+| `reference/shiu/` | Shiu et al.'s model code and ONFLY's re-run of their protocol |
+| `cics/` | The `EXEC CICS` transaction source |
+| `tests/`, `tools/` | The test suite, and the tools that build, submit and check the lab runs |
+| `data/` | Recordings, measurements and manifests; see [`data/README.md`](data/README.md) |
+| `docs/` | The specification, plans, implementation records and media |
+
+## Licence
+
+ONFLY's own code is under the MIT licence in [`LICENSE`](LICENSE).
+Third-party components and data are under their own terms, listed in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md): SoftFloat 3e and TestFloat
+3e (BSD), the Shiu et al. code (MIT), MaleCNS-derived data (CC BY 4.0, with
+ONFLY's own contribution also CC BY 4.0), and material derived from FlyWire
+data, whose status is open. `REUSE.toml` states the licence of every path.
+
+**SoftFloat 2c is not BSD.** Every SOFT2C build, which means every MVS build
+and part of the x86-64 test suite, contains Berkeley SoftFloat Release 2c,
+whose terms restrict use to
+those who accept all losses without recompense and who indemnify its author
+and the International Computer Science Institute; read them in
+`THIRD_PARTY_NOTICES.md` before you build it.
+
+INTERCOMM, the monitor behind the 3270 demonstration, is under Tetragon LLC's
+terms with a non-commercial clause and is not included.
+
+## Trademarks
+
+ONFLY is a personal project by Mert Efe Şensoy. It is not an IBM product and
+is not affiliated with, sponsored by or endorsed by IBM, or by any
+organisation or person whose data, software or tools it uses, including HHMI
+Janelia, the MRC Laboratory of Molecular Biology, the University of
+Cambridge, Google Research, the FlyWire consortium, Raincode and the authors
+of Shiu et al. (2024). IBM, IBM Z, z/OS, CICS and MVS are trademarks or
+registered trademarks of International Business Machines Corporation,
+registered in many jurisdictions worldwide; a current list is at
+https://www.ibm.com/legal/copytrade. Linux® is the registered trademark of
+Linus Torvalds in the U.S. and other countries. Other product and company
+names, including Raincode, QIX and INTERCOMM, may be trademarks of their
+owners and are used only to identify those products.
+
+## How the project is built
+
+ONFLY is built with an AI coding agent, Anthropic's Claude Code, working from
+the specification. The agent drafts code, tests and documentation and runs
+the builds and the lab jobs. The owner makes every decision: each is recorded
+with the alternatives offered in the specification's decision log (Appendix
+A.1), and the agent's own proposals are kept apart (Appendix A.2) until the
+owner decides them. A result is recorded only from a command actually run,
+with its output, its platform and what it does not prove (Appendix D).
+Commits carry the owner's name alone (D-478).
+
+## Citing
+
+Until a citation file and an archived release exist, please cite the
+repository, https://github.com/mertefesensoy/ONFLY, with the commit you used,
+and cite the work it builds on: the MaleCNS connectome (Berg, S. et al.,
+*Cell* 189:5504-5526.e15, 2026, doi:10.1016/j.cell.2026.08.015) and the model
+(Shiu, P. K. et al., *Nature* 634:210-219, 2024).

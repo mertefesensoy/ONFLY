@@ -291,7 +291,7 @@ class Session(object):
         when the host answers.  `String` has no timeout: if the host
         never answers, it blocks in the emulator and the driver
         blocks in readline -- no error, no output, no way to tell a
-        hang from a slow mainframe.  Measured 2026-09-17, a run sat
+        hang from a slow emulated MVS.  Measured 2026-09-17, a run sat
         for ten minutes on a healthy region that had simply not
         replied to the previous entry.
 

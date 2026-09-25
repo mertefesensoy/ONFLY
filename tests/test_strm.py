@@ -255,8 +255,8 @@ def check_width(path, tag):
     """D-406: no line exceeds ONF_STMCOL columns.
 
     This is the clause the MVS half turns on, and it is checked on x86
-    because the bound is arithmetic and arithmetic does not need a
-    mainframe to be wrong.  What a mainframe adds is the CONSEQUENCE:
+    because the bound is arithmetic and arithmetic does not need the
+    emulated MVS lab to be wrong.  What the lab adds is the CONSEQUENCE:
     measured on TK5 on 2026-09-17, a line of 81 columns written to the
     10D punch arrives as 80 bytes -- no split, no message, COND CODE
     0000, and the tail simply gone.  A stream that failed this check

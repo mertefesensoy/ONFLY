@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Everything about Phase E slice 1 that can be judged without TK5.
 
-`tools/mvsrun.py` is submitted to a mainframe, so most of what it does
+`tools/mvsrun.py` is submitted to emulated MVS, so most of what it does
 cannot be tested here.  What CAN be tested is everything that would waste
-a mainframe run if it were wrong, and two regressions that the additive
+an emulated-MVS run if it were wrong, and two regressions that the additive
 changes to `tools/mvsbld.py` and `tools/mvscob.py` could have introduced
 in other callers.
 
@@ -16,7 +16,7 @@ second and names itself.
 
 WHAT IS CHECKED, IN SIX GROUPS
 ------------------------------
-**The decks, before a mainframe sees them.**  Both pass
+**The decks, before emulated MVS sees them.**  Both pass
 `mvsub.check_cards` (80 columns, no card equal to the IEBUPDTE
 delimiter, JCL inside column 71).  `UNIT_MEMBERS` matches what
 `run_deck()` actually links, every member is at most 8 characters and
@@ -460,7 +460,7 @@ def main():
         # took `netname=NETNAME` in its signature, so select("path")
         # left it reading gold-srext-2c.txt: five golden entries
         # against fourteen records, every fingerprint reported wrong,
-        # and nothing whatever wrong with the mainframe.  The second
+        # and nothing whatever wrong with the emulated MVS lab.  The second
         # mutable-looking default to bite in one session.
         check("%s: golden_fingerprints follows select()" % label,
               len(gold) == len(got),

@@ -214,3 +214,16 @@ hollow: empty `logs/` and `refs/`, and in some an `ORIG_HEAD` or
 * `docs/ONFLY-SRS.md`: Appendix A.1 D-479, D-484 to D-486, D-495, D-500 to
   D-512; A.2 P-41, P-42; D-132 and D-233 for the lint precedents.
 * `tools/lint_lic.py`: the lint this one is modelled on.
+
+## Correction, 2026-09-26 (D-537)
+
+Verification step 6 above reports P-41's check 11.13 as `0` in the added SRS
+lines. That figure was a misreading. In this host's shell, text piped into
+Python is decoded as cp1252, so the one-line check read each em dash as three
+other characters and counted none. Re-measured on 2026-09-26 by decoding the
+same diff, `git diff 2529abf cb20a28 -- docs/ONFLY-SRS.md`, as UTF-8: 2 added
+lines carry em dashes. Both are inherited from unchanged text on lines slice B
+edited, and slice B wrote none, so under D-536's reading of 11.13 the check
+passes and slice B's conclusion stands; its figure does not. The sentence in
+step 6 is left as written. The re-measurement is in
+`docs/implementations/2026-09-26-open-source-launch-slice-d.md`.

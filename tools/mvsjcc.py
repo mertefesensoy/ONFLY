@@ -32,7 +32,7 @@ Known:
 
 Not known when this file was written, and measured by the probes below
 on 2026-09-15.  The answers are kept here because each one cost a
-mainframe job to find and none of them is guessable:
+job on the emulated MVS lab to find and none of them is guessable:
 
   * **Does JCC compile the SoftFloat 2c amalgamation?**  Yes -- but only
     after D-285.  Before it, JCC rejected `float64_rem`'s `add64` call
