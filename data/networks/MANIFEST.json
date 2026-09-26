@@ -305,6 +305,7 @@
     "path": {
       "bytes": 951200,
       "crc32": "70A9A555",
+      "distributed": true,
       "edges": 72852,
       "file": "onfnet-malecns-v1.0-path.bin",
       "format_version": "1.1",
@@ -354,6 +355,7 @@
         "D-202",
         "D-205"
       ],
+      "distributed": true,
       "edges": 10783,
       "file": "onfnet-malecns-v1.0-srext.bin",
       "format_version": "1.1",

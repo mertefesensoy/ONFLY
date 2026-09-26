@@ -42,9 +42,11 @@ SPDX-FileCopyrightText = [
 ]
 SPDX-License-Identifier = "CC-BY-4.0"
 
-# The data READMEs are ONFLY's prose about the data, not data.
+# The data READMEs are ONFLY's prose about the data, not data.  So is the
+# notice that travels with the network files (P-41 E3, P-44 S14).
 [[annotations]]
-path = ["data/README.md", "data/phase-d/README.md"]
+path = ["data/README.md", "data/phase-d/README.md",
+        "data/networks/NETWORKS-NOTICE.md"]
 precedence = "override"
 SPDX-FileCopyrightText = "2026 Mert Efe Şensoy"
 SPDX-License-Identifier = "MIT"

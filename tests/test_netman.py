@@ -189,8 +189,104 @@ def main():
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
+    a, b = marks(man)
+    ok += a
+    bad += b
+
     print("test_netman: %d passed, %d failed" % (ok, bad))
     return 1 if bad else 0
+
+
+def distributed_literals(tree):
+    """Every dict literal in `tree` that sets "distributed" to True.
+
+    Returns the set of network labels those dicts are written under, as far
+    as the source shows them: `refixture()` guards its literal with
+    `if label in DISTRIBUTED`, and `admit()` writes the srext entry.
+    """
+    found = 0
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Dict):
+            for k, v in zip(node.keys, node.values):
+                if (isinstance(k, ast.Constant) and k.value == "distributed"
+                        and isinstance(v, ast.Constant) and v.value is True):
+                    found += 1
+        elif isinstance(node, ast.Subscript) and isinstance(node.ctx, ast.Store):
+            sl = node.slice
+            if isinstance(sl, ast.Constant) and sl.value == "distributed":
+                found += 1
+    return found
+
+
+def marks(man):
+    """D-545, D-551, D-557: the distributed set and the tools that keep it."""
+    ok = bad = 0
+    # ---- the artefact: exactly srext and path are marked -----------------
+    marked = sorted(k for k, v in man.get("networks", {}).items()
+                    if v.get("distributed") is True)
+    a, b = check("exactly srext and path are marked distributed (D-545)",
+                 marked == ["path", "srext"], "marked: %s" % marked)
+    ok += a
+    bad += b
+    for name, entry in sorted(man.get("networks", {}).items()):
+        if name in ("path", "srext"):
+            continue
+        a, b = check("%s carries no distributed key at all" % name,
+                     "distributed" not in entry)
+        ok += a
+        bad += b
+
+    # ---- the generators write it, so neither can revert it ---------------
+    src = io.open(EXTRACT, encoding="utf-8").read()
+    tree = ast.parse(src)
+    a, b = check("prep/extract.py writes the mark in admit() and refixture() "
+                 "(D-551, D-557)", distributed_literals(tree) >= 2,
+                 "%d site(s)" % distributed_literals(tree))
+    ok += a
+    bad += b
+
+    # ---- the tool: --mark creates only the whitelisted key ---------------
+    tmp = tempfile.mkdtemp(prefix="onfnetmark")
+    try:
+        copy = os.path.join(tmp, "MANIFEST.json")
+        work = netman.load(MANIFEST)
+        for entry in work["networks"].values():
+            entry.pop("distributed", None)
+        netman.save(work, copy)
+        before = netman.digest_of(netman.load(copy))
+        base = json.dumps(netman.load(copy), sort_keys=True)
+        work = netman.load(copy)
+        prev = netman.set_mark(work, "srext", "distributed")
+        netman.save(work, copy)
+        after = netman.load(copy)
+        a, b = check("--mark creates networks.srext.distributed = true",
+                     after["networks"]["srext"].get("distributed") is True
+                     and prev is None)
+        ok += a
+        bad += b
+        a, b = check("--mark moves no network digest",
+                     netman.digest_of(after) == before)
+        ok += a
+        bad += b
+        undo = netman.load(copy)
+        undo["networks"]["srext"].pop("distributed")
+        a, b = check("--mark changed nothing but that key",
+                     json.dumps(undo, sort_keys=True) == base)
+        ok += a
+        bad += b
+        for net, key in (("srext", "acceptance"), ("srext", "distributd"),
+                         ("nosuchnet", "distributed")):
+            try:
+                netman.set_mark(netman.load(copy), net, key)
+                refused = False
+            except SystemExit:
+                refused = True
+            a, b = check("--mark refuses %s on %s" % (key, net), refused)
+            ok += a
+            bad += b
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return ok, bad
 
 
 if __name__ == "__main__":

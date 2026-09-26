@@ -46,6 +46,21 @@ less than it knew:
 | `tests/run_ic3270.py`, `tests/run_names.py`, `tests/run_mvsrun.py`, `tests/run_eng.py`, `tests/test_txcmp.py`, `tests/test_disc.py`, `tests/test_gain.py`, `tests/test_signs.py`, `tests/test_geom.py`, `tests/test_varnt.py`, `tests/test_seeds.py`, `tests/test_fixt.py`, `tools/lint_lic.py`, `tools/lint_name.py` | Every skip on `make test`'s path reports through `tools/onfres.py`, its reason kept word for word after the prefix; the three unittest files call `onfres.unittest_main()`; `test_seeds.py` gains the guarded numpy import P-41 E5 asks for |
 | `tests/run_cob.py`, `tests/run_cics.py`, `tools/cicsbld.py` | The same, for the skips of the `cob` and `cics` targets, which are outside `make test` |
 
+### Group 3: E3 and E7
+
+| File | Change |
+|---|---|
+| `tools/fixtures.py` | `--from DIR` takes networks from DIR only; a network outside the distributed set that is absent prints `NOT DISTRIBUTED (regenerate with prep/emit.py)` and does not fail, one that is present is still verified; the notice is printed after a network is placed; the release URL of D-544's tag is documented, and nothing is downloaded |
+| `prep/netman.py` | `--mark KEY` and `set_mark()`: the one way the tool creates a key, a boolean in the whitelist `MARKS = ("distributed",)` (D-551) |
+| `data/networks/MANIFEST.json` | `"distributed": true` on `srext` and `path`, written by `prep/netman.py --mark`, not by hand; no network byte fact moved |
+| `prep/extract.py` | `verify_comparand()` runs before `admit()` writes, and refuses an absent comparand as well as a differing one (E7); `admit()` and `refixture()` write the mark (D-551, D-557); a `DISTRIBUTED` constant names the set |
+| `data/networks/NETWORKS-NOTICE.md` | New. P-41 E3's seven points and a table of the two files' sizes and SHA-256 values |
+| `data/README.md` | "What is not here" says how the networks are distributed and staged; a new section repeats the notice verbatim between marker lines |
+| `tools/lint_ntc.py` | Checks 5 and 6: the notice exists, and `data/README.md`'s copy equals it byte for byte; four self-test cases |
+| `REUSE.toml` | The notice joins the data READMEs' MIT override (P-44 S14) |
+| `tests/test_fixt.py` | `AdmitRefuses` (four cases), `Distributed` (five), `Notice` (one) |
+| `tests/test_netman.py` | The distributed set as an artefact, the two generator sites, and `--mark`'s refusals, ten checks |
+
 ## 3. Implementation approach
 
 ### Group 1
@@ -78,6 +93,27 @@ for more than one reason names each cause: `run_names.py`'s D-269
 regeneration is `names/regenerate-feather` when the feather is absent
 (exempt, D-545), `names/regenerate-pandas` when pandas is, and
 `names/regenerate` for anything else.
+
+### Group 3
+
+**The distributed set lives in the manifest.** `fixtures.distributed(e)` is
+`e.get("distributed") is True`. The rule "never trust a filename" is kept
+whole: only an ABSENT network outside the set is excused, and a present one
+is verified by size, CRC-32 and SHA-256 like any other. `--from` replaces the
+worktree search of D-249 with the one directory named, so a staged release
+cannot be silently completed from somewhere else.
+
+**Two generators, one mark.** `data/networks/MANIFEST.json` has two writers
+that replace an entry wholesale: `admit()` for `srext` and `refixture()`
+for `path`. Both now write the mark (D-551, D-557), so a regeneration keeps
+it, and `tests/test_netman.py` reads their source to hold them to that.
+
+**E7: refuse, then write.** `verify_comparand(diag, sha)` takes the path of
+the measured artifact and the SHA-256 of the bytes about to be admitted,
+returns only when the two are the same file, and otherwise exits with a
+message ending "nothing was written". `admit()` calls it before
+`io.open(path, "wb")`, which `test_admit_verifies_before_it_writes` checks
+in the function's source.
 
 ## 4. Mathematical / numerical details
 
@@ -160,3 +196,56 @@ This is the worktree, with the networks staged, not yet 11.8's fresh clone.
 4. P-44 S4 counted 18 files. `run_tt02.py` and `run_c2c.py` were in it
    only for their NaN case counts, `run_eng.py` was missing from it, and
    unittest's own skips were invisible to it (D-555).
+
+### Group 2: the clean clone, measured
+
+A clone of `3530094` in `build/cc1`, **with no network file**, each `test`
+target made alone (`mingw32-make <target>`), after `mingw32-make testfloat`:
+
+| Outcome | Targets |
+|---|---|
+| exit 0, no `ONFRES SKIP` | `onfres lint liclint namelint ntclint col80 c04 c04mvs sub mvsjcc ic3270 tt01 tt02 c2c sfs shim layout units fp kernel syn decode eng`; `ic3270` and `eng` print only EXEMPT lines |
+| exit 0, network checks skipped | `mvsrun` (`mvsrun/network`, `mvsrun/path-network`), `names` (four `names/network`), `prep` (`test_geom/network`) |
+| exit 2 | `req`, `golden`, which need the networks |
+
+With the networks staged, the same tree's `make test` prints only the 11
+exempt checks (group 1's runs). So the clean clone adds no skip beyond
+D-548's table on this host, and the table's 11 entries are all a clone
+prints. The first 23 targets are what E9's `test-nonet` holds.
+
+### Group 3
+
+**Tests first.** `tests/test_fixt.py` with its ten new cases before the
+code: `FAILED (failures=2, errors=8)`. `tests/test_netman.py`'s new half
+before `set_mark()` existed: `AttributeError: module 'netman' has no
+attribute 'set_mark'`; with the tool but before the marks,
+`test_netman: 21 passed, 2 failed`, the two being the artefact and the
+generator checks. `tools/lint_ntc.py --self-test` before its check:
+`NameError: name 'NET_NOTICE' is not defined`. After: `test_fixt` `Ran 25
+tests ... OK`; `test_netman: 23 passed, 0 failed`; `lint_ntc: self-test 17
+checks, 0 failed` and `lint_ntc: ok`.
+
+**The marks moved no network byte.** `bytes`, `crc32` and `sha256` of all
+four networks were compared before and after `python prep/netman.py
+--network srext --mark distributed` and the same for `path`: identical. The
+manifest's diff is two added lines.
+
+**11.9, in a clean clone with no network.** The two files were staged in
+`build/stage` with a `SHA256SUMS`. `sha256sum -c SHA256SUMS`:
+`onfnet-malecns-v1.0-srext.bin: OK`, `onfnet-malecns-v1.0-path.bin: OK`,
+the two digests being P-41's. Before staging, `python tools/fixtures.py
+--check` exits 1 with `path` and `srext` `MISSING`. After `python
+tools/fixtures.py --from build/stage`, which printed the notice:
+
+    fixtures: full   NOT DISTRIBUTED (regenerate with prep/emit.py)
+    fixtures: hop2   NOT DISTRIBUTED (regenerate with prep/emit.py)
+    fixtures: path   OK       951200 bytes, CRC 70A9A555
+    fixtures: srext  OK       171768 bytes, CRC 038CAE79
+    fixtures: the distributed set (path, srext) is present and verified against MANIFEST.json; 2 not distributed (full, hop2)
+
+exit 0. **11.9 PASS** on x86-64 Windows. The download half of 11.9 cannot
+be run until slice G publishes a release.
+
+**The targets group 3 touches**, through the runner: `python
+tools/testrun.py mingw32-make onfres liclint namelint ntclint mvsrun names
+prep`: `7 PASS, 0 SKIP, 0 PENDING, 3 EXEMPT`, exit 0.

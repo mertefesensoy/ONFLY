@@ -28,9 +28,13 @@ Run:
 
     python tests/test_fixt.py
 """
+import contextlib
 import hashlib
+import inspect
 import io
+import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -180,6 +184,160 @@ class Acc3Exclusion(unittest.TestCase):
         self.assertEqual(excl, [10],
                          "D-202 should exclude exactly 10 Hz on the "
                          "D-135 seeds, got %s" % excl)
+
+
+class AdmitRefuses(unittest.TestCase):
+    """P-41 E7 (replication X3): `--admit` refuses BEFORE it writes.
+
+    It used to write the srext .bin first and compare afterwards, and it
+    skipped the comparison without a word when the measured artifact was
+    absent, so an admission could overwrite the shipped network unverified.
+    """
+
+    def test_an_absent_comparand_refuses_and_names_its_producer(self):
+        missing = os.path.join(tempfile.gettempdir(), "onfly-no-such.bin")
+        with self.assertRaises(SystemExit) as cm:
+            extract.verify_comparand(missing, "0" * 64)
+        self.assertIn("--constbias", str(cm.exception))
+        self.assertIn("nothing was written", str(cm.exception))
+
+    def test_a_differing_comparand_refuses(self):
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        try:
+            io.open(path, "wb").write(b"measured")
+            other = hashlib.sha256(b"emitted").hexdigest()
+            with self.assertRaises(SystemExit) as cm:
+                extract.verify_comparand(path, other)
+            self.assertIn("nothing was written", str(cm.exception))
+        finally:
+            os.unlink(path)
+
+    def test_a_matching_comparand_passes(self):
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        try:
+            io.open(path, "wb").write(b"same")
+            with contextlib.redirect_stdout(io.StringIO()):
+                extract.verify_comparand(path,
+                                         hashlib.sha256(b"same").hexdigest())
+        finally:
+            os.unlink(path)
+
+    def test_admit_verifies_before_it_writes(self):
+        src = inspect.getsource(extract.admit)
+        check = src.find("verify_comparand(")
+        write = src.find('io.open(path, "wb")')
+        self.assertTrue(0 <= check < write,
+                        "admit() must verify (at %d) before it writes the "
+                        "network (at %d)" % (check, write))
+
+
+class Distributed(unittest.TestCase):
+    """P-41 E3, D-545: `--from`, the distributed set, NOT DISTRIBUTED."""
+
+    NETS = {"alpha": (b"alpha network bytes", True),
+            "beta": (b"beta network", True),
+            "gamma": (b"gamma, regenerate-only", False),
+            "delta": (b"delta, regenerate-only", False)}
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="onfly_fixt_")
+        self.netdir = os.path.join(self.tmp, "networks")
+        self.stage = os.path.join(self.tmp, "stage")
+        self.empty = os.path.join(self.tmp, "empty")
+        for d in (self.netdir, self.stage, self.empty):
+            os.makedirs(d)
+        nets = {}
+        for key, (blob, dist) in self.NETS.items():
+            name = "onfnet-%s.bin" % key
+            entry = {"file": name, "bytes": len(blob),
+                     "crc32": "%08X" % (zlib.crc32(blob) & 0xFFFFFFFF),
+                     "sha256": hashlib.sha256(blob).hexdigest()}
+            if dist:
+                entry["distributed"] = True
+                io.open(os.path.join(self.stage, name), "wb").write(blob)
+            nets[key] = entry
+        self.manifest = os.path.join(self.netdir, "MANIFEST.json")
+        io.open(self.manifest, "w", encoding="utf-8").write(
+            json.dumps({"networks": nets}))
+        self.notice = os.path.join(self.netdir, "NETWORKS-NOTICE.md")
+        io.open(self.notice, "w", encoding="utf-8").write("THE NOTICE\n")
+        self.saved = (fixtures.NETDIR, fixtures.MANIFEST, fixtures.NOTICE)
+        fixtures.NETDIR, fixtures.MANIFEST, fixtures.NOTICE = \
+            self.netdir, self.manifest, self.notice
+        self.env = os.environ.pop("ONFLY_FIXTURES", None)
+
+    def tearDown(self):
+        fixtures.NETDIR, fixtures.MANIFEST, fixtures.NOTICE = self.saved
+        if self.env is not None:
+            os.environ["ONFLY_FIXTURES"] = self.env
+        else:
+            os.environ.pop("ONFLY_FIXTURES", None)
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def run_main(self, argv):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = fixtures.main(argv)
+        return rc, buf.getvalue()
+
+    def test_from_places_the_distributed_set_and_prints_the_notice(self):
+        rc, out = self.run_main(["--from", self.stage])
+        self.assertEqual(rc, 0, out)
+        for key in ("alpha", "beta"):
+            self.assertTrue(os.path.isfile(
+                os.path.join(self.netdir, "onfnet-%s.bin" % key)))
+        self.assertEqual(out.count(
+            "NOT DISTRIBUTED (regenerate with prep/emit.py)"), 2, out)
+        self.assertIn("THE NOTICE", out)
+
+    def test_check_passes_with_only_the_distributed_set(self):
+        self.run_main(["--from", self.stage])
+        rc, out = self.run_main(["--check"])
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(out.count(" OK "), 2, out)
+        self.assertEqual(out.count("NOT DISTRIBUTED"), 2, out)
+
+    def test_check_fails_when_a_distributed_network_is_absent(self):
+        rc, out = self.run_main(["--check"])
+        self.assertEqual(rc, 1, out)
+
+    def test_a_wrong_undistributed_file_still_fails(self):
+        # Never trust a filename: an undistributed network may be absent,
+        # but one that is present must still be the file the manifest names.
+        self.run_main(["--from", self.stage])
+        io.open(os.path.join(self.netdir, "onfnet-gamma.bin"), "wb").write(
+            b"stale bytes")
+        rc, out = self.run_main(["--check"])
+        self.assertEqual(rc, 1, out)
+
+    def test_from_searches_only_the_directory_it_names(self):
+        os.environ["ONFLY_FIXTURES"] = self.stage
+        rc, out = self.run_main(["--from", self.empty])
+        self.assertEqual(rc, 1, out)
+        self.assertFalse(os.path.isfile(
+            os.path.join(self.netdir, "onfnet-alpha.bin")))
+
+
+class Notice(unittest.TestCase):
+    """The network notice names exactly the distributed files, correctly."""
+
+    def test_the_notice_table_matches_the_manifest(self):
+        man = json.loads(io.open(os.path.join(
+            ROOT, "data", "networks", "MANIFEST.json"),
+            encoding="utf-8").read())["networks"]
+        text = io.open(os.path.join(ROOT, "data", "networks",
+                                    "NETWORKS-NOTICE.md"),
+                       encoding="utf-8").read()
+        rows = {}
+        for line in text.splitlines():
+            cells = [c.strip().strip("`") for c in line.strip("|").split("|")]
+            if len(cells) == 3 and cells[0].endswith(".bin"):
+                rows[cells[0]] = (int(cells[1].replace(",", "")), cells[2])
+        want = dict((e["file"], (e["bytes"], e["sha256"]))
+                    for e in man.values() if e.get("distributed") is True)
+        self.assertEqual(rows, want)
 
 
 if __name__ == "__main__":

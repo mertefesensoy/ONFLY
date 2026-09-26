@@ -27,8 +27,11 @@ WHAT IT CHECKS
    hands.
 4. The BSD-derived SoftFloat 3e files carry the full BSD conditions and
    disclaimer (P-41 C7), not only a pointer to COPYING.txt.
-5. The two notices that travel with the data exist:
-   reference/shiu/results/NOTICE.md and data/README.md.
+5. The notices that travel with the data exist:
+   reference/shiu/results/NOTICE.md, data/README.md and
+   data/networks/NETWORKS-NOTICE.md.
+6. data/README.md repeats data/networks/NETWORKS-NOTICE.md byte for byte
+   between its NETWORKS-NOTICE marker lines (P-41 E3).
 
 WHAT IT CANNOT DO
 -----------------
@@ -93,6 +96,14 @@ BSD_PHRASES = (
 )
 
 DATA_NOTICES = ("reference/shiu/results/NOTICE.md", "data/README.md")
+
+# P-41 E3: the network notice travels beside the .bin files, and
+# data/README.md repeats it VERBATIM between these two marker lines, so a
+# reader of either sees the same terms.  Two copies kept by care drift.
+NET_NOTICE = "data/networks/NETWORKS-NOTICE.md"
+BLOCK_BEGIN = "<!-- NETWORKS-NOTICE: begin, a verbatim copy of " \
+              "data/networks/NETWORKS-NOTICE.md -->"
+BLOCK_END = "<!-- NETWORKS-NOTICE: end -->"
 
 
 def read(root, rel):
@@ -169,13 +180,32 @@ def check_bsd(root):
 
 
 def check_data_notices(root):
-    return ["%s: missing" % rel for rel in DATA_NOTICES
+    return ["%s: missing" % rel for rel in DATA_NOTICES + (NET_NOTICE,)
             if not exists(root, rel)]
+
+
+def check_notice_copy(root):
+    """data/README.md holds NETWORKS-NOTICE.md byte for byte (P-41 E3)."""
+    notice = read(root, NET_NOTICE)
+    readme = read(root, "data/README.md")
+    if notice is None or readme is None:
+        return []           # reported as missing by check_data_notices
+    b = readme.find(BLOCK_BEGIN)
+    e = readme.find(BLOCK_END)
+    if b < 0 or e < b:
+        return ["data/README.md: no %s ... %s block holding %s"
+                % (BLOCK_BEGIN[:24], BLOCK_END[:24], NET_NOTICE)]
+    copy = readme[b + len(BLOCK_BEGIN):e].strip("\n") + "\n"
+    if copy != notice:
+        return ["data/README.md: its copy of %s differs from the file"
+                % NET_NOTICE]
+    return []
 
 
 def findings(root):
     return (check_licence(root) + check_register(root) + check_paths(root)
-            + check_bsd(root) + check_data_notices(root))
+            + check_bsd(root) + check_data_notices(root)
+            + check_notice_copy(root))
 
 
 MIT_BODY = ("MIT License\n\nCopyright (c) 2026 Someone\n\n"
@@ -208,6 +238,9 @@ def good_tree(root):
         put(rel, "\n".join(BSD_PHRASES) + "\n")
     for rel in DATA_NOTICES:
         put(rel, "notice\n")
+    put(NET_NOTICE, "## NETWORK NOTICE\n\nterms\n")
+    put("data/README.md", "readme\n\n%s\n%s%s\n\nmore\n"
+        % (BLOCK_BEGIN, "## NETWORK NOTICE\n\nterms\n", BLOCK_END))
 
 
 def self_test():
@@ -259,6 +292,15 @@ def self_test():
                          "NOTICE.md")), 1),
         ("the data README missing", lambda r: os.remove(
             os.path.join(r, "data", "README.md")), 1),
+        ("the network notice missing", lambda r: os.remove(
+            os.path.join(r, "data", "networks", "NETWORKS-NOTICE.md")), 1),
+        ("the data README without the notice block", lambda r: mutate(
+            r, "data/README.md", lambda t: "notice\n"), 1),
+        ("the data README's copy of the notice changed", lambda r: mutate(
+            r, "data/README.md", lambda t: t.replace("NETWORK NOTICE",
+                                                     "NETWORK NOTISE")), 1),
+        ("the notice changed but not the README's copy", lambda r: mutate(
+            r, NET_NOTICE, lambda t: t + "a new line\n"), 1),
     )
     for name, fn, want in cases:
         root = fresh()

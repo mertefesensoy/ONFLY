@@ -40,6 +40,11 @@ Run:  python prep/netman.py --network srext \\
       python prep/netman.py --network srext \\
           --field acceptance.not_proven --check-file note.txt
       python prep/netman.py --show srext
+      python prep/netman.py --network srext --mark distributed
+
+`--mark` is the one way this tool creates a key: it sets a boolean mark
+named in MARKS to true (D-551), so the distributed set of D-545 is recorded
+in the manifest without re-running a generator.
 """
 import argparse
 import io
@@ -130,6 +135,32 @@ def set_field(man, network, field, value):
     return before
 
 
+#: Boolean marks `--mark` may CREATE on a network entry (D-551).  The rule
+#: `set_field()` keeps, that no absent key is ever created, exists so that a
+#: typo cannot write a key that reads like a real one; a whitelist of exactly
+#: the keys a decision names keeps that property for marks.
+MARKS = ("distributed",)
+
+
+def set_mark(man, network, key):
+    """Set the boolean mark `networks.<network>.<key>` to True.
+
+    Returns the previous value, None when the key was absent.  `key` must
+    be in MARKS and the network must exist; anything else exits without
+    writing.  Only True is ever written: a network leaves the distributed
+    set by a decision, not by this tool.
+    """
+    if key not in MARKS:
+        raise SystemExit("not a mark netman may set: %s (only %s)"
+                         % (key, ", ".join(MARKS)))
+    nets = man.get("networks")
+    if not isinstance(nets, dict) or network not in nets:
+        raise SystemExit("no such network in the manifest: %s" % network)
+    before = nets[network].get(key)
+    nets[network][key] = True
+    return before
+
+
 def read_text(path):
     """Read a replacement value as one line, newlines folded to spaces.
 
@@ -157,9 +188,27 @@ def main(argv=None):
                          "text; write nothing")
     ap.add_argument("--show", default=None, metavar="NETWORK",
                     help="print a network's acceptance block and exit")
+    ap.add_argument("--mark", default=None, metavar="KEY",
+                    help="set the boolean mark KEY to true on --network; "
+                         "only %s (D-551)" % ", ".join(MARKS))
     a = ap.parse_args(argv)
 
     man = load()
+
+    if a.mark:
+        if not a.network or a.field or a.from_file or a.check_file:
+            sys.stderr.write("--mark takes --network and nothing else\n")
+            return 2
+        before_digests = digest_of(man)
+        prev = set_mark(man, a.network, a.mark)
+        if digest_of(man) != before_digests:
+            sys.stderr.write("REFUSING: the mark moved a network digest\n")
+            return 1
+        save(man)
+        print("netman: networks.%s.%s = true (was %s); network digests "
+              "unchanged" % (a.network, a.mark,
+                             "absent" if prev is None else prev))
+        return 0
 
     if a.show:
         entry = man.get("networks", {}).get(a.show)

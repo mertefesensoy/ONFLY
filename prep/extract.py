@@ -56,9 +56,10 @@ recording digests and the selected body ids.
              N = 500 with its fitted compensating table -- into
              data/networks/ and record it in the manifest as the MVP
              network, with its selection rule, estimator, fitted
-             constant and every acceptance verdict.  Refuses if the
-             emitted bytes differ from the artifact the criteria were
-             measured on.
+             constant and every acceptance verdict.  Refuses, before it
+             writes anything, if the emitted bytes differ from the
+             artifact the criteria were measured on or if that artifact
+             is absent (P-41 E7).
 
   --acc1 <network> [--label name]
              D-203: ACC-1 on a candidate MVS subcircuit -- at every
@@ -1440,6 +1441,11 @@ def biasnet(jobs):
 #            the directory ambiguous about which rule produced what.
 FIXTURES = ("full", "hop2", "path")
 
+# D-545: the networks ONFLY distributes.  Each generator that rewrites one of
+# their manifest entries writes `"distributed": true` into it (D-551, D-557);
+# `hop2` and `full` are regenerate-only and carry no mark.
+DISTRIBUTED = ("path", "srext")
+
 
 def refixture():
     if not os.path.isfile(RATEACT):
@@ -1476,6 +1482,11 @@ def refixture():
             "format_version": "1.1",
             "nbias": 0 if rates is None else len(rates),
         }
+        # D-545, D-557: this rewrite replaces the entry wholesale, so it
+        # writes the distributed mark itself; otherwise a refixture would
+        # silently drop `path` from the set tools/fixtures.py requires.
+        if label in DISTRIBUTED:
+            man["networks"][label]["distributed"] = True
         print("  %-5s n=%-7d e=%-9d %10d bytes  nbias=%d"
               % (label, n, e, len(blob), 0 if rates is None else len(rates)))
 
@@ -2108,6 +2119,33 @@ def acc1(path, label, jobs):
 MVPN = 500                      # SR-EXT-03, determined by VL-76
 
 
+def verify_comparand(diag, sha):
+    """Refuse an admission whose measured artifact is absent or differs.
+
+    `diag` is the network ACC-1, ACC-3 and the backend comparison were
+    measured on (`--constbias` writes it); `sha` is the SHA-256 of the
+    bytes about to be admitted.  Returns only when they are the same file.
+
+    P-41 E7 (replication X3): this used to run AFTER the write, and not at
+    all when `diag` was absent, so an admission could overwrite the shipped
+    network with bytes nothing had measured.  It now runs first, and both
+    refusals say that nothing was written.
+    """
+    if not os.path.isfile(diag):
+        raise SystemExit(
+            "the subcircuit ACC-1, ACC-3 and the backend comparison were "
+            "measured on is absent (%s); run `python prep/extract.py "
+            "--constbias` to produce it.  Refusing to admit an unverified "
+            "file; nothing was written" % diag)
+    if hashlib.sha256(io.open(diag, "rb").read()).hexdigest() != sha:
+        raise SystemExit(
+            "the emitted subcircuit differs from the one ACC-1, ACC-3 "
+            "and the backend comparison were measured on (%s); refusing "
+            "to admit an unverified file; nothing was written" % diag)
+    print("  digest matches the measured artifact %s"
+          % os.path.basename(diag))
+
+
 def admit(jobs):
     """Emit the SR-EXT subcircuit into data/networks/ and record it."""
     ranking = load_json(RANKING, None)
@@ -2138,21 +2176,14 @@ def admit(jobs):
                                      "srext-n%d" % MVPN,
                                      bias_rates=rates, bias_rows=rows)
     path = os.path.join(NET_DIR, "onfnet-malecns-v1.0-srext.bin")
-    io.open(path, "wb").write(blob)
     sha = hashlib.sha256(blob).hexdigest()
 
     # The emitted file must be the very artifact the criteria were measured
     # on.  Anything else would make VL-76..VL-78 describe a different file.
-    diag = case["file"]
-    if os.path.isfile(diag):
-        same = hashlib.sha256(io.open(diag, "rb").read()).hexdigest() == sha
-        if not same:
-            raise SystemExit(
-                "the emitted subcircuit differs from the one ACC-1, ACC-3 "
-                "and the backend comparison were measured on (%s); refusing "
-                "to admit an unverified file" % diag)
-        print("  digest matches the measured artifact %s"
-              % os.path.basename(diag))
+    # Checked BEFORE the write, and refused when the artifact is absent
+    # (P-41 E7).
+    verify_comparand(case["file"], sha)
+    io.open(path, "wb").write(blob)
 
     man = load_json(os.path.join(NET_DIR, "MANIFEST.json"), None)
     if man is None:
@@ -2163,6 +2194,9 @@ def admit(jobs):
         "crc32": "%08X" % (zlib.crc32(blob) & 0xFFFFFFFF),
         "format_version": "1.1", "nbias": len(rates),
         "role": "SR-EXT subcircuit, the MVP network for MVS (D-205)",
+        # D-545, D-551: written here because this dict replaces the entry
+        # wholesale; `prep/netman.py --mark` set it on the committed file.
+        "distributed": True,
         "N": MVPN,
         "selection": ("SR-EXT-01: the %d most active neurons by total spike "
                       "count over the 240-run full-brain ranking of VL-66, "
