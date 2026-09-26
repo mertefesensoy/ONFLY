@@ -244,6 +244,10 @@ grants no right to any of them.
 | docx (npm, Dolan Miu) | Exporting `docs/ONFLY-SRS.docx` with `md2docx.js` | MIT | dolanmiu/docx `package.json` |
 | reuse (FSFE) | Checking this file's path annotations | Apache-2.0 AND CC0-1.0 AND CC-BY-SA-4.0 AND GPL-3.0-or-later | fsfe/reuse-tool `pyproject.toml` |
 | MinGW gcc 6.3.0, GNU Make, Python 3.13 | The x86-64 build and tests | Published by their projects; not re-read on 2026-09-25 | none |
+| actions/checkout v7.0.1 and actions/setup-python v7.0.0 (GitHub) | Continuous integration, `.github/workflows/ci.yml`, pinned to full commit SHAs (SRS D-579) | MIT, as each repository's licence metadata states, read on 2026-09-26 | https://github.com/actions/checkout, https://github.com/actions/setup-python |
+| msys2/setup-msys2 v2.32.0 | The Windows CI job's MSYS2 environment | MIT, as its repository's licence metadata states, read on 2026-09-26 | https://github.com/msys2/setup-msys2 |
+| MSYS2, with its mingw-w64 i686 gcc and make packages | Building and testing in the Windows CI job | The package recipes are BSD-3-Clause, as the MINGW-packages repository states, read on 2026-09-26; each packaged program, gcc among them, keeps its own licence, which this row does not restate | https://github.com/msys2/MINGW-packages |
+| GitHub-hosted runner images (ubuntu-latest, windows-latest) | Where the CI jobs run | The image definitions are MIT, as the runner-images repository states, read on 2026-09-26; the software installed in an image keeps its own terms, which this row does not restate | https://github.com/actions/runner-images |
 
 ## 8. Trademarks
 

@@ -47,7 +47,17 @@ sys.path.insert(0, os.path.join(ROOT, "prep"))
 
 import fixtures                                        # noqa: E402
 import onfres                                          # noqa: E402
-import extract                                         # noqa: E402
+
+# D-591: prep/extract.py imports numpy at module level, so on a checkout
+# without the packages of requirements.txt this import used to end the
+# whole file in ModuleNotFoundError.  Only the two classes that call
+# `extract` need it; they skip through onfres, and the rest still run.
+try:
+    import extract                                     # noqa: E402
+except ImportError:
+    extract = None
+NO_EXTRACT = ("prep/extract.py imports numpy and this host has none "
+              "(D-233, D-591)")
 
 
 def whole_file_digests(path):
@@ -141,6 +151,7 @@ class Matches(unittest.TestCase):
         self.assertEqual(why, "absent")
 
 
+@unittest.skipIf(extract is None, NO_EXTRACT)
 class Acc3Exclusion(unittest.TestCase):
     """D-202's rule, as D-289 made the diagnostic apply it."""
 
@@ -186,6 +197,7 @@ class Acc3Exclusion(unittest.TestCase):
                          "D-135 seeds, got %s" % excl)
 
 
+@unittest.skipIf(extract is None, NO_EXTRACT)
 class AdmitRefuses(unittest.TestCase):
     """P-41 E7 (replication X3): `--admit` refuses BEFORE it writes.
 

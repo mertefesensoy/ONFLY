@@ -1,0 +1,184 @@
+# ONFLY continuous integration: P-41 slice F, step F6 (SRS D-579, D-586).
+#
+# What a green run means (D-586, VL-142): the checks that need no network
+# file pass on a GitHub-hosted x86-64 runner with the compilers that runner
+# provides.  Those are not the recorded toolchains, so a green run is a
+# smoke test and never evidence for the determinism matrix of SRS 8.3.
+# The golden-suite job arrives with the release assets (P-41 G5).
+#
+# Supply chain (P-41 F6): every action is pinned to a full commit SHA, with
+# its release tag in a comment; the token is read-only; checkout keeps no
+# credentials; no secrets are used; pull_request, never
+# pull_request_target.  Dependabot proposes SHA updates (dependabot.yml).
+
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The committed guard (D-503, D-507) over the whole tree, Office files
+  # member by member, and every commit message the push or pull request
+  # adds.  It prints paths, lines and counts only, never matched text,
+  # because these logs are public.
+  name-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Interpreter
+        run: python -VV
+      - name: Guard self-test and tree
+        run: |
+          python tools/lint_name.py --self-test
+          python tools/lint_name.py --tree
+      - name: Commit messages in the pushed range
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -u
+          zero=0000000000000000000000000000000000000000
+          if [ "$EVENT" = pull_request ]; then
+            range="$BASE..$HEAD_SHA"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "$zero" ] &&
+               git cat-file -e "$BEFORE^{commit}" 2>/dev/null &&
+               git merge-base --is-ancestor "$BEFORE" "$HEAD_SHA"; then
+            range="$BEFORE..$HEAD_SHA"
+          else
+            # A new branch (all-zero before) or a forced push: every
+            # commit the default branch does not already have.
+            range="origin/main..$HEAD_SHA"
+          fi
+          echo "range: $range"
+          n=0
+          bad=0
+          for c in $(git rev-list "$range"); do
+            git log -1 --format=%B "$c" > "$RUNNER_TEMP/msg.txt"
+            n=$((n + 1))
+            if ! python tools/lint_name.py --message "$RUNNER_TEMP/msg.txt"; then
+              echo "finding in the message of $c"
+              bad=$((bad + 1))
+            fi
+          done
+          echo "name-guard: $n commit messages checked, $bad with findings"
+          test "$bad" -eq 0
+
+  # Python checks on a bare checkout: no network, no build, and no package
+  # beyond the standard library.  Not strict: the point is that every file
+  # ends in a pass or a counted onfres skip, never in an ImportError
+  # (D-591).  tests/test_strm.py takes a built engine and runs only in
+  # `make test` (D-592).
+  python-bare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Interpreter, and proof that it is bare
+        run: |
+          python -VV
+          python -m pip freeze
+          python -c "import importlib.util as u, sys; p = [m for m in ('numpy', 'pandas', 'pyarrow') if u.find_spec(m)]; print('third-party packages present:', p); sys.exit(1 if p else 0)"
+      - name: Licence and notices checks
+        run: |
+          python tools/lint_lic.py
+          python tools/lint_ntc.py --self-test
+          python tools/lint_ntc.py
+      - name: The 14 build-free Python test files
+        run: |
+          set -u
+          fail=0
+          for t in bias c04 chunk disc fixt gain geom netman seeds signs trust txcmp varnt; do
+            echo "== tests/test_$t.py"
+            python "tests/test_$t.py" || { echo "FAILED: tests/test_$t.py"; fail=1; }
+          done
+          echo "== tests/test_onfres.py"
+          python tests/test_onfres.py make || { echo "FAILED: tests/test_onfres.py"; fail=1; }
+          exit $fail
+
+  # `make test-nonet` on Linux x86-64 (ONFPLAT=x86l, D-550), strict.
+  nonet-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Toolchain
+        run: |
+          gcc -v
+          make --version | head -1
+          python -VV
+      - name: Pinned packages
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip freeze
+      - name: make test-nonet, strict
+        env:
+          ONFLY_NOSKIP: "1"
+        run: make ONFPLAT=x86l PYTHON=python test-nonet
+
+  # `mingw32-make test-nonet` under MSYS2's 32-bit MinGW, strict.  It shares
+  # x86w's ONFPLAT value with the recorded Windows host, not its compiler:
+  # MinGW.org gcc 6.3.0 is recorded, MSYS2's mingw-w64 gcc runs here.
+  nonet-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+      - uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884  # v2.32.0
+        with:
+          msystem: MINGW32
+          path-type: inherit
+          update: false
+          install: >-
+            mingw-w64-i686-gcc
+            mingw-w64-i686-make
+      - name: Toolchain
+        run: |
+          which gcc mingw32-make python
+          gcc -v
+          mingw32-make --version | head -1
+          python -VV
+      - name: Pinned packages
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip freeze
+      - name: TestFloat generator
+        run: mingw32-make testfloat
+      - name: mingw32-make test-nonet, strict
+        env:
+          ONFLY_NOSKIP: "1"
+        run: mingw32-make test-nonet

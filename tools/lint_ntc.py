@@ -87,7 +87,10 @@ COMPONENTS = (
 TOOLS = ("JCC", "Raincode", "INTERCOMM", "Hercules", "TK5", "GCCMVS",
          "PDPCLIB", "GnuCOBOL", "QEMU", "wc3270", ".NET", "brian2",
          "numpy", "pandas", "pyarrow", "matplotlib", "Pillow", "docx",
-         "reuse", "MinGW", "GNU Make", "Python")
+         "reuse", "MinGW", "GNU Make", "Python",
+         # P-41 F6 (D-579): what .github/workflows/ci.yml runs on and with.
+         "actions/checkout", "actions/setup-python", "msys2/setup-msys2",
+         "GitHub-hosted runner", "MSYS2")
 
 BSD_FILES = ("softfloat/onfrpk.c", "softfloat/onfprim.c")
 BSD_PHRASES = (

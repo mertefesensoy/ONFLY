@@ -1,0 +1,8 @@
+# P-41 F6 (SRS D-579): keep the SHA-pinned actions of workflows/ci.yml
+# current.  Dependabot opens a pull request per update; the owner reviews it.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
