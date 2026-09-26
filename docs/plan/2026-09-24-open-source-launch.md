@@ -3,7 +3,7 @@
 **APPROVED as drafted on 2026-09-24 (D-488) and published in full at the
 owner's choice (D-489). Slice A COMPLETE 2026-09-25 (D-494). Slice B
 COMPLETE 2026-09-25 (D-500 to D-512). Slices C and D COMPLETE 2026-09-26
-(D-513 to D-541).** This file is
+(D-513 to D-541). Slice E COMPLETE 2026-09-26 (D-542 to D-563).** This file is
 the proposal P-41 records; Appendix A.2 carries it, struck as approved. Until
 the renumbering of 2026-09-24 it called itself P-40; that number went to
 D-480's proposal, so the pushed commits f2e4b2f, 4b1de9f, f8d2a05 and 11c074d
@@ -14,7 +14,7 @@ recorded as a D-row.
 | Field | Value |
 |---|---|
 | Date | 2026-09-24 |
-| Status | APPROVED 2026-09-24 (D-488); slice A COMPLETE 2026-09-25 (D-494); slice B COMPLETE 2026-09-25 (D-500 to D-512); slices C and D COMPLETE 2026-09-26 (D-513 to D-541), on the working branch until D-504's batch; slice E is next |
+| Status | APPROVED 2026-09-24 (D-488); slice A COMPLETE 2026-09-25 (D-494); slice B COMPLETE 2026-09-25 (D-500 to D-512); slices C and D COMPLETE 2026-09-26 (D-513 to D-541); slice E COMPLETE 2026-09-26 (D-542 to D-563); all on working branches until D-504's batch; slice F is next |
 | Proposal | P-41, confirmed at slice A3 on 2026-09-25 (D-494); P-40 until the renumbering of 2026-09-24 |
 | Scope | Launching the already public repository github.com/mertefesensoy/ONFLY so that other people can find it, understand it truthfully and replicate what it claims, **before** Phase F. Not a phase: no phase opens or closes here. Phases A to E and G stay COMPLETE; Phase F stays blocked on IBM Z access the project does not have; Phase H stays blocked on TBD-13 |
 | Authorising owner answers | recorded as D-484 to D-493: OA-1 (scrub forward only), OA-2 (rewrite the IBM summary as a public overview), OA-3 (neutral term plus a decision row), OA-4 (all four audiences, sequenced by this plan), OA-5 (plan approved), OA-6 (published in full), OA-7 (commit and push the working branch), OA-8 and OA-9 (the two no-access confirmations of 3.2), OA-10 (Wave -1 scope for the IBM Community post); see 0.1 |
@@ -491,7 +491,7 @@ is given on this host (D-537). **Carried:** the W1a reader's read, which
 needs someone other than the owner and the engineer, before slice G. The
 record is `docs/implementations/2026-09-26-open-source-launch-slice-d.md`.
 
-### Slice E: replicability
+### Slice E: replicability (COMPLETE 2026-09-26, D-542 to D-563)
 
 **Entry:** item 11 closed (the tag is in the download URL) and item 5 decided.
 
@@ -512,6 +512,25 @@ named in the implementation doc: WSL2, a container or CI; if CI, F6's
 workflow lands inside slice E) reaches R0, R1 and R2a with **locally staged** assets
 (`fixtures.py --from`), in a fresh venv built only from `requirements.txt`,
 with `ONFLY_FIXTURES` unset and `ONFLY_NOSKIP=1`. **Verify:** 11.8 and 11.9.
+
+**Met 2026-09-26 (D-542 to D-563), by the plan of record P-44 (D-546).** Fresh
+clones of the pushed branch at `ae07dc3`, from GitHub into
+`C:\Users\senso\onfly-e` and WSL2 Ubuntu 26.04's `~/onfly-e` (D-547, D-553),
+each with a fresh venv from `requirements.txt` alone (pyarrow 21.0.0 on
+Python 3.13.14, 22.0.0 on Python 3.14.4), `ONFLY_FIXTURES` unset,
+`ONFLY_NOSKIP=1` and the networks staged with `--from`: on MinGW gcc 6.3.0
+and on gcc 15.2.0 alike, 11.9 exits 0 with `srext` and `path` OK and `hop2`
+and `full` NOT DISTRIBUTED; R0 gives 25 identical and 49 passed; 11.8's
+`make test` exits 0 with `28 PASS, 0 SKIP, 0 PENDING, 11 EXEMPT` (SKIP 0 as
+D-548 and D-555 define it) and `make quick` exits 0; and R2a gives ACC-1,
+ACC-2, ACC-3 and ACC-4 PASS, the rewritten records differing from the
+committed ones in `elapsed_s` alone (VL-140). The Linux platform is
+`ONFPLAT=x86l`, `X86LINUX` (D-550). **Carried, not discharged:** the s390x
+guest's bring-up script waits for F7 (D-552); whether ONFLYENG exposes
+FR-LOD-04's limit, which D-548's TE-08 exemption stands in for, is open; the
+download half of E3 and of 11.9 waits for slice G's release, itself gated on
+item 8. The record is
+`docs/implementations/2026-09-26-open-source-launch-slice-e.md`.
 
 ### Slice F: community infrastructure
 

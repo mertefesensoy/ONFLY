@@ -425,6 +425,23 @@ shown failing (`errors=4`) and then passing (`Ran 10 tests ... OK`), and in
 the worktree both `--reeval data/calibration/acc4.json` and `--reeval
 acc4.json` now exit 0 with `ACC-4 PASS`.
 
+**The final rerun D-563 required**, at the pushed `ae07dc3`, both hosts,
+fresh clones, fresh venvs, the same staging and strict mode: every row of
+the table above repeats line for line, and the recorded form `python
+prep/acc4.py --reeval data/calibration/acc4.json` now exits 0 with
+`ACC-4 shape PASS ...; ACC-4 PASS` on both. The rewritten records again
+differ in `elapsed_s` alone (Windows 81 and 79 s, Linux 77 and 76 s,
+against the committed 54 and 78 s). On that evidence the owner's D-563 mark
+is written: P-41 slice E COMPLETE 2026-09-26.
+
+**Cleanup (D-553).** `C:\Users\senso\onfly-e` and WSL's `~/onfly-e` are
+deleted after the run, as are this worktree's scratch clone `build/cc1` and
+staging directory `build/stage`.
+
+**Not run this session:** `reuse lint` (not installed here; the new files
+fall under `REUSE.toml`'s catch-all and data rules, and the notice's own
+entry parses); R2b, R3, R4, R5, R6 and R7; any TK5 or s390x job.
+
 **A warning, not a failure:** gcc 15 warns `'~' on a boolean expression
 [-Wbool-operation]` at `softfloat/onfrpk.c:137`, a derived SoftFloat 3e
 file built without `-Werror`. It is upstream's arithmetic, derived by

@@ -4,7 +4,7 @@
 |---|---|
 | Scope | D-542: slice E of `docs/plan/2026-09-24-open-source-launch.md` (P-41, approved by D-488) |
 | Decisions it rests on | D-543 push this session's branch only; D-544 item 11, first tag `v0.5.0`; D-545 item 5, `srext` and `path` as release assets, staged locally for this slice. Earlier: D-225, D-233, D-249, D-291, D-450, D-453, D-454, D-464, D-497, D-504, D-515, D-516 |
-| Proposal | P-44, APPROVED as drafted 2026-09-26 (D-546); its questions answered as D-547 to D-554 (Section 7) |
+| Proposal | P-44, APPROVED as drafted 2026-09-26 (D-546); its questions answered as D-547 to D-554 (Section 7); carried out, with D-555 to D-563 decided on the way, and slice E marked COMPLETE 2026-09-26 (D-563) |
 | Not a phase | No Section 9 phase opens or closes. The exit is P-41's own for slice E, as D-542 states it, verified by P-41's 11.8 and 11.9 |
 | Platforms | **Windows:** x86-64 Windows 11, MinGW.org gcc 6.3.0 (32-bit i686), GNU Make 3.82.90 running recipes under Git's `sh.exe`, Python 3.13.14. **Linux x86-64:** the host named by Q1 (Section 7). Nothing here runs on s390x, MVS or z/OS |
 
