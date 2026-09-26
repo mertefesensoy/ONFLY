@@ -1,0 +1,6 @@
+# The Phase G live view (`tools/liveview.py`, `make clips`; replication rung
+# R7).  matplotlib draws the frames and writes GIFs through its PillowWriter,
+# which needs Pillow.  Versions as installed on the development host.
+-r requirements.txt
+matplotlib==3.10.7
+pillow==12.2.0

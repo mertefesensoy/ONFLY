@@ -158,7 +158,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy generated
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test onfres generate lint liclint namelint ntclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req sub mvsrun names fixtures fixtures-check
+.PHONY: all test test-nonet quick onfres generate lint liclint namelint ntclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req sub mvsrun names fixtures fixtures-check
 
 all: test
 
@@ -839,6 +839,23 @@ TESTS = onfres lint liclint namelint ntclint col80 c04 c04mvs sub mvsrun \
 
 test:
 	$(PYTHON) tools/testrun.py "$(MAKE)" $(TESTS)
+
+# P-41 E9.  The subset of TESTS that needs NO network file, fixed by
+# measurement rather than by a list written in advance (P-44, group 2): in a
+# clone with no network, each of these targets exited 0 alone and printed
+# no `ONFRES SKIP` line.  `mvsrun`, `names` and `prep` skip their network
+# checks there, and `req` and `golden` fail, so none of them is here.
+# tests/test_onfres.py holds this list to TESTS' order.
+NONET = onfres lint liclint namelint ntclint col80 c04 c04mvs sub mvsjcc \
+        ic3270 tt01 tt02 c2c sfs shim layout units fp kernel syn decode eng
+
+test-nonet:
+	$(PYTHON) tools/testrun.py "$(MAKE)" $(NONET)
+
+# P-41 E9.  Build the engine and check the committed Section 8.4
+# fingerprints, with no lab: needs only the two distributed networks.
+quick:
+	$(PYTHON) tools/testrun.py "$(MAKE)" eng golden
 
 # D-548, D-549: the test-result plumbing -- tools/onfres.py, tools/lastln.py
 # and tools/testrun.py -- tested before the suite relies on it.  "$(MAKE)" is

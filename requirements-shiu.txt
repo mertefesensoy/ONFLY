@@ -1,0 +1,14 @@
+# The Shiu et al. re-run (`reference/shiu/rerun.py`; replication rung R2b),
+# which produced the reference curve SR-CAL-04 calibrates against (D-164).
+#
+# These are the versions the Phase C calibration record states it ran with
+# (docs/implementations/2026-09-12-phase-c-calibration.md): Python 3.13.14,
+# brian2 2.10.1, numpy 2.5.3, pandas 3.0.5.  They CONFLICT with
+# requirements.txt, so use a separate virtual environment.
+#
+# Not reproduced here: the environment was removed from the development host
+# and the re-run has not been repeated since (SRS VL-88), so this file records
+# what was used, not something this repository has re-verified.
+brian2==2.10.1
+numpy==2.5.3
+pandas==3.0.5

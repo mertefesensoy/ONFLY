@@ -333,9 +333,40 @@ def t_testrun_make(make):
         os.rmdir(d)
 
 
+def make_list(name):
+    """The words of a `NAME = ...` assignment in the Makefile, joined
+    across backslash continuations."""
+    text = io.open(os.path.join(ROOT, "Makefile"), encoding="utf-8").read()
+    m = re.search(r"^%s\s*=\s*((?:.*\\\n)*.*)$" % name, text, re.M)
+    return m.group(1).replace("\\\n", " ").split() if m else None
+
+
+def t_makefile():
+    # P-41 E9: test-nonet is the subset of `test` that needs no network,
+    # fixed by the group 2 measurement of P-44.  Pinned here so that the
+    # two lists cannot drift apart: every NONET target is a TESTS target,
+    # in the same order, and none of the targets that measurement showed
+    # needing a network is in it.
+    tests, nonet = make_list("TESTS"), make_list("NONET")
+    check("the Makefile defines TESTS and NONET",
+          bool(tests) and bool(nonet),
+          "TESTS %s, NONET %s" % (len(tests or []), len(nonet or [])))
+    if not tests or not nonet:
+        return
+    check("NONET is TESTS' targets in TESTS' order",
+          nonet == [t for t in tests if t in nonet]
+          and set(nonet) <= set(tests), " ".join(nonet))
+    needs = {"mvsrun", "names", "req", "golden", "prep"}
+    check("NONET holds none of the targets that need a network",
+          not (set(nonet) & needs), sorted(set(nonet) & needs))
+    check("NONET is the 23 targets measured network-free",
+          len(nonet) == 23, "%d" % len(nonet))
+
+
 def main(argv):
     make = argv[1] if len(argv) > 1 else None
     t_onfres()
+    t_makefile()
     t_unittest()
     t_lastln()
     t_testrun_scan()

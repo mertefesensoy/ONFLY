@@ -1,0 +1,21 @@
+# ONFLY's Python dependencies for the test suite and the preparation
+# pipeline (P-41 E5, SRS D-547).
+#
+# Pinned to the versions the recorded results were produced with on the
+# development host, Python 3.13.14.  One pin differs by Python version:
+# pyarrow 21.0.0 publishes no wheel for Python 3.14, so Python 3.14 (the
+# Linux x86-64 host of D-547) gets pyarrow 22.0.0, the first release that
+# does.  pyarrow only reads the MaleCNS feather files; it is not on the
+# path that produces a fingerprint.
+#
+# Install into a fresh virtual environment:
+#     python -m venv .venv
+#     .venv/Scripts/pip install -r requirements.txt   (Windows)
+#     .venv/bin/pip install -r requirements.txt       (Linux)
+#
+# The live view and the Shiu et al. re-run need more; see
+# requirements-live.txt and requirements-shiu.txt.
+numpy==2.4.4
+pandas==2.3.3
+pyarrow==21.0.0; python_version < "3.14"
+pyarrow==22.0.0; python_version >= "3.14"

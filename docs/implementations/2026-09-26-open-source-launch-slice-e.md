@@ -61,6 +61,16 @@ less than it knew:
 | `tests/test_fixt.py` | `AdmitRefuses` (four cases), `Distributed` (five), `Notice` (one) |
 | `tests/test_netman.py` | The distributed set as an artefact, the two generator sites, and `--mark`'s refusals, ten checks |
 
+### Group 4: E5 files and E9 targets
+
+| File | Change |
+|---|---|
+| `requirements.txt` | New. `numpy==2.4.4`, `pandas==2.3.3`, and `pyarrow==21.0.0` below Python 3.14 or `22.0.0` from it (D-547) |
+| `requirements-live.txt` | New. The live view: `matplotlib==3.10.7`, `pillow==12.2.0`, on top of the core set |
+| `requirements-shiu.txt` | New. The Shiu re-run's recorded environment, `brian2==2.10.1`, `numpy==2.5.3`, `pandas==3.0.5`, marked as conflicting with the core set and not reproduced here (VL-88) |
+| `Makefile` | `NONET`, the 23 targets measured network-free in group 2; `test-nonet` and `quick` (`eng golden`), both through `tools/testrun.py` |
+| `tests/test_onfres.py` | Four checks holding `NONET` to `TESTS`' order and away from the five targets that need a network |
+
 ## 3. Implementation approach
 
 ### Group 1
@@ -249,3 +259,26 @@ be run until slice G publishes a release.
 **The targets group 3 touches**, through the runner: `python
 tools/testrun.py mingw32-make onfres liclint namelint ntclint mvsrun names
 prep`: `7 PASS, 0 SKIP, 0 PENDING, 3 EXEMPT`, exit 0.
+
+### Group 4
+
+`tests/test_onfres.py` before `NONET` existed: `the Makefile defines TESTS
+and NONET ... TESTS 28, NONET 0`, `44 passed, 1 failed`. After: `48 passed,
+0 failed`.
+
+**`test-nonet`, in a clean clone with no network file** (the clone of
+`08b18cf` plus this group's diff, `data/networks/*.bin` removed):
+`ONFLY_NOSKIP=1 mingw32-make test-nonet` exits 0 in **109 s**, closing
+`ONFLY test: 23 PASS, 0 SKIP, 0 PENDING, 8 EXEMPT`, the eight being
+`ic3270`'s two and TE-08's six. That is the time P-41 E9 asked to record.
+
+**`quick`, with the networks**: `ONFLY_NOSKIP=1 mingw32-make quick` exits 0
+in **392 s**, `2 PASS, 0 SKIP, 0 PENDING, 6 EXEMPT`. Its golden half prints
+`run_gld [SOFT3E backend]: 20 passed, 0 failed`, the same for NATIVE and
+SOFT2C, every Section 8.4 fingerprint from `G-01 ... fp=6C143127` to `G-19
+... fp=C4C320BC`, then `cmpgld: SOFT3E, NATIVE, SOFT2C agree on all 19
+golden requests across 2 networks` and `cmpchk [FR-SIM-10 chunk
+invariance]: 24 passed, 0 failed`.
+
+The three requirements files are exercised by group 7's fresh venvs, not
+here.
