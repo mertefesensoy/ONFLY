@@ -5,8 +5,8 @@
 | Date | 2026-09-26 |
 | Author | Mert Efe Şensoy (owner); drafted with Claude Code under the owner's decisions |
 | Phase / gate | None. P-41's slice E (D-542), not a Section 9 phase; its exit is P-41's 11.8 and 11.9 |
-| Owner decisions relied on | D-542 to D-555; earlier D-132, D-156, D-233, D-249, D-450, D-453, D-454, D-464, D-497, D-504, D-515, D-516 |
-| Requirements touched | NR-14 and TT-01/32, TT-02 (the unmasked drivers); FR-PRP-07 (the network notice); NFR-LIC-01 (the notices lint); IR-NET-02 (why the notice is a separate file) |
+| Owner decisions relied on | D-542 to D-561; earlier D-132, D-156, D-233, D-249, D-291, D-450, D-453, D-454, D-464, D-475, D-497, D-504, D-515, D-516 |
+| Requirements touched | NR-14 and TT-01/32, TT-02 (the unmasked drivers); FR-PRP-07 (the network notice and the manifest's distributed marks); NFR-LIC-01 (the notices lint); IR-NET-02 (why the notice is a separate file); C-04 (the ELF-aware lint); NFR-PRT-01 and FR-LNX-02 (one engine source, only the platform header differing, on Linux x86-64); NFR-OBS-01 (the manifest names `X86LINUX`); NR-09 and TX-03 (NATIVE admitted on the Linux host); FR-SIM-01 and ACC-5's golden suite (reproduced on both hosts); ACC-1 to ACC-4 (R2a re-evaluated on both hosts) |
 | Open items closed | P-41 items 5 (D-545) and 11 (D-544); item 7 answered for slice E only (D-554). No SRS Appendix B item |
 | Plan of record | P-44, `docs/plan/2026-09-26-open-source-slice-e.md`, approved by D-546 |
 
@@ -86,6 +86,16 @@ less than it knew:
 |---|---|
 | `REPLICATING.md` | New. P-41 Section 6's ladder R0 to R7, each rung with its commands, what it proves and what it does not; staging the networks; strict mode and its eleven exemptions; the regeneration recipe of E7, stated as not re-run end to end since 2026-09-13; FlyWire's non-commercial note at R2b |
 | `docs/lab.md` | New. The lab guide: the three archives' SHA-256 values computed this session, the 819/1047 codepage step (VL-18), the safety notes on the 3505, 8038 and 3270 ports and on TK5's default HERC01 password, the MVS rungs with their recorded costs, and the s390x guest described in prose, its bring-up script deferred to slice F (D-552) |
+
+### Group 7: the exit, and what it found
+
+| File | Change |
+|---|---|
+| `prep/acc4.py` | `record_path()`: `--reeval` uses a path that exists as given, else a name under `data/calibration/` (D-561) |
+| `tests/test_disc.py` | `RecordPath`, four cases |
+| `docs/ONFLY-SRS.md` | Appendix A.1 D-542 to D-561; A.2 P-44; Appendix D VL-140 |
+| `docs/plan/2026-09-24-open-source-launch.md` | Items 5, 7 and 11 recorded as answered |
+| `docs/plan/2026-09-26-open-source-slice-e.md` | New. P-44, the plan of record |
 
 ## 3. Implementation approach
 
@@ -376,7 +386,61 @@ ordinary uses of "first" ("the first line", "the first release that
 does"), not a claim of priority. **Documented, not re-run here:** R2b, R3,
 R4, R5, R6 and R7, and the E7 recipe.
 
+### Group 7: the exit
+
+P-41's 11.8 and 11.9, and rungs R0, R1 and R2a, in fresh clones of the
+**pushed** branch at `88ac979`, cloned from GitHub into
+`C:\Users\senso\onfly-e` and WSL's `~/onfly-e` (D-553), each with a fresh
+venv built from `requirements.txt` alone, `ONFLY_FIXTURES` unset,
+`ONFLY_NOSKIP=1`, and the two networks staged with `--from`. The two runs
+overlapped, so their wall clocks are not quoted. VL-140 registers them.
+
+| Check | Windows (MinGW gcc 6.3.0, Python 3.13.14) | Linux x86-64 (gcc 15.2.0, Python 3.14.4) |
+|---|---|---|
+| venv from `requirements.txt` | numpy 2.4.4, pandas 2.3.3, pyarrow 21.0.0 | numpy 2.4.4, pandas 2.3.3, pyarrow 22.0.0 (D-547) |
+| 11.9, `sha256sum -c SHA256SUMS` | both `OK` | both `OK` |
+| 11.9, `fixtures.py --check` | exit 0; `path`, `srext` OK; `hop2`, `full` NOT DISTRIBUTED | the same |
+| R0, `run_tx --compare` | `25 identical, 0 differing` | the same |
+| R0, `run_mvsrun.py` | `49 passed, 0 failed` | the same |
+| 11.8 and R1, `make fixtures`, `testfloat`, `test` | all exit 0; `28 PASS, 0 SKIP, 0 PENDING, 11 EXEMPT` | the same, with `ONFPLAT=x86l` |
+| 11.8, `make quick` | exit 0; `2 PASS, 0 SKIP, 0 PENDING, 6 EXEMPT` | the same |
+| R2a, ACC-1 and ACC-2 | `ACC-1 PASS over the rates it applies to: [40, 60, 120, 200]`; `ACC-2 PASS: rate 0 produced 0 spikes across all 501 neurons` | the same |
+| R2a, ACC-3 | `ACC-3 PASS`, `NFR-MEM-01 PASS` | the same |
+| R2a, ACC-4 | `--reeval data/calibration/acc4.json` exit 1 (the finding below); `--reeval acc4.json`: `ACC-4 shape PASS ...; ACC-4 PASS`, magnitude reported at 10 and 40 Hz | the same |
+| R2a against the records | `acc1-candidate.json` and `acc3-srext.json` differ only in `elapsed_s` | the same |
+| the engine's manifest | | `PLATFORM X86LINUX`, `COMPILER GCC`, `FLOAT BACKEND NATIVE` |
+
+So on both hosts every measured number R2a writes is identical to the
+committed record; only the run time differs. And on Linux x86-64 the NATIVE
+backend meets NR-09's admission tests on that host: TT-02 and the golden
+fingerprints equal to both soft backends'.
+
+**Finding: a recorded command that never ran.** `python prep/acc4.py
+--reeval data/calibration/acc4.json`, as D-475, P-41 6.1, `data/README.md`
+and this slice's `REPLICATING.md` write it, exited 1 in both clones with
+`no such record: .../data/calibration/data/calibration/acc4.json`: the
+tool joined every relative argument onto `data/calibration/`. D-561 makes it
+use a path that exists as given; `tests/test_disc.py` pins four forms,
+shown failing (`errors=4`) and then passing (`Ran 10 tests ... OK`), and in
+the worktree both `--reeval data/calibration/acc4.json` and `--reeval
+acc4.json` now exit 0 with `ACC-4 PASS`.
+
 **A warning, not a failure:** gcc 15 warns `'~' on a boolean expression
 [-Wbool-operation]` at `softfloat/onfrpk.c:137`, a derived SoftFloat 3e
 file built without `-Werror`. It is upstream's arithmetic, derived by
 `softfloat/derive3e.py`, and not changed here.
+
+## 7. Related docs
+
+- `docs/ONFLY-SRS.md`: Appendix A.1 D-542 to D-561, A.2 P-44, Appendix D
+  VL-139 and VL-140; Section 8.3 (unchanged, D-554); Section 8.5's TT-01/32,
+  TT-02 and TE-08.
+- `docs/plan/2026-09-24-open-source-launch.md`: P-41, slice E (Section 4),
+  the replication ladder (Section 6), items 5, 7 and 11 (Section 10), checks
+  11.8, 11.9 and 11.13 (Section 11).
+- `docs/plan/2026-09-26-open-source-slice-e.md`: P-44, this slice's plan of
+  record, with the survey findings S1 to S17.
+- `REPLICATING.md`, `docs/lab.md`, `data/networks/NETWORKS-NOTICE.md`,
+  `data/README.md`.
+- `docs/implementations/2026-09-26-open-source-launch-slice-c.md` and
+  `-slice-d.md`, the slices this one follows.

@@ -110,5 +110,41 @@ class MatchesCalibrate(unittest.TestCase):
         self.assertIn('"--keep"', csrc)
 
 
+class RecordPath(unittest.TestCase):
+    """D-561: `--reeval` takes a path that exists as given, else a name
+    under data/calibration/.  The command D-475 and P-41 record,
+    `--reeval data/calibration/acc4.json`, used to be joined onto
+    data/calibration/ a second time and fail."""
+
+    def setUp(self):
+        import calibrate as cal
+        self.cal = cal
+        self.here = os.getcwd()
+        os.chdir(ROOT)
+
+    def tearDown(self):
+        os.chdir(self.here)
+
+    def test_a_bare_name_is_under_the_calibration_directory(self):
+        self.assertEqual(acc4.record_path("acc4.json"),
+                         os.path.join(self.cal.CAL_DIR, "acc4.json"))
+
+    def test_the_recorded_repository_path_works_as_given(self):
+        got = acc4.record_path(os.path.join("data", "calibration",
+                                            "acc4.json"))
+        self.assertTrue(os.path.samefile(
+            got, os.path.join(self.cal.CAL_DIR, "acc4.json")), got)
+
+    def test_an_absolute_path_is_used_as_given(self):
+        p = os.path.join(self.cal.CAL_DIR, "acc4.json")
+        self.assertEqual(acc4.record_path(p), p)
+
+    def test_a_name_that_is_nowhere_still_names_the_calibration_file(self):
+        # So that the "no such record" message names the place a record
+        # would be, as before.
+        self.assertEqual(acc4.record_path("no-such.json"),
+                         os.path.join(self.cal.CAL_DIR, "no-such.json"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -98,6 +98,21 @@ def load_json(path, default):
     return json.loads(io.open(path, encoding="utf-8").read())
 
 
+def record_path(arg):
+    """The record `--reeval ARG` names (D-561).
+
+    A path that exists as given, absolute or relative to the working
+    directory, is used as given; otherwise ARG is a name under
+    data/calibration/, as it always was.  The recorded command
+    `--reeval data/calibration/acc4.json` (D-475, P-41 6.1) used to be joined
+    onto data/calibration/ a second time and fail; `--reeval acc4.json`
+    still means the same file.
+    """
+    if os.path.isabs(arg) or os.path.isfile(arg):
+        return arg
+    return os.path.join(cal.CAL_DIR, arg)
+
+
 def reeval(path):
     """Re-state ACC-4's verdict from an existing acc4.json (D-341).
 
@@ -290,8 +305,7 @@ def main():
     # load_cache() has spent several minutes building the 594 MB signed
     # cache.  Measured 2026-09-15 on a fresh worktree.
     if a.reeval:
-        return reeval(a.reeval if os.path.isabs(a.reeval)
-                      else os.path.join(cal.CAL_DIR, a.reeval))
+        return reeval(record_path(a.reeval))
 
     if not a.no_window:
         sys.path.insert(0, os.path.join(cal.ROOT, "tools"))
