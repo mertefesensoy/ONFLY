@@ -80,6 +80,13 @@ less than it knew:
 | `tools/lint_c04.py` | `is_elf()`, `linkage_name()` and `reserved()`: the COFF underscore stripped on COFF only, and C89 7.1.3's reserved class exempted whole (D-559) |
 | `tests/test_c04.py` | New. 23 checks, including that on COFF the new rule equals the old one |
 
+### Group 6: E6 and E8
+
+| File | Change |
+|---|---|
+| `REPLICATING.md` | New. P-41 Section 6's ladder R0 to R7, each rung with its commands, what it proves and what it does not; staging the networks; strict mode and its eleven exemptions; the regeneration recipe of E7, stated as not re-run end to end since 2026-09-13; FlyWire's non-commercial note at R2b |
+| `docs/lab.md` | New. The lab guide: the three archives' SHA-256 values computed this session, the 819/1047 codepage step (VL-18), the safety notes on the 3505, 8038 and 3270 ports and on TK5's default HERC01 password, the MVS rungs with their recorded costs, and the s390x guest described in prose, its bring-up script deferred to slice F (D-552) |
+
 ## 3. Implementation approach
 
 ### Group 1
@@ -339,6 +346,35 @@ exit 0 with `-std=gnu17` on the compile line, `run_fp [SOFT3E backend]:
 in 588 s, `ONFLY test: 28 PASS, 0 SKIP, 0 PENDING, 11 EXEMPT`, no `ONFRES
 FAIL` line; the header change, the new platform block and the ELF-aware
 lint move nothing on the recorded platform.
+
+### Group 6
+
+**Every factual sentence maps to P-41's claims register** (Section 5), or
+to a measurement made in this session:
+
+| Where | Sentence | Source |
+|---|---|---|
+| REPLICATING.md, opening; lab.md, opening | ONFLY has not run on IBM Z hardware; the project does not have IBM Z access yet; MVS and s390x results come from emulators on one laptop | CAN-03, VL-139 |
+| REPLICATING.md, Before you start | the pins are the recorded versions; pyarrow 22.0.0 for Python 3.14 | S9, S11, D-547, this session's Linux venv |
+| REPLICATING.md, Before you start | the networks are not in git, no release is published yet | D-544, D-545; CAN-10's claim deliberately not made, since it holds only after slice G |
+| REPLICATING.md, Strict mode | eleven exemptions and why | D-548, D-555, this session's runs |
+| REPLICATING.md, R0 | recordings agree; the x86-64 and s390x response records are identical | CAN-02; `run_tx: 25 identical, 0 differing` this session |
+| REPLICATING.md, R1 | 19 fingerprints on three backends; consistency, not correctness; a new compiler is a new data point | CAN-02 and its VL-05 limit; MUST NOT 10 |
+| REPLICATING.md, R1 | `test-nonet` 109 s, `quick` 392 s | Group 4, this session |
+| REPLICATING.md, R2a | 48 s and 80 s recorded; ACC-3 at 40 Hz within the reference's precision, re-measured campaigns pass 52 to 60% of the time; two criteria changed after the results | CAN-07 with VL-114; CAN-15; VL-98, VL-105 |
+| REPLICATING.md, R2b | the MaleCNS download size; 6,971 s for ACC-4; FlyWire's CC BY-NC terms; brian2 absent | P-41 6.1, VL-97, THIRD_PARTY_NOTICES section 6, VL-88 |
+| REPLICATING.md, R3; lab.md, s390x | big-endian under emulation, nothing about real s390x floating point | CAN-04, VL-01, VL-82 |
+| REPLICATING.md, R4; lab.md, MVS | GCCMVS and JCC each reproduce all 19 fingerprints under emulation; costs as recorded, one run each | CAN-02, VL-91, VL-138; CAN-05's form, CPU seconds with host and Hercules version |
+| REPLICATING.md, R5 | not IBM CICS; menu program never executed; concurrency untested | CAN-09, VL-37 |
+| REPLICATING.md, R6 | not reproducible from the repository | CAN-11, D-132 |
+| REPLICATING.md, R7 | the MVS stream byte-identical to x86-64 for five requests once line endings are normalised | CAN-12, D-414, VL-136 |
+| lab.md, archives | the three SHA-256 values | computed this session from `C:\hercules-lab\dl` |
+| lab.md, Update 5 | the Update level is provenance, not measured | VL-86 |
+
+A scan of both files and the notice for MUST NOT phrases found only two
+ordinary uses of "first" ("the first line", "the first release that
+does"), not a claim of priority. **Documented, not re-run here:** R2b, R3,
+R4, R5, R6 and R7, and the E7 recipe.
 
 **A warning, not a failure:** gcc 15 warns `'~' on a boolean expression
 [-Wbool-operation]` at `softfloat/onfrpk.c:137`, a derived SoftFloat 3e
