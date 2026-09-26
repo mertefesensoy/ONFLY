@@ -44,6 +44,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 
 import goldfp                                         # noqa: E402
+import onfres                                         # noqa: E402
 import ic3270                                         # noqa: E402
 import mvsicom                                        # noqa: E402
 import mvstx                                          # noqa: E402
@@ -228,8 +229,9 @@ def main():
     except mvsicom.MissingLocal:
         decks = {"backup": mvsicom.backup_deck(),
                  "restore": mvsicom.restore_deck()}
-        sys.stdout.write("  skip local/onflytx is not on this host "
-                         "(D-132); install and build decks not checked\n")
+        onfres.skip("ic3270/onflytx-decks",
+                    "local/onflytx is not on this host (D-132); install "
+                    "and build decks not checked", indent="  ")
 
     for name, deck in sorted(decks.items()):
         check("%s deck: every card fits in 80 columns" % name,
@@ -276,7 +278,8 @@ def main():
         skel = mvsicom.skeleton()
     except Exception as exc:
         skel = None
-        sys.stdout.write("  skip skeleton unavailable: %s\n" % exc)
+        onfres.skip("ic3270/skeleton", "skeleton unavailable: %s" % exc,
+                    indent="  ")
     if skel:
         marker = [c for c in skel if c.startswith("*ONFCARD")]
         check("the skeleton carries exactly one marker card",
@@ -318,8 +321,9 @@ def main():
             check("subsystem stays in the MVT dialect: no %s" % banned,
                   banned not in body.upper(), why)
     else:
-        sys.stdout.write("  skip local/onflytx/onflytx.cbl is not on "
-                         "this host (D-132); reply address not checked\n")
+        onfres.skip("ic3270/onflytx-reply",
+                    "local/onflytx/onflytx.cbl is not on this host (D-132); "
+                    "reply address not checked", indent="  ")
 
     # --- the unattended end-to-end check -----------------------------
     # tools/mvstx.py needs TK5 to do anything, but what it ASSERTS can

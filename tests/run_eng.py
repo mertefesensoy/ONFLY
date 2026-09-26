@@ -40,9 +40,10 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
-for sub in ("layout", "generated", "oracle"):
+for sub in ("layout", "generated", "oracle", "tools"):
     sys.path.insert(0, os.path.join(ROOT, sub))
 
+import onfres                         # noqa: E402
 import run_dec                        # noqa: E402
 
 # IR-JCL-04 return codes.
@@ -168,10 +169,18 @@ def main():
         # expose: FR-LOD-04's limit is left unlimited because TBD-14 has not
         # fixed the TK5 region, and inventing a number here would pre-empt it.
         # They are skipped by name rather than silently dropped.
+        # (The reason printed below is kept word for word under P-44; it
+        # names TBD-14 as open, but D-116 closed TBD-14 at 8M on
+        # 2026-09-11, so the stated reason is stale.  D-548 exempts the
+        # skip itself until the owner decides whether ONFLYENG exposes
+        # FR-LOD-04's limit.)
         for name, data, limit, want in run_dec.cases(good):
             if limit:
-                lines.append("  skip %-44s TE-08 needs a memory limit "
-                             "ONFLYENG does not expose (TBD-14)" % name)
+                text, fatal = onfres.skipline(
+                    "eng/TE-08", "%s: TE-08 needs a memory limit ONFLYENG "
+                    "does not expose (TBD-14)" % name)
+                lines.append("  " + text)
+                bad += 1 if fatal else 0
                 continue
             path = os.path.join(tmp, name.split()[0] + ".net")
             with open(path, "wb") as fh:
@@ -213,13 +222,19 @@ def main():
         # into the shipped engine, so this argument no longer holds for it;
         # the variant is what keeps the argument available at all.
         if vexe is None:
-            lines.append("  skip %-44s no -DONF_NOREQ variant given"
-                         % "IR-TRN-03 contains no kernel entry point")
+            text, fatal = onfres.skipline(
+                "eng/noreq-variant", "IR-TRN-03 contains no kernel entry "
+                "point: no -DONF_NOREQ variant given")
+            lines.append("  " + text)
+            bad += 1 if fatal else 0
         else:
             absent = kernel_absent(vexe)
             if absent is None:
-                lines.append("  skip %-44s nm unavailable"
-                             % "IR-TRN-03 contains no kernel entry point")
+                text, fatal = onfres.skipline(
+                    "eng/nm", "IR-TRN-03 contains no kernel entry point: "
+                    "nm unavailable")
+                lines.append("  " + text)
+                bad += 1 if fatal else 0
             else:
                 a, b = check("IR-TRN-03 variant has no kernel entry point",
                              absent, "%s: %s"

@@ -34,6 +34,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "layout"))
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+
+import onfres                                      # noqa: E402
 
 import netread                                     # noqa: E402
 
@@ -84,8 +87,9 @@ def main():
     bad += b
 
     if not os.path.exists(NETFILE):
-        print("  SKIP the network comparison: %s is absent "
-              "(run `make fixtures`)" % os.path.basename(NETFILE))
+        onfres.skip("test_geom/network", "the network comparison: %s is "
+                    "absent (run `make fixtures`)"
+                    % os.path.basename(NETFILE), indent="  ")
         print("test_geom: %d passed, %d failed" % (ok, bad))
         return 1 if bad else 0
 

@@ -136,8 +136,9 @@ def main(argv):
         # MIT repository -- is about the repository's CONTENT, which is
         # identical on every machine that checks it out.  Any host with a
         # working git runs it in full, and the development host always does.
-        print("lint_lic: SKIP - git cannot read this tree, so the tracked "
-              "file list is unavailable (D-233)")
+        import onfres       # here, so the lint's normal path imports nothing new
+        onfres.skip("liclint/git", "git cannot read this tree, so the "
+                    "tracked file list is unavailable (D-233)")
         print("lint_lic: the D-132 rule is repository content and is "
               "checked wherever git works; run it on the development host")
         return 0

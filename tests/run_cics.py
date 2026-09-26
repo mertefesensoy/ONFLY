@@ -49,6 +49,7 @@ sys.path.insert(0, os.path.join(ROOT, "generated"))
 
 import mkreq                                        # noqa: E402
 import onfcom_py as LAYOUT                          # noqa: E402
+import onfres                                       # noqa: E402
 
 NETWORK = os.path.join(ROOT, "data", "networks",
                        "onfnet-malecns-v1.0-srext.bin")
@@ -144,7 +145,7 @@ def main(argv):
     bad = 0
 
     if not os.path.exists(NETWORK):
-        print("run_cics: SKIP - no %s; run `make fixtures`" % NETWORK)
+        onfres.skip("cics/network", "no %s; run `make fixtures`" % NETWORK)
         return 0
 
     if not os.path.isdir(rundir):
@@ -199,11 +200,14 @@ def main(argv):
     env = rc_environment()
     bin_dir = rcbin(env)
     if bin_dir is None:
-        rows.append("  V3 SKIP  Raincode not found (neither RCBIN nor RCDIR)")
+        text, fatal = onfres.skipline(
+            "cics/raincode", "V3 Raincode not found (neither RCBIN nor RCDIR)")
+        rows.append("  " + text)
+        bad += 1 if fatal else 0
         print("run_cics: %d checks" % len(rows))
         for row in rows:
             print(row)
-        return 0
+        return 1 if bad else 0
 
     # The one request, and the batch answer it must match.
     g16 = mkreq.cards_to_records(G16_CARD)

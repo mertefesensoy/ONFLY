@@ -56,8 +56,19 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "prep"))
+sys.path.insert(0, os.path.join(ROOT, "tools"))
 
-import numpy as np  # noqa: E402
+import onfres  # noqa: E402
+
+# P-41 E5: this import used to be unconditional, so a host without numpy
+# failed here with an ImportError rather than skipping as D-233 intends for
+# the prep tests.
+try:
+    import numpy as np  # noqa: E402
+except ImportError:
+    onfres.skip("test_seeds/numpy", "numpy is not installed on this host "
+                "(D-233); the TBD-06 seed tool is host-side preparation")
+    raise SystemExit(0)
 
 import seeds as S  # noqa: E402
 import extract as ext  # noqa: E402
@@ -323,4 +334,5 @@ class TestCriterionHasOneImplementation(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    # D-555: skips are reported through onfres so that make test counts them.
+    sys.exit(onfres.unittest_main("test_seeds"))

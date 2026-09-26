@@ -34,11 +34,15 @@ import unittest
 # does. select_variant() reads the MaleCNS annotation feather through pandas,
 # and the s390x guest has neither. The selection is host-side preparation and
 # cannot depend on the platform, so announcing the omission is what matters.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "tools"))
+import onfres                                                 # noqa: E402
+
 try:
     import pandas  # noqa: F401
 except ImportError:
-    print("test_varnt: SKIP - pandas is not installed on this host "
-          "(D-233); the D-302 variant switch is host-side preparation")
+    onfres.skip("test_varnt/pandas", "pandas is not installed on this host "
+                "(D-233); the D-302 variant switch is host-side preparation")
     raise SystemExit(0)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -64,9 +68,9 @@ NEEDED = [ANNOT,
 
 _absent = [p for p in NEEDED if not os.path.isfile(p)]
 if _absent:
-    print("test_varnt: SKIP - not in this worktree: %s; run "
-          "tools/fixtures.py --malecns annotations weights"
-          % ", ".join(os.path.basename(p) for p in _absent))
+    onfres.skip("test_varnt/feathers", "not in this worktree: %s; run "
+                "tools/fixtures.py --malecns annotations weights"
+                % ", ".join(os.path.basename(p) for p in _absent))
     raise SystemExit(0)
 
 # VL-65's populations, stated here and not imported (D-176).

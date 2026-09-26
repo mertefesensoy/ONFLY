@@ -320,8 +320,11 @@ def run_tree(m):
         # git reports "not a git repository".  The rule is repository
         # content, identical wherever the tree is checked out, and the
         # development host always runs it in full.
-        print("lint_name: SKIP - git cannot read this tree, so the tracked "
-              "file list is unavailable (D-233, D-510)")
+        # Imported here, so the guard's normal path and its hook modes
+        # depend on nothing they did not depend on before.
+        import onfres
+        onfres.skip("namelint/git", "git cannot read this tree, so the "
+                    "tracked file list is unavailable (D-233, D-510)")
         return 0
     paths = [p for p in listing.split("\0") if p]
     total = files = 0

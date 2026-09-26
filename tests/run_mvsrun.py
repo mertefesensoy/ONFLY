@@ -69,6 +69,7 @@ for sub in ("tools", "tests", "generated"):
 
 import mkreq                                          # noqa: E402
 import mvsbld                                         # noqa: E402
+import onfres                                         # noqa: E402
 import mvscob                                         # noqa: E402
 import mvsrun                                         # noqa: E402
 import mvsub                                          # noqa: E402
@@ -185,9 +186,11 @@ def main():
               and set(deckbytes[n:]) <= set([0]),
               "%d bytes + %d pad = %d cards" % (n, pad, ncards))
     else:
-        check("card file: network unchanged, padded to whole cards", True,
-              "SKIP: no %s; run `make fixtures`"
-              % os.path.basename(mvsrun.NETFILE))
+        text, fatal = onfres.skipline(
+            "mvsrun/network", "no %s; run `make fixtures`"
+            % os.path.basename(mvsrun.NETFILE))
+        check("card file: network unchanged, padded to whole cards",
+              not fatal, text)
 
     # 10b  The bug this case exists for: write_cards() once took its
     #      defaults in the signature, so select("path") changed where
@@ -207,8 +210,10 @@ def main():
                   n == want and head[:64] == net64,
                   "%s -> %d bytes" % (os.path.basename(mvsrun.CARDFILE), n))
         else:
-            check("select() changes which network write_cards reads", True,
-                  "SKIP: no path fixture")
+            text, fatal = onfres.skipline("mvsrun/path-network",
+                                          "no path fixture")
+            check("select() changes which network write_cards reads",
+                  not fatal, text)
     finally:
         mvsrun.select("srext")
 
@@ -411,8 +416,11 @@ def main():
               "body CC blank both removed"
               % (len(lifted), len(good), len(noise) + len(with_cc)))
     else:
-        check("compare_report: exercised against the x86 reference", True,
-              "SKIP: no %s; run `make cob`" % os.path.basename(ref))
+        text, fatal = onfres.skipline(
+            "mvsrun/cob-reference", "no %s; run `make cob`"
+            % os.path.basename(ref))
+        check("compare_report: exercised against the x86 reference",
+              not fatal, text)
 
     # --- the recorded MVS runs (D-261, D-262, D-264) -------------------
     #

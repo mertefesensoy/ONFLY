@@ -25,11 +25,16 @@ import unittest
 # pure-Python preparation pipeline whose result cannot depend on the host --
 # so what matters is that the omission is announced, not that it is
 # prevented.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "tools"))
+import onfres                                                 # noqa: E402
+
 try:
     import pandas as pd
 except ImportError:
-    print("test_signs: SKIP - pandas is not installed on this host "
-          "(D-233); FR-PRP-03 sign assignment is host-side and is checked where it is")
+    onfres.skip("test_signs/pandas", "pandas is not installed on this host "
+                "(D-233); FR-PRP-03 sign assignment is host-side and is "
+                "checked where it is")
     raise SystemExit(0)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -154,4 +159,6 @@ class TestAgainstRealData(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    # D-555: every skip, TestAgainstRealData's included, is reported
+    # through onfres so that make test counts it.
+    sys.exit(onfres.unittest_main("test_signs"))

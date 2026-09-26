@@ -42,6 +42,7 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 sys.path.insert(0, os.path.join(ROOT, "prep"))
 
 import fixtures                                        # noqa: E402
+import onfres                                          # noqa: E402
 import extract                                         # noqa: E402
 
 
@@ -182,4 +183,5 @@ class Acc3Exclusion(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    # D-555: skips are reported through onfres so that make test counts them.
+    sys.exit(onfres.unittest_main("test_fixt"))

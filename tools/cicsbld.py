@@ -274,7 +274,9 @@ def step_run(env, build):
     batch = os.path.join(os.path.dirname(os.path.abspath(build)),
                          "onflyeng_nat.exe")
     if not os.path.exists(batch):
-        print("  SKIP no %s; run `make eng` first" % safe(batch))
+        import onfres
+        onfres.skip("cics/batch-engine", "no %s; run `make eng` first"
+                    % safe(batch), indent="  ")
         return 0
     return sh([sys.executable, os.path.join("tests", "run_cics.py"),
                batch, os.path.join(build, "tstcics.exe"),
@@ -304,9 +306,11 @@ def main(argv):
     if dotnet is None:
         missing.append("the .NET SDK (`dotnet --version` failed)")
     if missing:
-        print("cicsbld: SKIP - this host is missing:")
+        import onfres
         for item in missing:
             print("  - %s" % item)
+        onfres.skip("cics/toolchain", "this host is missing the %d item(s) "
+                    "listed above" % len(missing))
         print("cicsbld: D-394 keeps this target out of `make test`, so a "
               "bare checkout skips here and exits 0.")
         return 0

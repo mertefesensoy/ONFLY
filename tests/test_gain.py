@@ -33,11 +33,16 @@ import unittest
 # pure-Python preparation pipeline whose result cannot depend on the host --
 # so what matters is that the omission is announced, not that it is
 # prevented.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "tools"))
+import onfres                                                 # noqa: E402
+
 try:
     import numpy as np
 except ImportError:
-    print("test_gain: SKIP - numpy is not installed on this host "
-          "(D-233); the emit gain check is host-side and is checked where it is")
+    onfres.skip("test_gain/numpy", "numpy is not installed on this host "
+                "(D-233); the emit gain check is host-side and is checked "
+                "where it is")
     raise SystemExit(0)
 
 HERE = os.path.dirname(os.path.abspath(__file__))

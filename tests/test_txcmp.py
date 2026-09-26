@@ -36,6 +36,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 REC = os.path.join(ROOT, "data", "phase-d", "x86w")
 TOOL = os.path.join(HERE, "run_tx.py")
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+
+import onfres                                          # noqa: E402
 
 #: Offset of ONF-FPRINT within a 412-byte record (generated/onfcom.h).
 FPRINT_OFF = 20
@@ -51,13 +54,15 @@ def compare(a, b):
 
 def main():
     if not os.path.isdir(REC):
-        print("test_txcmp: SKIP - no recording at data/phase-d/x86w; "
-              "run `python tests/run_tx.py --record` first")
+        onfres.skip("req/txcmp-recording", "no recording at "
+                    "data/phase-d/x86w; run `python tests/run_tx.py "
+                    "--record` first")
         return 0
     needed = ("rsp-srext-nat.bin", "gold-path-soft.txt")
     for name in needed:
         if not os.path.exists(os.path.join(REC, name)):
-            print("test_txcmp: SKIP - %s missing from the recording" % name)
+            onfres.skip("req/txcmp-recording",
+                        "%s missing from the recording" % name)
             return 0
 
     tmp = tempfile.mkdtemp(prefix="onfly-txcmp-")

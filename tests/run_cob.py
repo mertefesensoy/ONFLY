@@ -52,8 +52,10 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "generated"))
+sys.path.insert(0, os.path.join(ROOT, "tools"))
 
 import onfcom_py as L  # noqa: E402
+import onfres  # noqa: E402
 
 # The template keeps its COPY statement; the generator expands it into
 # the file every compiler builds (D-161).  Both are checked: the
@@ -208,9 +210,9 @@ def ddenv(**kw):
 def main(argv):
     cobc = find_cobc()
     if cobc is None:
-        sys.stdout.write("run_cob: SKIPPED - no cobc found (PATH, ONFLY_COBC, "
-                         "or an MSYS2 mingw64 install); D-156 keeps this out "
-                         "of make test\n")
+        onfres.skip("cob/cobc", "no cobc found (PATH, ONFLY_COBC, or an "
+                    "MSYS2 mingw64 install); D-156 keeps this out of make "
+                    "test")
         return 0
     env = cobc_env(cobc)
     if not os.path.isdir(WORK):
@@ -507,8 +509,8 @@ def main(argv):
             eng = os.path.join(BUILD, cand)
             break
     if eng is None or not os.path.exists(net) or not os.path.exists(nam):
-        sys.stdout.write("run_cob: SKIP FR-BAT-01 end to end -- need "
-                         "`make eng`, a network fixture and a names file\n")
+        onfres.skip("cob/end-to-end", "FR-BAT-01 end to end -- need "
+                    "`make eng`, a network fixture and a names file")
     else:
         sys.path.insert(0, os.path.join(ROOT, "tools"))
         sys.path.insert(0, os.path.join(ROOT, "tests"))

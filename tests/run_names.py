@@ -30,11 +30,12 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-for sub in ("prep", "layout"):
+for sub in ("prep", "layout", "tools"):
     sys.path.insert(0, os.path.join(ROOT, sub))
 
 import names                                           # noqa: E402
 import netread                                         # noqa: E402
+import onfres                                          # noqa: E402
 
 PASS, FAIL = [0], [0]
 
@@ -128,10 +129,14 @@ def main():
         # `liclint` and the `prep` tests: everything above this line
         # still runs, and the skip line says why.
         if not os.path.isfile(names.netpath(label)):
+            text, fatal = onfres.skipline(
+                "names/network", "no network fixture; run `make fixtures`")
             check("%s: indices == the network's readout+stimulus" % label,
-                  True, "SKIP: no network fixture; run `make fixtures`")
-            check("%s: D-267 readout rows are MN9-<bodyId>" % label, True,
-                  "SKIP: no network fixture")
+                  not fatal, text)
+            text, fatal = onfres.skipline("names/network",
+                                          "no network fixture")
+            check("%s: D-267 readout rows are MN9-<bodyId>" % label,
+                  not fatal, text)
             continue
         spec = netread.read(names.netpath(label))
         want = sorted([int(i) for i in spec["readout"]]
@@ -156,8 +161,23 @@ def main():
         check("D-269: regenerating reproduces the committed files", bad == 0,
               "%d differing" % bad)
     except names.NamesError as exc:
-        check("D-269: regenerating reproduces the committed files", True,
-              "SKIP: %s" % str(exc).splitlines()[0])
+        # D-548 exempts only the cause D-545 makes permanent, the feather
+        # that is not distributed.  A missing pandas is an ordinary
+        # dependency skip, and any other NamesError is reported under its
+        # own name so that strict mode fails it.  (Before P-44 every
+        # NamesError here, a real regeneration fault included, printed as
+        # a passing row; that is recorded as a finding, not changed here.)
+        if not os.path.isfile(names.ANNOT):
+            cid = "names/regenerate-feather"
+        else:
+            try:
+                import pandas                           # noqa: F401
+                cid = "names/regenerate"
+            except ImportError:
+                cid = "names/regenerate-pandas"
+        text, fatal = onfres.skipline(cid, str(exc).splitlines()[0])
+        check("D-269: regenerating reproduces the committed files",
+              not fatal, text)
 
     # The framing trap.  The committed file is TEXT (IR-NAM-01) and
     # carries a newline after each 80-column row; ONFLYDRV's FD says

@@ -158,7 +158,7 @@ GENERATED = generated/onfcom.h generated/onfcom.c generated/ONFCOM.cpy generated
 # from tools/genint.py instead.
 IVEC = generated/onfivec.h
 
-.PHONY: all test generate lint liclint namelint ntclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req sub mvsrun names fixtures fixtures-check
+.PHONY: all test onfres generate lint liclint namelint ntclint clean units layout fp kernel decode golden syn tt01 tt0132 tt02 c2c tf2 sfs shim testfloat c04 c04mvs col80 prep runner eng req sub mvsrun names fixtures fixtures-check
 
 all: test
 
@@ -518,7 +518,7 @@ tt02: $(BUILD) softfloat/onfsub.c $(SF2CSRC) generated/onf2cnm.h $(TFPREREQ)
 tt0132: $(BUILD) generated/onf32v.h
 	$(CC) $(CFLAGS) -Igenerated -Isoftfloat -o $(BUILD)/tst32.exe \
 	  tests/tst32.c softfloat/onfi32.c
-	$(BUILD)/tst32.exe | tail -1
+	$(PYTHON) tools/lastln.py $(BUILD)/tst32.exe
 
 generated/onf32v.h: tools/gen32v.py
 	$(PYTHON) tools/gen32v.py
@@ -531,7 +531,7 @@ generated/onf32v.h: tools/gen32v.py
 # this is the 4,500-vector sample MVS can hold (VL-29).
 tf2: $(BUILD) generated/onf2cnm.h generated/onftfv.h
 	$(CC) $(C2CFLAGS) $(SF2CINC) -Igenerated 	  -include generated/onf2cnm.h 	  -o $(BUILD)/tsttf2.exe tests/tsttf2.c $(SF2CSRC)
-	$(BUILD)/tsttf2.exe | tail -1
+	$(PYTHON) tools/lastln.py $(BUILD)/tsttf2.exe
 
 generated/onftfv.h: tools/gentf2.py
 	$(PYTHON) tools/gentf2.py --per-op 750
@@ -563,7 +563,7 @@ c2c: $(BUILD) generated/onf2cnm.h generated/onf2cv.h $(TFPREREQ)
 	$(CC) $(C2CFLAGS) $(SF2CINC) -Igenerated \
 	  -include generated/onf2cnm.h \
 	  -o $(BUILD)/tst2c.exe tests/tst2c.c $(SF2CSRC)
-	$(BUILD)/tst2c.exe | tail -1
+	$(PYTHON) tools/lastln.py $(BUILD)/tst2c.exe
 
 generated/onf3enm.h: tools/gen3enm.py
 	$(PYTHON) tools/gen3enm.py
@@ -606,7 +606,7 @@ sfs: $(BUILD)
 	$(CC) $(CFLAGS) -Wno-long-long -Isoftfloat $(SFINC) \
 	  -o $(BUILD)/tstsfs.exe tests/tstsfs.c \
 	  $(SF)/s_shiftRightJam64.c $(SF)/s_shortShiftRightJam64.c
-	$(BUILD)/tstsfs.exe | tail -1
+	$(PYTHON) tools/lastln.py $(BUILD)/tstsfs.exe
 
 # --- NR-04: the C89 shims are exercised, not merely shipped ---------------
 # The shims are only USED on a platform that lacks its own headers, so on
@@ -810,9 +810,41 @@ runners: $(BUILD) $(GENERATED) runner
 # Section 8.1 runs bottom-up: "A level may start only when the level below it
 # passes on the platform concerned."  So the L0 toolchain tests, TT-01 and
 # TT-02, come before the L1 unit tests and everything above them.
-test: lint liclint namelint ntclint col80 c04 c04mvs sub mvsrun mvsjcc ic3270 names tt01 tt02 c2c sfs shim layout units fp kernel syn \
-      decode eng req golden prep
-	@echo "ONFLY: NR-05 + licence + name + notices + col80 + C-04 + C-04/MVS lints, TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, D-104 shift reference, NR-04 shims, TU-01..TU-07, kernel, the embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request loop, ACC-5 golden suite and TP-01 all passed on SOFT3E, SOFT2C and NATIVE; plus IR-NAM-01..03 over the emitted names files, and the Phase E MVS decks and recordings -- TX-01 under D-261 and ACC-5 row 6 for all nineteen Section 8.4 requests, and ACC-5 row 7 for all nineteen Section 8.4 requests JCC built and ran; plus the streamed fixture digests, D-202's ACC-3 exclusion rule, and TP-09 holding the TBD-06 seed tool to the recorded ACC-1 and ACC-3 verdicts; plus the 3270 transaction path off-lab -- the script protocol, the region and build decks, and the three facts VL-129 paid for"
+#
+# P-41 E1, D-549.  The list is made ONE TARGET AT A TIME by tools/testrun.py,
+# in this order, and a target is a PASS only when its own sub-make exits 0
+# having printed no `ONFRES SKIP` line; the run ends with a counted line,
+#   ONFLY test: <p> PASS, <s> SKIP, <q> PENDING, <e> EXEMPT (...)
+# where SKIP, PENDING and EXEMPT count checks (tools/onfres.py, D-548).  A
+# target already made is passed to later sub-makes as `-o`, so `fp` (for
+# `shim`) and `eng` (for `req`) are not run twice.  With ONFLY_NOSKIP=1 any
+# skip not in D-548's exemption table fails its target.  `onfres` runs first
+# so that the counting is itself tested before anything is counted.
+#
+# What the suite covers, as the fixed echo that used to close this target
+# said it: the NR-05, licence, name, notices, col80, C-04 and C-04/MVS lints,
+# TT-01, TT-02, SoftFloat 2c vs TestFloat and its known answers, the D-104
+# shift reference, the NR-04 shims, TU-01..TU-07, the kernel, the
+# embedded-network engine path, TE-01..TE-13, the FR-BAT-01 STEP2 request
+# loop, the ACC-5 golden suite and TP-01 on SOFT3E, SOFT2C and NATIVE;
+# IR-NAM-01..03 over the emitted names files; the Phase E MVS decks and
+# recordings (TX-01 under D-261, ACC-5 rows 6 and 7 for all nineteen
+# Section 8.4 requests); the streamed fixture digests, D-202's ACC-3
+# exclusion rule and TP-09; and the 3270 transaction path off-lab.  That
+# echo said all of it "passed" whatever had been skipped (P-44 S3), which is
+# why it is now a count.
+TESTS = onfres lint liclint namelint ntclint col80 c04 c04mvs sub mvsrun \
+        mvsjcc ic3270 names tt01 tt02 c2c sfs shim layout units fp kernel \
+        syn decode eng req golden prep
+
+test:
+	$(PYTHON) tools/testrun.py "$(MAKE)" $(TESTS)
+
+# D-548, D-549: the test-result plumbing -- tools/onfres.py, tools/lastln.py
+# and tools/testrun.py -- tested before the suite relies on it.  "$(MAKE)" is
+# passed so that the runner's end-to-end case drives the same make.
+onfres:
+	$(PYTHON) tests/test_onfres.py "$(MAKE)"
 
 # D-249.  `summarise()` in tools/mvsub.py turns a few thousand lines of
 # JES2 output into the handful a person reads -- and, through the gate

@@ -40,12 +40,15 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "prep"))
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+
+import onfres                                                 # noqa: E402
 
 try:
     import pandas  # noqa: F401
 except ImportError:
-    print("test_disc: SKIP - prep/acc4.py imports pandas through "
-          "prep/calibrate.py and this host has none (D-233)")
+    onfres.skip("test_disc/pandas", "prep/acc4.py imports pandas through "
+                "prep/calibrate.py and this host has none (D-233)")
     raise SystemExit(0)
 
 import acc4                                                   # noqa: E402
