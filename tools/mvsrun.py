@@ -107,6 +107,10 @@ Slice 3 (FR-BAT-01, FR-BAT-06, D-273):
     python tools/mvsrun.py --buzz          the three-step BUZZ job
     python tools/mvsrun.py --buzz --sugr   the same over `path` (D-274)
     python tools/mvsrun.py --buzz --tx04   ONE request, timed (D-276)
+
+FR-LOD-04 and TE-08 (P-45, D-567, D-568):
+    python tools/mvsrun.py --te08 [--print]  VERIFY srext (admitted) and
+                                             an over-8M network (ONF105E)
 """
 import io
 import os
@@ -1233,6 +1237,147 @@ def run_install(argv):
     return 1 if bad else 0
 
 
+# --- FR-LOD-04 and TE-08 through the GCCMVS ONFLYENG (P-45 L4) -------------
+#
+# D-567 made FR-LOD-04's configured limit the build constant ONF_MEMLIM, and
+# D-568 set it at 8M on MVS 3.8j.  x86 proves the wiring on test builds
+# (tests/run_eng.py); only this job proves the value the MVS engine was
+# actually built with.  One compile of the thirteen units row 6 links, then
+# two VERIFY steps over the same load module, as tools/mvscob.py's GO and
+# GO2 run one:
+#
+#   GO    the installed `srext` network (D-286), whose need is 255,688 B:
+#         the limit must admit it, ONF003I at COND CODE 0000
+#   GO2   tests/run_dec.py's over-limit network on the card reader, the
+#         transport D-150 selected, whose header demands 8 bytes more than
+#         8M: the limit must refuse it, ONF105E at COND CODE 0012
+#
+# GO comes first so that GO2's ordinary COND=(4,LT) is right: GO2 runs only
+# when every step before it, GO included, ended at 4 or below.  The file
+# GO2 reads is the one run_eng.py shows the x86 build admitting (D-568), so
+# the two platforms disagree about the same bytes, which is the point.
+
+#: The job, and the card file the reader is loaded with.  Under build/,
+#: which is ignored: the file is regenerated from run_dec on every run.
+TE08_JOB = "ONFETE8"
+TE08_CARDS = os.path.join(ROOT, "build", "te08", "onfnet-te08-cards.bin")
+#: GO's network is always `srext`, whatever --net selected: it is the
+#: network the MVP ships and the one row 6's re-run exercises.
+TE08_NET = "%s.ONFLY.%s" % (USER, NETS["srext"]["net"])
+
+#: IEF142I and IEF272I as TK5 prints them, e.g. "IEF142I ONFERUN GO - STEP
+#: WAS EXECUTED - COND CODE 0000" in the recorded row 6 listings.
+STEP_CC = re.compile(r"IEF142I\s+(\S+)\s+(\S+)\s+-\s+STEP WAS EXECUTED"
+                     r"\s+-\s+COND CODE\s+(\d{4})")
+STEP_NOT = re.compile(r"IEF272I\s+(\S+)\s+(\S+)\s+-\s+STEP WAS NOT "
+                      r"EXECUTED")
+
+
+def te08_network():
+    """(bytes, need) of the over-limit network, from tests/run_dec.py."""
+    import run_dec
+    data = run_dec.overlimit_network(run_dec.sample_network())
+    return data, run_dec.need_bytes(data)
+
+
+def te08_cards(cardfile=None):
+    """Write the over-limit network as zero-padded 80-byte cards.
+
+    Returns (bytes, pad, need).  The default is resolved here, not in the
+    signature, for write_cards()'s reason.
+    """
+    cardfile = TE08_CARDS if cardfile is None else cardfile
+    data, need = te08_network()
+    pad = (-len(data)) % mvsbld.CARD
+    out = os.path.dirname(cardfile)
+    if not os.path.isdir(out):
+        os.makedirs(out)
+    with open(cardfile, "wb") as f:
+        f.write(data)
+        f.write(b"\0" * pad)
+    return len(data), pad, need
+
+
+def te08_deck(opt=mvsbld.OPT):
+    """Job ONFETE8: compile, then VERIFY within and over FR-LOD-04's limit."""
+    go_dd = ["//ONFNET   DD DSN=%s,DISP=SHR" % TE08_NET]
+    post = [
+        "//*",
+        "//GO2      EXEC PGM=*.LKED.SYSLMOD,PARM='VERIFY',COND=(4,LT)",
+        "//SYSPRINT DD SYSOUT=*",
+        "//SYSTERM  DD SYSOUT=*",
+        "//SYSIN    DD DUMMY",
+    ] + list(mvseng.READER_DD)
+    return mvsbld.build(TE08_JOB, "ONFLY TE-08 VERIFY", _sources(opt),
+                        headers=HEADERS, go_parm="VERIFY", go_dd=go_dd,
+                        post=post, opt=opt)
+
+
+def te08_verdict(listing, job=TE08_JOB):
+    """(passed, lines) for a finished ONFETE8 listing.
+
+    Passes when GO ended COND CODE 0000 having printed ONF003I, GO2 ended
+    COND CODE 0012 having printed ONF105E, and the ONF003I comes before the
+    ONF105E, which is the order the two steps' SYSPRINT is spooled in.
+    """
+    codes, skipped = {}, []
+    for line in listing.splitlines():
+        m = STEP_CC.search(line)
+        if m and m.group(1) == job:
+            codes[m.group(2)] = m.group(3)
+        m = STEP_NOT.search(line)
+        if m and m.group(1) == job:
+            skipped.append(m.group(2))
+    ok_at = listing.find("ONF003I VERIFY-ONLY: NETWORK OK")
+    mem_at = listing.find("ONF105E NETWORK EXCEEDS MEMORY LIMIT")
+    lines = [
+        "  GO   (srext, need 255,688 B)       COND CODE %s  ONF003I %s"
+        % (codes.get("GO", "----"), "found" if ok_at >= 0 else "ABSENT"),
+        "  GO2  (over-limit, via the reader)  COND CODE %s  ONF105E %s"
+        % (codes.get("GO2", "----"), "found" if mem_at >= 0 else "ABSENT"),
+    ]
+    if skipped:
+        lines.append("  not executed: %s" % ", ".join(skipped))
+    passed = (codes.get("GO") == "0000" and codes.get("GO2") == "0012"
+              and 0 <= ok_at < mem_at)
+    return passed, lines
+
+
+def run_te08(argv):
+    opt = mvsbld.OPT
+    for a in argv:
+        if a.startswith("--opt="):
+            opt = a[len("--opt="):]
+    d = te08_deck(opt)
+    mvsub.check_cards(d)
+    if "--print" in argv:
+        sys.stdout.write("\n".join(d) + "\n")
+        return 0
+    n, pad, need = te08_cards()
+    sys.stdout.write("mvsrun: %s, %d cards, GCCMVS %s; GO reads %s, GO2 "
+                     "reads %d cards (%d bytes + %d pad) whose need is "
+                     "%d B\n" % (TE08_JOB, len(d), opt, TE08_NET,
+                                 (n + pad) // mvsbld.CARD, n, pad, need))
+    # Released before staging, then loaded: Hercules holds a loaded card
+    # file open, and Windows will not overwrite an open file (mvseng).
+    mvseng.console("devinit %s *" % mvseng.READER_DEV)
+    staged = mvseng.stage(TE08_CARDS)
+    mvseng.console("devinit %s %s eof" % (mvseng.READER_DEV, staged))
+    t0 = time.time()
+    out = submit_and_collect(d, TE08_JOB, 3600)
+    sys.stdout.write("mvsrun: %s finished in %.1f s\n"
+                     % (TE08_JOB, time.time() - t0))
+    sys.stdout.write("\n".join(mvsub.summarise(out)) + "\n")
+    for line in out.splitlines():
+        if mvseng.RESULT.search(line):
+            sys.stdout.write("  %s\n" % line.strip())
+    passed, lines = te08_verdict(out)
+    sys.stdout.write("\n=== FR-LOD-04 / TE-08 through ONFLYENG on MVS ===\n")
+    sys.stdout.write("\n".join(lines) + "\n")
+    sys.stdout.write("mvsrun: TE-08 %s\n" % ("PASS" if passed else "FAIL"))
+    return 0 if passed else 1
+
+
 def perf_context():
     """NFR-PERF-02's required accompaniment to any timing.
 
@@ -1489,7 +1634,7 @@ def main(argv):
     # it emits a deck to stdout and submits nothing.
     submits = any(f in argv for f in ("--req", "--run", "--buzz",
                                       "--install-net", "--install-eng",
-                                      "--install-drv"))
+                                      "--install-drv", "--te08"))
     if (submits and "--print" not in argv
             and "--no-window" not in argv):
         try:
@@ -1514,6 +1659,8 @@ def main(argv):
         return run_install(argv)
     if "--buzz" in argv:
         return run_buzz(argv)
+    if "--te08" in argv:
+        return run_te08(argv)
     if "--recover" in argv:
         return recover(argv)
     if "--report" in argv:

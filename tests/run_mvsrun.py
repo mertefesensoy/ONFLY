@@ -14,8 +14,8 @@ defect.  So the column limits, the delimiter collisions, the member-name
 rules and the link order are all checked here, where a failure costs a
 second and names itself.
 
-WHAT IS CHECKED, IN SIX GROUPS
-------------------------------
+WHAT IS CHECKED, IN SEVEN GROUPS
+--------------------------------
 **The decks, before emulated MVS sees them.**  Both pass
 `mvsub.check_cards` (80 columns, no card equal to the IEBUPDTE
 delimiter, JCL inside column 71).  `UNIT_MEMBERS` matches what
@@ -57,10 +57,19 @@ module global as a default argument (so `select()` changed half of what
 they did); a report filter whose `lstrip()` made two of its four
 prefixes unmatchable; and the additive keyword arguments on
 `mvsbld.build()` and `mvscob.deck()` altering an existing caller's deck.
+
+**The TE-08 job, `--te08` (P-45, D-567, D-568).**  It compiles exactly
+row 6's members; GO verifies the installed `srext` and GO2, after it,
+verifies from the card reader; the reader's network is
+`tests/run_dec.py`'s over-limit one, needing at most 12 bytes more than
+8M, written as whole cards; and the verdict passes only GO at 0000 with
+ONF003I before GO2 at 0012 with ONF105E, judged on listings built here.
 """
 import io
 import os
+import shutil
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -71,8 +80,10 @@ import mkreq                                          # noqa: E402
 import mvsbld                                         # noqa: E402
 import onfres                                         # noqa: E402
 import mvscob                                         # noqa: E402
+import mvseng                                         # noqa: E402
 import mvsrun                                         # noqa: E402
 import mvsub                                          # noqa: E402
+import run_dec                                        # noqa: E402
 
 PASS, FAIL = [0], [0]
 
@@ -495,6 +506,85 @@ def main():
     check("D-261 has teeth: a wrong chr field fails translated",
           bad["binary"] and not bad["translated"],
           "binary=%s translated=%s" % (bad["binary"], bad["translated"]))
+
+    # --- P-45 L4: the TE-08 job (FR-LOD-04, D-567, D-568) -----------------
+    #
+    # Everything about --te08 that would waste a TK5 run if it were wrong:
+    # the deck, the bytes it puts on the reader, and the verdict, judged on
+    # listings built here in the shape IEF142I prints.
+    sys.stdout.write("\n--- TE-08 through ONFLYENG on MVS (--te08) ---\n")
+    te = mvsrun.te08_deck()
+    try:
+        mvsub.check_cards(te)
+        why = ""
+    except Exception as exc:                          # noqa: BLE001
+        why = str(exc)
+    check("te08: deck passes check_cards", why == "", why)
+    check("te08: the job is ONFETE8", te[0].startswith("//ONFETE8 "),
+          te[0][:24])
+
+    def members(deck):
+        return [c.split("=", 1)[1] for c in deck
+                if c.startswith("./ ADD NAME=")]
+    check("te08: compiles exactly row 6's members, in its order",
+          members(te) == members(mvsrun.run_deck()),
+          "%d members" % len(members(te)))
+    go = step_cards(te, "GO")
+    go2 = step_cards(te, "GO2")
+    check("te08: GO is VERIFY over the installed srext (D-286)",
+          any("PARM='VERIFY'" in c for c in go)
+          and any(c.endswith("DSN=%s,DISP=SHR" % mvsrun.TE08_NET)
+                  for c in go),
+          mvsrun.TE08_NET)
+    check("te08: GO2 is VERIFY over the reader, after GO",
+          bool(go2) and "PARM='VERIFY'" in go2[0]
+          and "COND=(4,LT)" in go2[0]
+          and any("UNIT=%s" % mvseng.READER_UNIT in c for c in go2)
+          and any("RECFM=F,LRECL=80" in c for c in go2)
+          and bool(go) and te.index(go2[0]) > te.index(go[0]),
+          go2[0] if go2 else "no GO2 step")
+
+    data, need = mvsrun.te08_network()
+    check("te08: the reader's network needs just over 8M",
+          run_dec.MVS_MEMLIM < need <= run_dec.MVS_MEMLIM + 12,
+          "need %d against %d" % (need, run_dec.MVS_MEMLIM))
+    check("te08: it is run_dec's over-limit network, byte for byte",
+          data == run_dec.overlimit_network(run_dec.sample_network()),
+          "%d bytes" % len(data))
+    tmpd = tempfile.mkdtemp(prefix="onfly_te08_")
+    try:
+        cardfile = os.path.join(tmpd, "cards.bin")
+        n, pad, _ = mvsrun.te08_cards(cardfile)
+        with open(cardfile, "rb") as fh:
+            raw = fh.read()
+        check("te08: the card file is whole cards of that network",
+              len(raw) % 80 == 0 and raw[:n] == data
+              and raw[n:] == b"\0" * pad,
+              "%d bytes, %d cards" % (len(raw), len(raw) // 80))
+    finally:
+        shutil.rmtree(tmpd, ignore_errors=True)
+
+    def listing(go_cc, go2_cc, ok3=True, mem=True, swap=False):
+        a = ["IEF142I ONFETE8 GO - STEP WAS EXECUTED - COND CODE %s"
+             % go_cc, "ONF003I VERIFY-ONLY: NETWORK OK" if ok3 else ""]
+        b = ["IEF142I ONFETE8 GO2 - STEP WAS EXECUTED - COND CODE %s"
+             % go2_cc,
+             "ONF105E NETWORK EXCEEDS MEMORY LIMIT" if mem else ""]
+        return "\n".join(b + a if swap else a + b)
+
+    for label, text, want in (
+            ("admits srext, refuses the over-limit file",
+             listing("0000", "0012"), True),
+            ("GO2 at 0000: no limit was in force",
+             listing("0000", "0000", mem=False), False),
+            ("GO at 0012: the limit refused srext",
+             listing("0012", "0012", ok3=False), False),
+            ("ONF105E absent", listing("0000", "0012", mem=False), False),
+            ("messages in the wrong step order",
+             listing("0000", "0012", swap=True), False)):
+        got, _ = mvsrun.te08_verdict(text)
+        check("te08 verdict: %s" % label, got == want,
+              "%s (want %s)" % (got, want))
 
     sys.stdout.write("run_mvsrun: %d passed, %d failed\n"
                      % (PASS[0], FAIL[0]))
