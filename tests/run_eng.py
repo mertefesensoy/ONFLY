@@ -28,7 +28,17 @@ NFR-OBS-01 is checked separately: every field the requirement names must
 appear in the ONF002I block.  D-81's ONF905S path is checked too, because a
 run that simulates nothing must say so rather than report success.
 
-Run:  python tests/run_eng.py <path-to-onflyeng-executable>
+TE-08 goes through the program too (D-567).  FR-LOD-04's configured limit is
+the build constant ONF_MEMLIM, so each TE-08 case of tests/run_dec.py runs on
+an ONFLYENG built with -DONF_MEMLIM set to that case's limit, passed here as
+`--limit N=EXE`; a case with no such build FAILS rather than skipping.  The
+shipped build is checked against D-568 as well: on every platform this runs
+on the limit is 0, so a network whose header demands more than MVS's 8M
+must still verify.  That is the one TE-08 fact about the shipped binary an
+x86 or s390x host can observe; the MVS half is tools/mvsrun.py --te08.
+
+Run:  python tests/run_eng.py <onflyeng> <onflyeng-noreq>
+                              [--limit N=<onflyeng built at ONF_MEMLIM=N>]...
 Exit status 0 when every case behaves as specified, 1 otherwise.
 """
 import os
@@ -131,23 +141,46 @@ def kernel_absent(exe):
     return True
 
 
+def parse_args(argv):
+    """(exe, vexe, {limit: exe}) from the command line, or None if malformed.
+
+    Positional: the shipped ONFLYENG and, optionally, the -DONF_NOREQ
+    variant.  `--limit N=EXE`, repeatable: an ONFLYENG built with
+    -DONF_MEMLIM=N, for the TE-08 case whose limit is N (D-567).
+    """
+    pos, limexe = [], {}
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--limit":
+            if i + 1 >= len(argv) or "=" not in argv[i + 1]:
+                return None
+            n, path = argv[i + 1].split("=", 1)
+            if not n.isdigit():
+                return None
+            limexe[int(n)] = os.path.abspath(path)
+            i += 2
+        else:
+            pos.append(os.path.abspath(argv[i]))
+            i += 1
+    if len(pos) not in (1, 2):
+        return None
+    return pos[0], (pos[1] if len(pos) == 2 else None), limexe
+
+
 def main():
-    if len(sys.argv) not in (2, 3):
-        sys.stderr.write("usage: run_eng.py <onflyeng> [<onflyeng-noreq>]\n")
+    args = parse_args(sys.argv[1:])
+    if args is None:
+        sys.stderr.write("usage: run_eng.py <onflyeng> [<onflyeng-noreq>] "
+                         "[--limit N=<onflyeng>]...\n")
         return 2
-    exe = os.path.abspath(sys.argv[1])
-    if not os.path.exists(exe):
-        sys.stderr.write("run_eng: not found: %s\n" % exe)
-        return 2
+    exe, vexe, limexe = args
     # D-228: the -DONF_NOREQ variant, built with the request loop compiled
     # out.  Optional so that an invocation written before D-221 still runs,
     # but then the structural half reports itself as skipped rather than
     # passing on a binary it no longer holds for.
-    vexe = None
-    if len(sys.argv) == 3:
-        vexe = os.path.abspath(sys.argv[2])
-        if not os.path.exists(vexe):
-            sys.stderr.write("run_eng: not found: %s\n" % vexe)
+    for path in [exe] + ([vexe] if vexe else []) + list(limexe.values()):
+        if not os.path.exists(path):
+            sys.stderr.write("run_eng: not found: %s\n" % path)
             return 2
 
     good = run_dec.sample_network()
@@ -163,40 +196,57 @@ def main():
         return 0, 1
 
     try:
-        # --- FR-LOD-02 checks, replayed through the program ---------------
+        # --- FR-LOD-02 and FR-LOD-04 checks, replayed through the program --
         #
-        # run_dec's TE-08 cases vary the memory limit, which ONFLYENG does not
-        # expose: FR-LOD-04's limit is left unlimited because TBD-14 has not
-        # fixed the TK5 region, and inventing a number here would pre-empt it.
-        # They are skipped by name rather than silently dropped.
-        # (The reason printed below is kept word for word under P-44; it
-        # names TBD-14 as open, but D-116 closed TBD-14 at 8M on
-        # 2026-09-11, so the stated reason is stale.  D-548 exempts the
-        # skip itself until the owner decides whether ONFLYENG exposes
-        # FR-LOD-04's limit.)
+        # A TE-08 case carries its own memory limit.  FR-LOD-04's limit is
+        # the build constant ONF_MEMLIM (D-567), so the case runs on the
+        # ONFLYENG built at that limit, not on the shipped one; without that
+        # build the case fails, because a replay that quietly dropped it is
+        # how this check went unrun from D-78 to D-564.
         for name, data, limit, want in run_dec.cases(good):
+            use = exe
+            label = name
             if limit:
-                text, fatal = onfres.skipline(
-                    "eng/TE-08", "%s: TE-08 needs a memory limit ONFLYENG "
-                    "does not expose (TBD-14)" % name)
-                lines.append("  " + text)
-                bad += 1 if fatal else 0
-                continue
-            path = os.path.join(tmp, name.split()[0] + ".net")
+                use = limexe.get(limit)
+                label = "%s (ONF_MEMLIM=%d)" % (name, limit)
+                if use is None:
+                    a, b = check(label, False, "no ONFLYENG built with "
+                                 "-DONF_MEMLIM=%d was given (D-567)" % limit)
+                    ok += a
+                    bad += b
+                    continue
+            path = os.path.join(tmp, name.split()[0] + "_%d.net" % limit)
             with open(path, "wb") as fh:
                 fh.write(data)
 
-            rc, out = run(exe, ["VERIFY", path])
+            rc, out = run(use, ["VERIFY", path])
             msg = message(out)
             if want == 0:
                 wantmsg, wantrc = "ONF003I", RC_OK
             else:
                 wantmsg, wantrc = "ONF%03dE" % want, RC_INTEG
-            a, b = check(name, msg == wantmsg and rc == wantrc,
+            a, b = check(label, msg == wantmsg and rc == wantrc,
                          "msg=%s rc=%s (want %s rc=%d)"
                          % (msg, rc, wantmsg, wantrc))
             ok += a
             bad += b
+
+        # D-568: the shipped build's own limit.  Every host this script runs
+        # on (x86-64 Windows, Linux x86-64, Linux s390x) has ONF_MEMLIM 0, so
+        # a network demanding just over MVS's 8M must still verify here.  An
+        # ONF105E would mean the MVS limit had leaked onto this platform,
+        # which would refuse D-216's full network (330,443,656 B).
+        over = run_dec.overlimit_network(good)
+        path = os.path.join(tmp, "over.net")
+        with open(path, "wb") as fh:
+            fh.write(over)
+        rc, out = run(exe, ["VERIFY", path])
+        a, b = check("D-568 no limit off MVS (need %d)"
+                     % run_dec.need_bytes(over),
+                     message(out) == "ONF003I" and rc == RC_OK,
+                     "msg=%s rc=%s (want ONF003I rc=0)" % (message(out), rc))
+        ok += a
+        bad += b
 
         # --- the manifest, NFR-OBS-01 --------------------------------------
         path = os.path.join(tmp, "good.net")

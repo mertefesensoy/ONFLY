@@ -712,6 +712,16 @@ prep:
 # compiled out, so that TE-09's structural argument -- `nm` proves onfrun
 # absent, so it cannot have been called -- still has a binary it holds for.
 # That variant is also the only build that can emit ONF905S (D-227).
+#
+# D-567 makes FR-LOD-04's limit the build constant ONF_MEMLIM, so TE-08 goes
+# through the program on two more builds per backend, compiled with
+# -DONF_MEMLIM at tests/run_dec.py's two TE-08 limits and otherwise linked
+# exactly as the shipped build.  TE08LO and TE08HI must equal those limits;
+# if they drift, run_eng.py finds a case with no build and FAILS.
+# tests/run_plim.py first checks what onfplat.h gives every platform
+# (D-568, D-572), with this $(CC)'s preprocessor.
+TE08LO = 64
+TE08HI = 1048576
 ENGREQ = engine/src/onfdec.c engine/src/onfcrc.c engine/src/onffpc.c \
          engine/src/onffpr.c engine/src/onfker.c engine/src/onfrnd.c \
          engine/src/onfstm.c engine/src/onfreq.c generated/onfcom.c
@@ -720,6 +730,7 @@ ENGVFY = engine/src/onfdec.c engine/src/onfcrc.c engine/src/onffpc.c \
 
 eng: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c $(SF2CSRC) \
      generated/onf2cnm.h
+	$(PYTHON) tests/run_plim.py $(CC)
 	$(CC) $(CFLAGS) $(INC) -Isoftfloat -c \
 	  -o $(BUILD)/onflyeng.o engine/src/onflyeng.c
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/onflyeng_soft.exe \
@@ -730,8 +741,20 @@ eng: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c $(SF2CSRC) \
 	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/onflyengv_soft.exe \
 	  $(BUILD)/onflyengv.o $(ENGVFY) engine/src/onffps.c \
 	  softfloat/onfint.c $(SFSRCS) $(ONFSF)
+	$(CC) $(CFLAGS) -DONF_MEMLIM=$(TE08LO) $(INC) -Isoftfloat -c \
+	  -o $(BUILD)/onflyengl.o engine/src/onflyeng.c
+	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/onflyengl_soft.exe \
+	  $(BUILD)/onflyengl.o $(ENGREQ) engine/src/onffps.c \
+	  softfloat/onfint.c $(SFSRCS) $(ONFSF)
+	$(CC) $(CFLAGS) -DONF_MEMLIM=$(TE08HI) $(INC) -Isoftfloat -c \
+	  -o $(BUILD)/onflyengm.o engine/src/onflyeng.c
+	$(CC) $(SFFLAGS) $(INC) $(SFINC) -o $(BUILD)/onflyengm_soft.exe \
+	  $(BUILD)/onflyengm.o $(ENGREQ) engine/src/onffps.c \
+	  softfloat/onfint.c $(SFSRCS) $(ONFSF)
 	$(PYTHON) tests/run_eng.py $(BUILD)/onflyeng_soft.exe \
-	  $(BUILD)/onflyengv_soft.exe
+	  $(BUILD)/onflyengv_soft.exe \
+	  --limit $(TE08LO)=$(BUILD)/onflyengl_soft.exe \
+	  --limit $(TE08HI)=$(BUILD)/onflyengm_soft.exe
 	$(CC) $(CFLAGS) $(NATFLAGS) $(INC) -Isoftfloat -c \
 	  -o $(BUILD)/onflyengn.o engine/src/onflyeng.c
 	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/onflyeng_nat.exe \
@@ -742,8 +765,20 @@ eng: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c $(SF2CSRC) \
 	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/onflyengv_nat.exe \
 	  $(BUILD)/onflyengnv.o $(ENGVFY) engine/src/onffpn.c \
 	  softfloat/onfint.c
+	$(CC) $(CFLAGS) $(NATFLAGS) -DONF_MEMLIM=$(TE08LO) $(INC) -Isoftfloat \
+	  -c -o $(BUILD)/onflyengnl.o engine/src/onflyeng.c
+	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/onflyengl_nat.exe \
+	  $(BUILD)/onflyengnl.o $(ENGREQ) engine/src/onffpn.c \
+	  softfloat/onfint.c
+	$(CC) $(CFLAGS) $(NATFLAGS) -DONF_MEMLIM=$(TE08HI) $(INC) -Isoftfloat \
+	  -c -o $(BUILD)/onflyengnm.o engine/src/onflyeng.c
+	$(CC) $(SFFLAGS) $(NATFLAGS) $(INC) -o $(BUILD)/onflyengm_nat.exe \
+	  $(BUILD)/onflyengnm.o $(ENGREQ) engine/src/onffpn.c \
+	  softfloat/onfint.c
 	$(PYTHON) tests/run_eng.py $(BUILD)/onflyeng_nat.exe \
-	  $(BUILD)/onflyengv_nat.exe
+	  $(BUILD)/onflyengv_nat.exe \
+	  --limit $(TE08LO)=$(BUILD)/onflyengl_nat.exe \
+	  --limit $(TE08HI)=$(BUILD)/onflyengm_nat.exe
 	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -Isoftfloat -c \
 	  -o $(BUILD)/onflyeng2.o engine/src/onflyeng.c
 	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/onflyeng_2c.exe \
@@ -754,8 +789,20 @@ eng: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c $(SF2CSRC) \
 	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/onflyengv_2c.exe \
 	  $(BUILD)/onflyeng2v.o $(ENGVFY) engine/src/onffp2.c \
 	  softfloat/onfi32.c $(SF2CSRC)
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) -DONF_MEMLIM=$(TE08LO) $(INC) \
+	  -Isoftfloat -c -o $(BUILD)/onflyeng2l.o engine/src/onflyeng.c
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/onflyengl_2c.exe \
+	  $(BUILD)/onflyeng2l.o $(ENGREQ) engine/src/onffp2.c \
+	  softfloat/onfi32.c $(SF2CSRC)
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) -DONF_MEMLIM=$(TE08HI) $(INC) \
+	  -Isoftfloat -c -o $(BUILD)/onflyeng2m.o engine/src/onflyeng.c
+	$(CC) $(C2CFLAGS) $(SF2CFLAGS) $(INC) -o $(BUILD)/onflyengm_2c.exe \
+	  $(BUILD)/onflyeng2m.o $(ENGREQ) engine/src/onffp2.c \
+	  softfloat/onfi32.c $(SF2CSRC)
 	$(PYTHON) tests/run_eng.py $(BUILD)/onflyeng_2c.exe \
-	  $(BUILD)/onflyengv_2c.exe
+	  $(BUILD)/onflyengv_2c.exe \
+	  --limit $(TE08LO)=$(BUILD)/onflyengl_2c.exe \
+	  --limit $(TE08HI)=$(BUILD)/onflyengm_2c.exe
 
 # --- FR-BAT-01 STEP2 and TX-01: the request/response loop (D-221) ----------
 # Drives the Section 8.4 suite through ONFREQ -> ONFLYENG -> ONFRSP on every

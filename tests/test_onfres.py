@@ -132,8 +132,12 @@ def t_onfres():
     for check_id, drow in sorted(onfres.EXEMPT.items()):
         check("exemption %s cites a real A.1 row" % check_id,
               drow in rows, drow)
-    check("the table holds D-548's five checks and D-555's sixth",
-          len(onfres.EXEMPT) == 6, "%d entries" % len(onfres.EXEMPT))
+    # D-575 removed D-548's eng/TE-08: ONFLYENG exposes FR-LOD-04's limit
+    # since D-567, so TE-08 runs through the program and cannot be exempt.
+    check("the table holds D-548's four remaining checks and D-555's",
+          len(onfres.EXEMPT) == 5, "%d entries" % len(onfres.EXEMPT))
+    check("eng/TE-08 is no longer exempt (D-575)",
+          "eng/TE-08" not in onfres.EXEMPT, "")
 
 
 # --- onfres.unittest_main: unittest's own skips are counted too ------------

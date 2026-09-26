@@ -129,6 +129,49 @@ def repair_paycrc(data):
     return repair_hdrcrc(bytes(b))
 
 
+#: FR-LOD-04's configured limit on MVS 3.8j: TBD-14's 8M (D-116, D-568).
+#: Stated here, beside the TE-08 cases, and again in engine/include/onfplat.h;
+#: tests/run_plim.py compares the two, so neither can move alone.
+MVS_MEMLIM = 8388608
+
+
+def need_bytes(data):
+    """FR-LOD-04's requirement for a network file, by onfdec's own formula.
+
+    Term for term engine/src/onfdec.c's: rowptr (n + 1) u32, then per edge a
+    target (4) and a weight (8), per neuron u and g (8 + 8), the delay ring
+    (8 per neuron per slot) and four int32 arrays (16), and for a v1.1 table
+    its rates (4 each) and rows (8 per neuron per row).  Read from the header
+    only, as the engine reads it, so it holds for a file whose counts lie.
+    """
+    def g(field):
+        return struct.unpack_from(">I", data, L.NETHDR[field][1])[0]
+    n, e, delay, nbias = g("n"), g("e"), g("delay"), g("nbias")
+    return ((n + 1) * 4 + e * 4 + e * 8 + n * 8 + n * 8 + delay * n * 8
+            + n * 16 + nbias * 4 + nbias * n * 8)
+
+
+def overlimit_network(good, limit=MVS_MEMLIM):
+    """`good` with its edge count raised until FR-LOD-04's need exceeds `limit`.
+
+    TE-08 through the whole program (D-567).  Only the header's edge count
+    changes, and the header CRC is resealed, so checks 1 to 5 of FR-LOD-02
+    pass and the memory gate, which onfdec runs before the payload CRC, is
+    the first thing that can refuse the file.  The payload is untouched, so
+    where no limit is configured the file goes on to verify (ONF003I): the
+    inflated count is read only by onfldp, which verify-only mode never
+    reaches.  tests/run_eng.py uses it on x86 and tools/mvsrun.py --te08
+    sends the same bytes to MVS, so the file one platform refuses is the file
+    another admits.
+    """
+    short = limit + 1 - need_bytes(good)
+    if short <= 0:
+        return good
+    e = struct.unpack_from(">I", good, L.NETHDR["e"][1])[0]
+    e += (short + 11) // 12        # 12 bytes of need per edge
+    return repair_hdrcrc(patch(good, L.NETHDR["e"][1], struct.pack(">I", e)))
+
+
 def bias_row_offset(data):
     """Absolute offset of the compensating table's first f64 row."""
     off = struct.unpack_from(">I", data, L.NETHDR["offbias"][1])[0]
