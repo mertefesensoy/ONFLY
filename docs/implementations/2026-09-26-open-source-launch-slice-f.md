@@ -198,10 +198,46 @@ drosophila, hercules, mvs, s390x, softfloat, spiking-neural-network`;
 `delete_branch_on_merge` true; label `proposal` present. After the owner's
 upload, GraphQL `usesCustomOpenGraphImage` reads `true` (D-594).
 
-**Still to be shown at this commit**, and recorded below when it is: the
-full strict `make test` on the final commit; CI on the final commit; P-41's
-scans 11.1 to 11.3 and 11.13; the batch to `main` (D-583); then 11.6 and
-11.10 on `main`.
+**The full suite at `537ef72`** (x86-64 Windows, MinGW.org gcc 6.3.0,
+SOFT3E, SOFT2C and NATIVE; the four networks staged by `mingw32-make
+fixtures`, "all 4 networks present and verified against MANIFEST.json"):
+`ONFLY_NOSKIP=1 mingw32-make test` exit 0 in 655 s, `ONFLY test: 28 PASS,
+0 SKIP, 0 PENDING, 5 EXEMPT`, the green line D-575 expects. `run_gld` 20 of
+20 on each backend, `cmpgld: SOFT3E, NATIVE, SOFT2C agree on all 19 golden
+requests across 2 networks`, `run_req: 79 passed, 0 failed`,
+`test_strm: 304 passed, 0 failed`. The five EXEMPT lines are the standing
+table: `ic3270` twice (D-132), `names/regenerate-feather`,
+`test_varnt/feathers` and `test_signs/TestAgainstRealData` (D-545).
+
+**CI on the same commit:** run 36253917477 at `537ef72`, all four jobs
+success; `nonet-linux` (gcc 13.3.0) and `nonet-windows` (gcc 16.1.0) each
+`ONFLY test: 23 PASS, 0 SKIP, 0 PENDING, 2 EXEMPT`; `python-bare` with
+`third-party packages present: []` and no file failing; `name-guard`
+clean.
+
+**P-41 11.13** over this session's range `54121d6..HEAD`: 0 em dashes in
+the 20 files checked (the 17 this session adds, plus `CITATION.cff`,
+`CHANGELOG.md` and `data/README.md` as 11.13 names them), and 0 in the added
+SRS lines.
+
+**P-41 11.10, the local half:** `python tools/lint_name.py --self-test`
+gives 40 checks, 0 failed; `git config --get-all core.hooksPath` prints
+nothing and exits 1, so no hooks path is set. Its rejection test in a
+throwaway worktree needs `ONFLY_NAME_B64` (D-588).
+
+**P-41 11.1 to 11.3: NOT RUN at this commit.** D-588's file was absent at
+every read in this session (`C:\Users\senso\onfly-private` does not exist),
+so the scans have no token. The committed digest-based guard stands in:
+`--tree` clean over 1,112 tracked files and each commit message clean, both
+here and in CI.
+
+**Owner settings, read back at this commit** with `gh api`: private
+vulnerability reporting `{"enabled":false}`, `allowed_actions: all`, fork
+approval `first_time_contributors`, rulesets `[]`. None of D-584's
+owner-only settings reads as applied at this commit.
+
+**Still to be shown**, after this commit: the batch to `main` (D-583), then
+11.6 and CI on `main`.
 
 ## 7. Related docs
 
