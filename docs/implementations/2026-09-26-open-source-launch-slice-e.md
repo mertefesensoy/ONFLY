@@ -71,6 +71,15 @@ less than it knew:
 | `Makefile` | `NONET`, the 23 targets measured network-free in group 2; `test-nonet` and `quick` (`eng golden`), both through `tools/testrun.py` |
 | `tests/test_onfres.py` | Four checks holding `NONET` to `TESTS`' order and away from the five targets that need a network |
 
+### Group 5: E4, Linux x86-64
+
+| File | Change |
+|---|---|
+| `engine/include/onfplat.h` | One branch after JCC's, `defined(__linux__) && defined(__x86_64__)`, setting `ONF_PLATID` to `X86LINUX` (D-550); JCC's comment corrected from "last in the chain" to what stays true |
+| `Makefile` | `ONFPLAT=x86l`: the NR-09 native flags as on x86w, TestFloat out of tree, and `SFFLAGS += -std=gnu17` for gcc 15 (D-558); `c04` runs `tests/test_c04.py` before the lint |
+| `tools/lint_c04.py` | `is_elf()`, `linkage_name()` and `reserved()`: the COFF underscore stripped on COFF only, and C89 7.1.3's reserved class exempted whole (D-559) |
+| `tests/test_c04.py` | New. 23 checks, including that on COFF the new rule equals the old one |
+
 ## 3. Implementation approach
 
 ### Group 1
@@ -282,3 +291,56 @@ invariance]: 24 passed, 0 failed`.
 
 The three requirements files are exercised by group 7's fresh venvs, not
 here.
+
+### Group 5
+
+**The MVS evidence fixed in advance (P-41 E4, D-560).** Before the edit,
+with `onfplat.h` at SHA-256 `c144ec0b...` and unchanged from HEAD, a script
+recorded `gcc -E -P` of each of the 14 files in `engine/src` and
+`generated` under `-D__MVS__`, under `-U_WIN32 -U__WIN32__ -DJCC` (this
+host's gcc predefines `_WIN32`, which the chain tests before JCC), under
+`-D__s390x__` and under the x86w host's own defines, each with the
+Makefile's include set and flags for that unit, plus each unit's x86w
+object file. Two runs of it were identical. After the edit (`924a0540...`):
+
+    E jcc    14 of 14 identical
+    E mvs    14 of 14 identical
+    E s390x  14 of 14 identical
+    E x86w   14 of 14 identical
+    O x86w   14 of 14 identical
+    differing entries: none
+
+The preprocessor was MinGW gcc 6.3.0's. GCCMVS's and JCC's own were not
+run, and the owner decided (D-560) that rows 6 and 7 are not re-run.
+
+**Linux x86-64, a development run from the worktree** (this host's WSL2
+Ubuntu 26.04, gcc 15.2.0, GNU Make 4.4.1, Python 3.14.4 in the D-556 venv
+with `requirements.txt`: numpy 2.4.4, pandas 2.3.3, pyarrow 22.0.0).
+`make ONFPLAT=x86l testfloat` exits 0 in 121 s. Each target made alone:
+25 exit 0; `liclint` and `namelint` skip only because Linux git cannot read
+a Windows worktree's `.git` file (a real clone, in group 7, can); the
+golden suite passes on all three backends (`run_gld [SOFT3E backend]: 20
+passed, 0 failed`, the same for NATIVE and SOFT2C, G-16 `BAF81D91`, G-19
+`C4C320BC`). Two targets failed, and each became an owner decision:
+
+| Target | What gcc 15 on Linux did | Decision |
+|---|---|---|
+| `shim` | `softfloat/c89/stdbool.h:26:13: error: 'bool' cannot be defined via 'typedef'`: gcc 15 defaults to C23 | D-558, `-std=gnu17` on x86l |
+| `c04` | `GLOBAL_OFFSET_TABLE_ (20) is over 8 characters`: the lint stripped ELF's `_GLOBAL_OFFSET_TABLE_` as if it carried a COFF prefix | D-559, the lint reads ELF correctly |
+
+After both, on Linux: `make ONFPLAT=x86l c04` exit 0, `test_c04: 23 passed,
+0 failed`, `_GLOBAL_OFFSET_TABLE_ (21)` reported as an implementation name
+and `lint_c04: every external satisfies C-04`; `make ONFPLAT=x86l shim`
+exit 0 with `-std=gnu17` on the compile line, `run_fp [SOFT3E backend]:
+2427 passed, 0 failed`. On Windows the ELF-aware lint changes nothing:
+`c04` and `c04mvs` still examine 80 and 71 externals and pass.
+
+**x86w after the whole group:** `ONFLY_NOSKIP=1 mingw32-make test` exits 0
+in 588 s, `ONFLY test: 28 PASS, 0 SKIP, 0 PENDING, 11 EXEMPT`, no `ONFRES
+FAIL` line; the header change, the new platform block and the ELF-aware
+lint move nothing on the recorded platform.
+
+**A warning, not a failure:** gcc 15 warns `'~' on a boolean expression
+[-Wbool-operation]` at `softfloat/onfrpk.c:137`, a derived SoftFloat 3e
+file built without `-Werror`. It is upstream's arithmetic, derived by
+`softfloat/derive3e.py`, and not changed here.

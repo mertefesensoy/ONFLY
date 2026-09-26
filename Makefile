@@ -52,6 +52,8 @@ SFFLAGS = -O2 -Wall -Wno-unused-function -include generated/onf3enm.h
 #   x86w    x86-64 Windows, 32-bit mingw gcc   (the development host, D-29)
 #   s390x   Linux on z/Architecture, native gcc (Phase D, D-215)
 #             invoke as: make ONFPLAT=s390x CC=gcc PYTHON=python3
+#   x86l    Linux on x86-64, native gcc        (P-41 E4, D-550)
+#             invoke as: make ONFPLAT=x86l PYTHON=python3
 #
 # NR-09 admissibility of the native backend is what these flags encode, and
 # the two platforms need different spellings of the same three guarantees:
@@ -84,8 +86,24 @@ else ifeq ($(ONFPLAT),s390x)
 # run-time test so that a wrong answer here fails TU-02 immediately.
 NATFLAGS = -ffp-contract=off -DONF_FP_NATIVE
 
+else ifeq ($(ONFPLAT),x86l)
+# Linux on x86-64 (P-41 E4, D-550).  The same three NR-09 guarantees as
+# x86w.  A 64-bit gcc already uses SSE2 for `double`, so -msse2
+# -mfpmath=sse only states what x86w has to force; -ffp-contract=off is
+# the flag that matters, because x86-64 has FMA instructions gcc may
+# otherwise contract into.  Little-endian, so ONF_FP_LITTLE, as on x86w.
+# TestFloat is built out of tree by the `else` branch below, as for s390x.
+NATFLAGS = -msse2 -mfpmath=sse -ffp-contract=off -DONF_FP_NATIVE -DONF_FP_LITTLE
+#
+# D-558 (P-41 item 7).  SFFLAGS names no dialect, so SoftFloat compiles in
+# the compiler's default, and gcc 15 defaults to C23, where `bool` is a
+# keyword: the `shim` target's softfloat/c89/stdbool.h (`typedef int bool;`)
+# is then rejected.  gnu17 is the default of the gcc 13.3.0 that recorded
+# the s390x rows.  x86w and s390x keep SFFLAGS exactly as they were.
+SFFLAGS += -std=gnu17
+
 else
-$(error ONFPLAT is '$(ONFPLAT)'; expected one of: x86w s390x)
+$(error ONFPLAT is '$(ONFPLAT)'; expected one of: x86w s390x x86l)
 endif
 
 # D-121, D-124: the SOFT2C backend, Berkeley SoftFloat 2c's bits32 build.
@@ -389,6 +407,7 @@ c04: $(BUILD) $(GENERATED) $(IVEC) softfloat/onfsub.c
 	  engine/src/onfreq.c engine/src/onfcics.c \
 	  softfloat/onfint.c \
 	  $(SFSRCS) $(ONFSF)
+	$(PYTHON) tests/test_c04.py
 	$(PYTHON) tools/lint_c04.py --enforce-all $(BUILD)/obj
 
 # --- C-04 on the objects that actually go to MVS (D-111) ------------------

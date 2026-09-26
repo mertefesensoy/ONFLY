@@ -43,8 +43,44 @@ DEFINED = set("TDBRSC")
 UNDEFINED = set("U")
 
 
+def is_elf(path):
+    """True when `path` is an ELF object, judged by its magic bytes.
+
+    D-559: the one-underscore prefix stripped below is a COFF convention
+    (mingw32).  ELF objects, on Linux x86-64 and s390x, carry the C name
+    unprefixed, so stripping there misreads a name.
+    """
+    try:
+        with open(path, "rb") as fh:
+            return fh.read(4) == b"\x7fELF"
+    except OSError:
+        return False
+
+
+def linkage_name(name, elf):
+    """The identifier as C wrote it: COFF's ABI underscore removed, on COFF only."""
+    if not elf and name.startswith("_") and not name.startswith("__"):
+        return name[1:]
+    return name
+
+
+def reserved(name):
+    """True for a name C89 7.1.3 reserves to the implementation for any use.
+
+    That is a name beginning with two underscores (libgcc's __udivdi3, the
+    stack protector's __stack_chk_fail) or with an underscore and an
+    upper-case letter (the ELF linker's _GLOBAL_OFFSET_TABLE_).  No C
+    program may define one, so C-04 has nothing to say about it (D-559).
+    On COFF a C name of the second kind appears as `__X...`, so there the
+    rule is exactly the two-underscore rule it replaces.
+    """
+    return name.startswith("__") or (
+        len(name) > 1 and name[0] == "_" and name[1].isupper())
+
+
 def nm_symbols(path):
     """Return (name, type) for every external symbol in an object file."""
+    elf = is_elf(path)
     try:
         out = subprocess.check_output(["nm", path], stderr=subprocess.STDOUT)
     except (OSError, subprocess.CalledProcessError) as exc:
@@ -71,9 +107,9 @@ def nm_symbols(path):
             continue
         # mingw32 and other COFF targets prefix externals with an underscore;
         # it is an ABI artifact, not part of the identifier the linkage editor
-        # would see, so it is stripped before measuring.
-        if name.startswith("_") and not name.startswith("__"):
-            name = name[1:]
+        # would see, so it is stripped before measuring -- on COFF only
+        # (D-559): ELF has no such prefix.
+        name = linkage_name(name, elf)
         if not name:
             continue
         # The ORIGINAL case is kept.  nm spells a global symbol with an
@@ -175,9 +211,11 @@ def main(argv):
         # about them and renaming them is not possible.  They are not
         # ignored elsewhere: VL-21 records that PDPCLIB supplies neither,
         # measured by linking an EXTRN against PDPCLIB.NCALIB.
+        # D-559 widens "two underscores" to C89 7.1.3's whole reserved
+        # class, so that ELF's _GLOBAL_OFFSET_TABLE_ is read for what it is.
         glob = set(n for n, types in seen.items()
                    if any(t.isupper() for t in types)
-                   and not n.startswith("__"))
+                   and not reserved(n))
         bad_names = sorted(n for n in glob if len(n) > MVS_MAX)
         bad_groups = {k: v for k, v in collisions.items()
                       if len([n for n in v if n in glob]) > 1}

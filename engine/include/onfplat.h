@@ -81,11 +81,20 @@ typedef char onf_assert_twoc[(((onf_u32)-1) == 0xFFFFFFFFUL) ? 1 : -1];
  * That inference is sound HERE and nowhere in general: JCC is a
  * cross-compiler, and this branch is true only because the one target
  * ONFLY ever builds with it is MVS 3.8j on TK5 (A-04, Section 8.3
- * row 7).  Point JCC at another target and this line would lie.  It is
- * last in the chain so that any platform with a real macro of its own
- * is matched by that macro first.
+ * row 7).  Point JCC at another target and this line would lie.  It
+ * follows the three branches above, which key on real platform macros,
+ * so that any of those platforms is matched by its own macro first.
  */
 #define ONF_PLATID "MVS38J"
+#elif defined(__linux__) && defined(__x86_64__)
+/*
+ * Linux on x86-64 (P-41 E4, D-550), built with ONFPLAT=x86l.  Without
+ * this branch the manifest printed UNKNOWN there, the D-291 failure.
+ * It is placed after JCC's branch so that the chain every existing
+ * target reads is unchanged: MVS, JCC, s390x and the x86w host all
+ * resolve before reaching it, and JCC defines no __linux__.
+ */
+#define ONF_PLATID "X86LINUX"
 #else
 #define ONF_PLATID "UNKNOWN"
 #endif
