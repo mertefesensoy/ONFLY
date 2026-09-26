@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/mertefesensoy/ONFLY/discussions
+    about: Questions go to GitHub Discussions (SRS D-580).
+  - name: Report a security vulnerability
+    url: https://github.com/mertefesensoy/ONFLY/security/advisories/new
+    about: Privately, through private vulnerability reporting, as SECURITY.md says.

@@ -1,0 +1,35 @@
+name: Proposal
+description: Propose a change to ONFLY's behaviour, a requirement or a recorded result.
+labels: ["proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ONFLY is run from its specification, docs/ONFLY-SRS.md. The owner
+        makes every decision: a proposal may be recorded as a P-row
+        (Appendix A.2) and decided as a D-row (Appendix A.1). Contributors
+        never write D-rows. CONTRIBUTING.md says more.
+  - type: textarea
+    id: change
+    attributes:
+      label: The change
+      description: What you propose, stated so that it could be tested.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: The problem it solves, and the evidence for it.
+    validations:
+      required: true
+  - type: input
+    id: ids
+    attributes:
+      label: Requirement IDs, decisions or limits affected
+      placeholder: FR-SIM-06, D-138, VL-43, ...
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways to reach the same end, and why this one.

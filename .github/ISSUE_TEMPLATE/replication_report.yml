@@ -1,0 +1,72 @@
+name: Replication report
+description: Your results from running ONFLY's tests, whether they match or not.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for replicating. REPLICATING.md lists what can be re-run
+        and what each rung proves. A report is a candidate for the
+        determinism matrix (SRS Section 8.3), never an entry by itself: the
+        owner decides whether and how a new platform enters it. Results that
+        do not match are as useful as results that do.
+  - type: input
+    id: commit
+    attributes:
+      label: Commit
+      description: The output of `git rev-parse HEAD`.
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and version
+    validations:
+      required: true
+  - type: input
+    id: abi
+    attributes:
+      label: Architecture and ABI
+      placeholder: x86-64 LP64; i686 mingw32; aarch64; ...
+    validations:
+      required: true
+  - type: input
+    id: compiler
+    attributes:
+      label: Compiler and version
+    validations:
+      required: true
+  - type: input
+    id: backends
+    attributes:
+      label: Float backends run
+      placeholder: SOFT3E, SOFT2C, NATIVE
+    validations:
+      required: true
+  - type: textarea
+    id: networks
+    attributes:
+      label: Network SHA-256
+      description: The output of `python tools/fixtures.py --check`, or the SHA-256 of each network file you used.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: fingerprints
+    attributes:
+      label: Fingerprints for G-01 to G-19
+      description: The fingerprint of each Section 8.4 golden request you ran, one per line, with its ID.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: testline
+    attributes:
+      label: make test closing line
+      description: "The `ONFLY test: ...` line, with its SKIP count. Say whether ONFLY_NOSKIP=1 was set."
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Differences from REPLICATING.md, wall-clock times, anything that surprised you.

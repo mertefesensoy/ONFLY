@@ -1,0 +1,77 @@
+cff-version: 1.2.0
+message: >-
+  If you use ONFLY, please cite it as below, with the commit you used, and
+  cite the connectome and the model it builds on, listed under references.
+title: ONFLY
+type: software
+authors:
+  - family-names: Şensoy
+    given-names: Mert Efe
+repository-code: "https://github.com/mertefesensoy/ONFLY"
+license: MIT
+abstract: >-
+  ONFLY simulates the sugar-to-feeding circuit of the male fruit fly: a
+  501-neuron subcircuit taken from the MaleCNS v1.0 connectome, run with the
+  leaky integrate-and-fire model of Shiu et al. (2024) in a portable C89
+  engine with a COBOL batch driver. ONFLY has not run on IBM Z hardware, and
+  the project does not have IBM Z access yet: every s390x and MVS result
+  comes from emulators (QEMU and Hercules) on one x86-64 laptop. The MIT
+  licence in LICENSE covers ONFLY's own files. The paths listed in
+  THIRD_PARTY_NOTICES.md are under their own terms, which govern those
+  files, including SoftFloat 2c (not BSD; use restriction and indemnity),
+  MaleCNS-derived data (CC BY 4.0) and the FlyWire-derived material (whose
+  status is open, see section 6 of THIRD_PARTY_NOTICES.md).
+references:
+  - type: article
+    authors:
+      - family-names: Berg
+        given-names: S.
+      - name: et al.
+    title: >-
+      Sexual dimorphism in the complete Drosophila male central nervous
+      system connectome
+    journal: Cell
+    volume: 189
+    start: 5504
+    end: "5526.e15"
+    year: 2026
+    doi: 10.1016/j.cell.2026.08.015
+  - type: article
+    authors:
+      - family-names: Shiu
+        given-names: P. K.
+      - name: et al.
+    title: >-
+      A Drosophila computational brain model reveals sensorimotor
+      processing
+    journal: Nature
+    volume: 634
+    start: 210
+    end: 219
+    year: 2024
+  - type: article
+    authors:
+      - family-names: Dorkenwald
+        given-names: S.
+      - name: et al.
+    title: Neuronal wiring diagram of an adult brain
+    journal: Nature
+    volume: 634
+    start: 124
+    end: 138
+    year: 2024
+    doi: 10.1038/s41586-024-07558-y
+  - type: article
+    authors:
+      - family-names: Schlegel
+        given-names: P.
+      - name: et al.
+    title: >-
+      Whole-brain annotation and multi-connectome cell typing of
+      Drosophila
+    journal: Nature
+    volume: 634
+    start: 139
+    end: 152
+    year: 2024
+    doi: 10.1038/s41586-024-07686-5

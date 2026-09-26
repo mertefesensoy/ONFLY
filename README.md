@@ -81,9 +81,10 @@ demonstration cannot be reproduced from this repository at all, because the
 transaction monitor it runs under, INTERCOMM, is under a non-commercial
 licence and is kept out of this tree.
 
-Tested platforms: x86-64 Windows 11 with 32-bit MinGW gcc 6.3.0; Linux s390x
-(Ubuntu 24.04, gcc 13.3.0) under QEMU; MVS 3.8j under SDL Hercules 4.9.1 with
-GCCMVS and JCC. Linux on x86-64, macOS and arm64 are untested.
+Tested platforms: x86-64 Windows 11 with 32-bit MinGW gcc 6.3.0; Linux x86-64
+(Ubuntu 26.04 under WSL2, gcc 15.2.0; SRS VL-140); Linux s390x (Ubuntu 24.04,
+gcc 13.3.0) under QEMU; MVS 3.8j under SDL Hercules 4.9.1 with GCCMVS and
+JCC. macOS and arm64 are untested.
 
 ## Limits
 
@@ -193,8 +194,9 @@ Commits carry the owner's name alone (D-478).
 
 ## Citing
 
-Until a citation file and an archived release exist, please cite the
-repository, https://github.com/mertefesensoy/ONFLY, with the commit you used,
-and cite the work it builds on: the MaleCNS connectome (Berg, S. et al.,
-*Cell* 189:5504-5526.e15, 2026, doi:10.1016/j.cell.2026.08.015) and the model
-(Shiu, P. K. et al., *Nature* 634:210-219, 2024).
+Please cite ONFLY as its citation file, [`CITATION.cff`](CITATION.cff), gives
+it (GitHub shows it as "Cite this repository"), with the commit you used; no
+release is archived yet. Cite the work it builds on too: the MaleCNS
+connectome (Berg, S. et al., *Cell* 189:5504-5526.e15, 2026,
+doi:10.1016/j.cell.2026.08.015) and the model (Shiu, P. K. et al., *Nature*
+634:210-219, 2024).

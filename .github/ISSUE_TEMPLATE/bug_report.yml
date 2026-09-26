@@ -1,0 +1,70 @@
+name: Bug report
+description: Something ONFLY does wrong on a platform you ran it on.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting. A security problem goes through private
+        vulnerability reporting instead, as SECURITY.md says, never here.
+        A question goes to Discussions.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands run
+      description: The exact commands, from a clean checkout if you can.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Commit
+      description: The output of `git rev-parse HEAD`.
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: Operating system, version and architecture.
+      placeholder: Windows 11 x86-64; Ubuntu 24.04 x86-64; ...
+    validations:
+      required: true
+  - type: input
+    id: compiler
+    attributes:
+      label: Compiler and version
+      description: The output of `gcc --version` (first line), or your compiler's equivalent.
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Float backend
+      options:
+        - SOFT3E
+        - SOFT2C
+        - NATIVE
+        - More than one
+        - Not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: messages
+    attributes:
+      label: ONF messages
+      description: Every ONFnnn message the run printed, with its return code.
+      render: text
+  - type: input
+    id: testline
+    attributes:
+      label: make test closing line
+      description: "The `ONFLY test: ... PASS, ... SKIP, ... PENDING, ... EXEMPT` line, if you ran the tests."
