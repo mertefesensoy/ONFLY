@@ -118,8 +118,11 @@
  * Engine version.  Reported by the manifest so that a recorded result names
  * the engine that produced it (NFR-OBS-01).  Bumped by hand, deliberately:
  * it identifies a build of the engine, not of the network format.
+ * 0.5.1 (D-573): FR-LOD-04's configured limit, ONF_MEMLIM, is passed to
+ * onfdec, so on MVS 3.8j a network needing more than 8M is refused with
+ * ONF105E.
  */
-#define ONF_ENGVER "0.5.0"
+#define ONF_ENGVER "0.5.1"
 
 /*
  * Compiler identification for the manifest.
@@ -1041,11 +1044,15 @@ int main(int argc, char **argv)
 
     /*
      * FR-LOD-04 requires the memory check to happen before allocation, from
-     * the header counts.  A limit of 0 means unlimited: TBD-14 has not yet
-     * fixed the TK5 region, so imposing a number here would be inventing one.
+     * the header counts, against the configured limit.  That limit is
+     * ONF_MEMLIM from onfplat.h (D-567): TBD-14's 8M on MVS 3.8j (D-116,
+     * D-568) and 0, no limit, elsewhere.  Until D-564 this passed a literal
+     * 0 everywhere, on the stated ground that TBD-14 was open, although
+     * D-116 had closed it; ONF105E was then reachable only in the decoder
+     * tests and never through this program (TE-08).
      */
     need = 0;
-    rc = onfdec(buf, len, 0, &net, &need);
+    rc = onfdec(buf, len, ONF_MEMLIM, &net, &need);
     if (rc != ONFD_OK) {
         printf("ONF%03dE %s\n", rc, onfemsg(rc));
         free(buf);

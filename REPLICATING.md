@@ -42,13 +42,11 @@ QEMU and Hercules, on one x86-64 laptop.
 
 PASS counts make targets; SKIP, PENDING and EXEMPT count checks that did not
 run. **Run with `ONFLY_NOSKIP=1`** to turn every skip into a failure, so that
-a missing package or file cannot pass quietly. Eleven checks are exempt,
+a missing package or file cannot pass quietly. Five checks are exempt,
 because a decision keeps what they need out of every clone (SRS D-548,
-D-555): two need the INTERCOMM subsystem that D-132 keeps out of this MIT
-tree; three need MaleCNS source files, which are not distributed (D-545);
-and six are TE-08's whole-program replay on the three backends, which needs
-a memory limit ONFLYENG does not expose. They print as EXEMPT and are
-listed at the end of every run.
+D-555, D-575): two need the INTERCOMM subsystem that D-132 keeps out of this
+MIT tree, and three need MaleCNS source files, which are not distributed
+(D-545). They print as EXEMPT and are listed at the end of every run.
 
 ## The ladder
 

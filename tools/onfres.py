@@ -61,11 +61,9 @@ EXEMPT = {
     # only as "OK (skipped=1)".  Needs the 43,282,834 B neurotransmitters
     # feather.
     "test_signs/TestAgainstRealData": "D-545",
-    # TE-08 through the whole program needs ONFLYENG to expose FR-LOD-04's
-    # limit, which it does not; D-548 exempts the replay until the owner
-    # decides whether it should.  The decoder-level TE-08 cases in
-    # tests/run_dec.py run and pass.
-    "eng/TE-08": "D-548",
+    # D-548's sixth entry, eng/TE-08, was removed by D-575: ONFLYENG exposes
+    # FR-LOD-04's limit as ONF_MEMLIM since D-567, so TE-08 runs through the
+    # whole program in tests/run_eng.py and has nothing left to be exempt for.
 }
 
 

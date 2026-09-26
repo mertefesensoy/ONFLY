@@ -65,9 +65,18 @@ typedef char onf_assert_twoc[(((onf_u32)-1) == 0xFFFFFFFFUL) ? 1 : -1];
  *
  * ONF_PLATID is reported to SYSPRINT so that every recorded result names the
  * platform it actually ran on.  Keep it to 8 characters or fewer.
+ *
+ * ONF_ISMVS is set in exactly the branches that name MVS38J, and the two
+ * machine-dependent sizes below key on it rather than on macros of their own
+ * (D-572).  Before that, ONF_MAXPAY tested __MVS__ and __CMS__ alone, so a
+ * JCC build, which predefines neither (D-291), printed PLATFORM MVS38J and
+ * used a development host's bound.  One test, made once, cannot disagree
+ * with itself.  CMS has shared the MVS branch since D-147; no ONFLY build has
+ * targeted it.
  * ------------------------------------------------------------------------ */
 #if defined(__MVS__) || defined(__CMS__)
 #define ONF_PLATID "MVS38J"
+#define ONF_ISMVS 1
 #elif defined(__s390x__) || defined(__s390__)
 #define ONF_PLATID "S390X"
 #elif defined(_WIN32) || defined(__WIN32__)
@@ -86,6 +95,7 @@ typedef char onf_assert_twoc[(((onf_u32)-1) == 0xFFFFFFFFUL) ? 1 : -1];
  * so that any of those platforms is matched by its own macro first.
  */
 #define ONF_PLATID "MVS38J"
+#define ONF_ISMVS 1
 #elif defined(__linux__) && defined(__x86_64__)
 /*
  * Linux on x86-64 (P-41 E4, D-550), built with ONFPLAT=x86l.  Without
@@ -115,7 +125,8 @@ typedef char onf_assert_twoc[(((onf_u32)-1) == 0xFFFFFFFFUL) ? 1 : -1];
  * MVS and CMS keep D-147's 64 MB unchanged.  There the guard is real: C-01
  * gives the region single-digit megabytes (TBD-14 measured 8M on TK5), so a
  * declared length of any size is a transport accident and an unchecked
- * allocation is the worst way to discover it.
+ * allocation is the worst way to discover it.  Under JCC too since D-572:
+ * until then this tested __MVS__ and __CMS__, which JCC does not define.
  *
  * Elsewhere the bound is 512 MB.  D-216 requires TX-01 and TX-02 to run
  * against the full MaleCNS network, whose payload is about 299 MB
@@ -123,10 +134,41 @@ typedef char onf_assert_twoc[(((onf_u32)-1) == 0xFFFFFFFFUL) ? 1 : -1];
  * refused to read it at all.  512 MB admits that network with room to spare
  * while still being far below a value that would exhaust a development host.
  * ------------------------------------------------------------------------ */
-#if defined(__MVS__) || defined(__CMS__)
+#ifdef ONF_ISMVS
 #define ONF_MAXPAY 67108864L
 #else
 #define ONF_MAXPAY 536870912L
+#endif
+
+/* ------------------------------------------------------------------------
+ * FR-LOD-04's configured limit, in bytes (D-567, D-568).
+ *
+ * ONFLYENG refuses with ONF105E, before allocating, a network whose decoded
+ * form and simulation state need more than this; onfdec computes the need
+ * from the header counts.  0 means no limit.
+ *
+ * On MVS 3.8j it is 8M, TBD-14's region (D-116), which is also the REGION=
+ * every job that runs ONFLYENG asks for (tools/mvsbld.py).  It is what a
+ * job may ask for, not what a program can obtain, so a network just under
+ * it can still fail when it is allocated; the two networks TK5 runs need
+ * 255,688 B (srext) and 1,104,340 B (path).
+ *
+ * Elsewhere there is none: D-216 decodes the full MaleCNS network on x86-64
+ * and s390x, whose need is 330,443,656 B, and NFR-MEM-01 is a TK5
+ * requirement.  The 0 is spelled as the literal it replaced, so a build
+ * with no limit preprocesses to the text it did before.
+ *
+ * A build may set it with -DONF_MEMLIM=n.  That is how TE-08 runs through
+ * the whole program: the Makefile's eng target builds ONFLYENG at the two
+ * limits tests/run_dec.py's TE-08 cases name.  tests/run_plim.py checks
+ * this block on every platform.
+ * ------------------------------------------------------------------------ */
+#ifndef ONF_MEMLIM
+#ifdef ONF_ISMVS
+#define ONF_MEMLIM 8388608L
+#else
+#define ONF_MEMLIM 0
+#endif
 #endif
 
 #endif /* ONFPLAT_H */
