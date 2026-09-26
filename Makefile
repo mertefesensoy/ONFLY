@@ -70,6 +70,13 @@ ifeq ($(ONFPLAT),x86w)
 # the binary64 bit pattern in big-endian order first and swaps it into host
 # order, so the mapping is stated rather than inherited (IR-NET-01).
 NATFLAGS = -msse2 -mfpmath=sse -ffp-contract=off -DONF_FP_NATIVE -DONF_FP_LITTLE
+#
+# D-596.  SFFLAGS names no dialect, and a MinGW gcc new enough to default to
+# C23 (gcc 16.1.0 in MSYS2, met by CI) rejects the `shim` target's
+# softfloat/c89/stdbool.h, as D-558 found for x86l.  gnu11 is the default of
+# the recorded MinGW.org gcc 6.3.0, which does not know gnu17, and all 22
+# files built with SFFLAGS are byte-identical there with and without it.
+SFFLAGS += -std=gnu11
 
 else ifeq ($(ONFPLAT),s390x)
 # z/Architecture has no x87 and no extended-precision accumulator, so there is
@@ -99,7 +106,8 @@ NATFLAGS = -msse2 -mfpmath=sse -ffp-contract=off -DONF_FP_NATIVE -DONF_FP_LITTLE
 # the compiler's default, and gcc 15 defaults to C23, where `bool` is a
 # keyword: the `shim` target's softfloat/c89/stdbool.h (`typedef int bool;`)
 # is then rejected.  gnu17 is the default of the gcc 13.3.0 that recorded
-# the s390x rows.  x86w and s390x keep SFFLAGS exactly as they were.
+# the s390x rows.  s390x keeps SFFLAGS exactly as it was; x86w gains
+# -std=gnu11 for the same fault (D-596).
 SFFLAGS += -std=gnu17
 
 else
